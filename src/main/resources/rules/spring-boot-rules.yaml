@@ -1,0 +1,483 @@
+rules:
+
+  # ────────────────────────────────────────────────
+  # Section 1: Application Context and Startup Errors
+  # ────────────────────────────────────────────────
+
+  - id: "1.1"
+    name: "ApplicationContextException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      bannerDescriptionContains: "Unable to start web server"
+    diagnosis: "The application context failed to start; this is a wrapper exception and the real cause is in the innermost Caused by line below the banner."
+    fix: "Scroll to the deepest Caused by in the log and jump to the matching section in the guide; the top-level ApplicationContextException is always a wrapper."
+    confidence: HIGH
+    fixture: "fixtures/1.1-application-context-exception.log"
+    status: TODO
+
+  - id: "1.2"
+    name: "BeanDefinitionStoreException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "BeanDefinitionStoreException"
+    diagnosis: "Spring could not parse a @Configuration class or @PropertySource, usually because of a bad @Import or a class reference that does not exist."
+    fix: "Check recently edited @Configuration classes and any @PropertySource or @Import annotations for missing or misspelled class references."
+    confidence: HIGH
+    fixture: "fixtures/1.2-bean-definition-store.log"
+    status: TODO
+
+  - id: "1.3"
+    name: "BeanCreationException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "BeanCreationException"
+      messageContains: "Error creating bean with name"
+    diagnosis: "Spring found the bean but failed during instantiation or wiring for the reason shown in the nested exception."
+    fix: "Read the nested Caused by to find whether the failure is an unresolved dependency, a @Value placeholder, or a constructor exception, then fix that root cause."
+    confidence: MEDIUM
+    fixture: "fixtures/1.3-bean-creation.log"
+    status: TODO
+
+  - id: "1.4"
+    name: "BeanInstantiationException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "BeanInstantiationException"
+      messageContains: "No default constructor found"
+    diagnosis: "Spring cannot instantiate a bean because it has no default constructor or the constructor threw an exception."
+    fix: "Add a no-arg constructor, or move risky initialisation logic into a @PostConstruct method where exceptions are easier to trace."
+    confidence: HIGH
+    fixture: "fixtures/1.4-bean-instantiation.log"
+    status: TODO
+
+  - id: "1.5"
+    name: "BeanDefinitionOverrideException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "BeanDefinitionOverrideException"
+      messageContains: "could not be registered"
+    diagnosis: "Two beans are registered under the same name, which is disallowed by default in Spring Boot 2.1+."
+    fix: "Rename one bean with @Bean(\"uniqueName\") or remove the duplicate definition; avoid spring.main.allow-bean-definition-overriding=true as it hides real conflicts."
+    confidence: HIGH
+    fixture: "fixtures/1.5-bean-definition-override.log"
+    status: TODO
+
+  - id: "1.8"
+    name: "Port already in use"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      bannerDescriptionContains: "Port"
+      messageContains: "already in use"
+    diagnosis: "Another process is already listening on the configured port, so the embedded server cannot bind."
+    fix: "Run 'lsof -i :8080' (or the relevant port) to find and kill the other process, or change the port with server.port=8081 in application.properties."
+    confidence: HIGH
+    fixture: "fixtures/1.8-port-in-use.log"
+    status: TODO
+
+  - id: "1.9"
+    name: "No active profile"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "No active profile set, falling back to default profiles"
+    diagnosis: "No Spring profile is active, so profile-specific configuration files and @Profile-gated beans are not loaded."
+    fix: "Set spring.profiles.active=yourprofile in application.properties, via SPRING_PROFILES_ACTIVE environment variable, or with -Dspring.profiles.active=yourprofile as a JVM argument."
+    confidence: HIGH
+    fixture: "fixtures/1.9-no-active-profile.log"
+    status: TODO
+
+  - id: "1.10"
+    name: "Failed to load ApplicationContext (tests)"
+    phases: [TEST]
+    taps: [TEST_CONSOLE]
+    signals:
+      causedByClass: "IllegalStateException"
+      messageContains: "Failed to load ApplicationContext"
+    diagnosis: "The test application context could not be built; read the nested exception for the root cause."
+    fix: "Provide missing collaborators via @MockitoBean, narrow the test slice with @WebMvcTest or @DataJpaTest, or use a full @SpringBootTest if all beans are genuinely needed."
+    confidence: HIGH
+    fixture: "fixtures/1.10-failed-to-load-context.log"
+    status: TODO
+
+  - id: "1.12"
+    name: "Auto-configuration not applied"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      messageContains: "UserDetailsService bean"
+    diagnosis: "A Spring Boot auto-configuration was not applied because the required starter dependency is missing from the classpath."
+    fix: "Add the missing starter (e.g. spring-boot-starter-data-jpa or spring-boot-starter-web) and re-run; use --debug to print the auto-configuration report and confirm."
+    confidence: MEDIUM
+    fixture: "fixtures/1.12-autoconfiguration-missing.log"
+    status: TODO
+
+  - id: "1.13"
+    name: "BeanCurrentlyInCreationException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "BeanCurrentlyInCreationException"
+    diagnosis: "A circular dependency was detected during startup; beans depend on each other in a cycle that Spring cannot resolve."
+    fix: "Break the cycle by extracting shared logic into a third bean; as a last resort use @Lazy on one injection point, or spring.main.allow-circular-references=true only while debugging."
+    confidence: HIGH
+    fixture: "fixtures/1.13-circular-dependency.log"
+    status: TODO
+
+  # ─────────────────────────────────────
+  # Section 2: Dependency Injection Errors
+  # ─────────────────────────────────────
+
+  - id: "2.1"
+    name: "NoSuchBeanDefinitionException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "NoSuchBeanDefinitionException"
+      messageContains: "required a bean of type"
+    diagnosis: "Spring cannot find a bean of the required type because no class with that type is registered in the application context."
+    fix: "Annotate the class with @Service, @Component, or @Repository, or declare it as an @Bean; confirm it lives inside the package tree rooted at your @SpringBootApplication class."
+    confidence: HIGH
+    fixture: "fixtures/2.1-no-such-bean.log"
+    status: TODO
+
+  - id: "2.2"
+    name: "NoUniqueBeanDefinitionException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "NoUniqueBeanDefinitionException"
+      messageContains: "required a single bean, but"
+    diagnosis: "More than one bean matches the injection type and Spring cannot choose between them."
+    fix: "Mark one implementation @Primary, or use @Qualifier(\"beanName\") at the injection point to specify which one you want."
+    confidence: HIGH
+    fixture: "fixtures/2.2-no-unique-bean.log"
+    status: TODO
+
+  - id: "2.3"
+    name: "UnsatisfiedDependencyException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "UnsatisfiedDependencyException"
+    diagnosis: "A bean has an unsatisfied dependency; read the nested exception to find whether the dependency is missing or ambiguous."
+    fix: "Resolve the nested NoSuchBeanDefinitionException or NoUniqueBeanDefinitionException shown in the Caused by chain."
+    confidence: MEDIUM
+    fixture: "fixtures/2.3-unsatisfied-dependency.log"
+    status: TODO
+
+  - id: "2.7"
+    name: "Circular dependency"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "The dependencies of some of the beans in the application context form a cycle"
+    diagnosis: "Beans in the application context depend on each other in a cycle that Spring cannot resolve with constructor injection."
+    fix: "Refactor to break the cycle by extracting shared logic into a third bean; use @Lazy on one injection point only as a temporary measure."
+    confidence: HIGH
+    fixture: "fixtures/2.7-circular-dep.log"
+    status: TODO
+
+  # ──────────────────────────────────────────────
+  # Section 3: Configuration and Properties Errors
+  # ──────────────────────────────────────────────
+
+  - id: "3.1"
+    name: "Could not resolve placeholder"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "IllegalArgumentException"
+      messageContains: "Could not resolve placeholder"
+    diagnosis: "A @Value annotation references a property that is not defined in any active property source."
+    fix: "Define the property in application.properties, or add a default value in the annotation using @Value(\"${property.key:defaultValue}\")."
+    confidence: HIGH
+    fixture: "fixtures/3.1-unresolved-placeholder.log"
+    status: TODO
+
+  - id: "3.4"
+    name: "Property type conversion failure"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      messageContains: "Failed to bind properties"
+    diagnosis: "A property value cannot be converted to the expected Java type."
+    fix: "Fix the value format: Duration accepts '5s' or '200ms', DataSize accepts '10MB', and enum values are matched case-insensitively."
+    confidence: HIGH
+    fixture: "fixtures/3.4-type-conversion.log"
+    status: TODO
+
+  - id: "3.5"
+    name: "YAML syntax error"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "ScannerException"
+    diagnosis: "The application YAML file has a syntax error that prevented it from being parsed."
+    fix: "Fix the indentation or syntax at the reported line; use only spaces (never tabs) and quote strings that contain special characters like colons or brackets."
+    confidence: HIGH
+    fixture: "fixtures/3.5-yaml-syntax.log"
+    status: TODO
+
+  # ────────────────────────────────────────────────────
+  # Section 4: Data Access and JPA / Hibernate Errors
+  # ────────────────────────────────────────────────────
+
+  - id: "4.1"
+    name: "Cannot determine embedded database driver"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      bannerDescriptionContains: "Cannot determine embedded database driver class"
+    diagnosis: "The JPA starter is on the classpath but no datasource URL is configured and no embedded database is present."
+    fix: "Configure spring.datasource.url, username, and password for a real database, or add the H2 dependency (com.h2database:h2) for development use."
+    confidence: HIGH
+    fixture: "fixtures/4.1-no-embedded-db.log"
+    status: TODO
+
+  - id: "4.2"
+    name: "Failed to configure DataSource"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      bannerDescriptionContains: "Failed to configure a DataSource"
+    diagnosis: "Spring Boot cannot auto-configure a DataSource because the 'url' attribute is missing from application properties."
+    fix: "Provide spring.datasource.url and driver, or exclude DataSourceAutoConfiguration if a datasource is not needed in this context."
+    confidence: HIGH
+    fixture: "fixtures/4.2-no-datasource.log"
+    status: TODO
+
+  - id: "4.4"
+    name: "HikariCP connection pool exhausted"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "SQLTransientConnectionException"
+      messageContains: "Connection is not available, request timed out"
+    diagnosis: "The HikariCP connection pool is exhausted; all connections are held and none was returned within the timeout."
+    fix: "Enable Hikari leak detection with spring.datasource.hikari.leak-detection-threshold=20000 to find which code path holds connections; fix the leak before increasing pool size."
+    confidence: HIGH
+    fixture: "fixtures/4.4-hikari-exhausted.log"
+    status: TODO
+
+  - id: "4.6"
+    name: "Not a managed JPA type"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "IllegalArgumentException"
+      messageContains: "Not a managed type"
+    diagnosis: "A class is not recognised as a JPA entity, either because it lacks @Entity or is outside Hibernate's entity scan path."
+    fix: "Add @Entity to the class; if it is outside the main package tree add @EntityScan(basePackages=\"com.example.entities\") to a @Configuration class."
+    confidence: HIGH
+    fixture: "fixtures/4.6-not-managed-type.log"
+    status: TODO
+
+  - id: "4.8"
+    name: "LazyInitializationException"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "LazyInitializationException"
+      messageContains: "could not initialize proxy - no Session"
+    diagnosis: "A lazily loaded JPA association was accessed after the Hibernate session closed, typically during JSON serialisation in the controller layer."
+    fix: "Fetch the association inside the transaction using JOIN FETCH or an @EntityGraph, or map the entity to a DTO before the transaction ends."
+    confidence: HIGH
+    fixture: "fixtures/4.8-lazy-init.log"
+    status: TODO
+
+  - id: "4.13"
+    name: "DataIntegrityViolationException"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "DataIntegrityViolationException"
+    diagnosis: "A database write violated a constraint (unique, not-null, foreign key, or check)."
+    fix: "Read the deepest Caused by for the exact constraint name and fix the data before persisting; map this exception to a meaningful API error in your @RestControllerAdvice."
+    confidence: HIGH
+    fixture: "fixtures/4.13-constraint-violation.log"
+    status: TODO
+
+  # ──────────────────────────────────────────
+  # Section 5: Web, REST, and MVC Errors
+  # ──────────────────────────────────────────
+
+  - id: "5.1"
+    name: "404 No handler found"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "NoHandlerFoundException"
+    diagnosis: "No handler was mapped to the requested path; the controller may not be scanned or the path mapping is wrong."
+    fix: "Verify the exact path including any server.servlet.context-path prefix, confirm the controller is a registered Spring bean, and enable spring.mvc.throw-exception-if-no-handler-found=true during debugging."
+    confidence: HIGH
+    fixture: "fixtures/5.1-no-handler.log"
+    status: TODO
+
+  - id: "5.5"
+    name: "MethodArgumentNotValidException"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "MethodArgumentNotValidException"
+    diagnosis: "Bean Validation rejected the request body because one or more field constraints were violated."
+    fix: "This is validation working correctly; handle it with @ExceptionHandler(MethodArgumentNotValidException.class) in a @RestControllerAdvice to return a clean 400 error response."
+    confidence: HIGH
+    fixture: "fixtures/5.5-validation-failure.log"
+    status: TODO
+
+  - id: "5.8"
+    name: "Ambiguous handler mapping"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      messageContains: "Ambiguous mapping. Cannot map"
+    diagnosis: "Two controller methods are mapped to the same path and HTTP method combination, which Spring cannot resolve at startup."
+    fix: "Make the mappings distinct by using different paths, HTTP methods, or 'params' and 'headers' conditions on the @RequestMapping annotation."
+    confidence: HIGH
+    fixture: "fixtures/5.8-ambiguous-mapping.log"
+    status: TODO
+
+  # ─────────────────────────────────────────
+  # Section 6: Spring Security Errors
+  # ─────────────────────────────────────────
+
+  - id: "6.2"
+    name: "Default generated security password"
+    phases: [STARTUP]
+    taps: [RUN_CONSOLE]
+    signals:
+      messageContains: "Using generated security password"
+    diagnosis: "Spring Security is active with default configuration; all endpoints are locked and a random password was generated because no SecurityFilterChain bean was defined."
+    fix: "Define a @Bean of type SecurityFilterChain that declares your own authorization rules and user store, replacing the auto-configured default."
+    confidence: HIGH
+    fixture: "fixtures/6.2-generated-password.log"
+    status: TODO
+
+  - id: "6.4"
+    name: "WebSecurityConfigurerAdapter removed"
+    phases: [COMPILE]
+    taps: [BUILD_OUTPUT]
+    signals:
+      buildLineContains: "WebSecurityConfigurerAdapter"
+    diagnosis: "WebSecurityConfigurerAdapter was removed in Spring Security 6 / Spring Boot 3 and cannot be extended."
+    fix: "Migrate to the component-based model: expose a @Bean of type SecurityFilterChain and optionally a WebSecurityCustomizer @Bean instead of extending WebSecurityConfigurerAdapter."
+    confidence: HIGH
+    fixture: "fixtures/6.4-web-security-configurer.log"
+    status: TODO
+
+  - id: "6.5"
+    name: "No PasswordEncoder mapped"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      messageContains: "There is no PasswordEncoder mapped for the id"
+    diagnosis: "Passwords are stored without a {bcrypt}-style encoding prefix, so DelegatingPasswordEncoder cannot verify them."
+    fix: "Encode all passwords with BCryptPasswordEncoder before storing them and ensure new passwords are encoded on write."
+    confidence: HIGH
+    fixture: "fixtures/6.5-password-encoder.log"
+    status: TODO
+
+  # ──────────────────────────────────────────
+  # Section 7: Serialization / Jackson Errors
+  # ──────────────────────────────────────────
+
+  - id: "7.2"
+    name: "Infinite recursion on bidirectional JPA relationship"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "StackOverflowError"
+      messageContains: "Infinite recursion"
+    diagnosis: "Jackson is looping infinitely while serialising a bidirectional JPA relationship where each side references the other."
+    fix: "Break the cycle with @JsonManagedReference and @JsonBackReference, use @JsonIgnore on one side, or map the entity to a DTO before serialising it."
+    confidence: HIGH
+    fixture: "fixtures/7.2-infinite-recursion.log"
+    status: TODO
+
+  - id: "7.4"
+    name: "Cannot construct Jackson instance"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "InvalidDefinitionException"
+      messageContains: "no Creators, like default constructor"
+    diagnosis: "Jackson cannot deserialise the target type because it has no default constructor and no @JsonCreator."
+    fix: "Add a no-arg constructor, or annotate an existing constructor with @JsonCreator and annotate each parameter with @JsonProperty."
+    confidence: HIGH
+    fixture: "fixtures/7.4-no-default-constructor.log"
+    status: TODO
+
+  # ─────────────────────────────────────────────────
+  # Section 9: Testing Errors
+  # ─────────────────────────────────────────────────
+
+  - id: "9.1"
+    name: "Failed to load ApplicationContext in tests"
+    phases: [TEST]
+    taps: [TEST_CONSOLE]
+    signals:
+      causedByClass: "IllegalStateException"
+      messageContains: "Failed to load ApplicationContext"
+    diagnosis: "The test application context could not be built; read the nested exception for the root cause."
+    fix: "Provide missing collaborators via @MockitoBean, narrow the test slice with @WebMvcTest or @DataJpaTest, or use a full @SpringBootTest if all beans are genuinely needed."
+    confidence: HIGH
+    fixture: "fixtures/9.1-test-context-failed.log"
+    status: TODO
+
+  - id: "9.2"
+    name: "@MockBean not replacing real bean"
+    phases: [TEST]
+    taps: [TEST_CONSOLE]
+    signals:
+      causedByClass: "UnnecessaryStubbingException"
+    diagnosis: "Mockito's strict stubbing detected a stub that was set up but never called, often indicating the real bean ran instead of the mock."
+    fix: "Use @MockitoBean (Boot 3.4+) instead of plain Mockito @Mock to replace the bean in the Spring context; plain @Mock does not interact with the Spring lifecycle."
+    confidence: MEDIUM
+    fixture: "fixtures/9.2-mockbean-not-replacing.log"
+    status: TODO
+
+  # ──────────────────────────────────────────────────────────
+  # Section 10: Build, Packaging, and Dependency Errors
+  # ──────────────────────────────────────────────────────────
+
+  - id: "10.1"
+    name: "NoSuchMethodError / NoClassDefFoundError"
+    phases: [STARTUP, RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "NoSuchMethodError"
+    diagnosis: "Two versions of the same library are on the classpath and the wrong one loaded; it lacks a method that the compiled code expects."
+    fix: "Run 'mvn dependency:tree' or 'gradle dependencies' to find the version conflict, exclude the unwanted transitive version, and let the Spring Boot BOM manage the correct version."
+    confidence: HIGH
+    fixture: "fixtures/10.1-no-such-method.log"
+    status: TODO
+
+  - id: "10.5"
+    name: "Lombok not generating code"
+    phases: [COMPILE]
+    taps: [BUILD_OUTPUT]
+    signals:
+      buildLineContains: "cannot find symbol"
+    diagnosis: "Lombok annotations are not generating code, likely because annotation processing is disabled or the Lombok IntelliJ plugin is not installed."
+    fix: "Enable annotation processing in IntelliJ (Settings > Build > Compiler > Annotation Processors) and declare Lombok as an annotationProcessor dependency in your build file."
+    confidence: MEDIUM
+    fixture: "fixtures/10.5-lombok-missing.log"
+    status: TODO
+
+  - id: "10.6"
+    name: "Java version mismatch"
+    phases: [STARTUP, COMPILE]
+    taps: [RUN_CONSOLE, BUILD_OUTPUT]
+    signals:
+      causedByClass: "UnsupportedClassVersionError"
+    diagnosis: "The classes were compiled with a newer JDK than the JRE running them."
+    fix: "Align the sourceCompatibility or <java.version> in the build file with the JDK version on the target machine; verify with 'java -version' on the deployment target."
+    confidence: HIGH
+    fixture: "fixtures/10.6-java-version.log"
+    status: TODO

@@ -1,0 +1,34 @@
+<idea-plugin>
+    <id>com.springdebugger</id>
+    <name>Spring Boot Debugger</name>
+    <vendor email="" url="">Spring Debugger Contributors</vendor>
+    <description><![CDATA[
+        Monitors run, test, and build output for Spring Boot errors.
+        When an error is detected it surfaces a one-sentence diagnosis and one-sentence fix,
+        eliminating the need to read cascading stack traces.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+
+        <applicationService
+            serviceImplementation="com.springdebugger.SpringDebuggerService"/>
+
+        <postStartupActivity
+            implementation="com.springdebugger.SpringDebuggerStartupActivity"/>
+
+        <toolWindow
+            id="Spring Debugger"
+            anchor="bottom"
+            factoryClass="com.springdebugger.ui.SpringDebuggerToolWindowFactory"
+            canCloseContents="false"/>
+
+        <notificationGroup
+            id="Spring Debugger"
+            displayType="BALLOON"
+            isLogByDefault="true"/>
+
+    </extensions>
+</idea-plugin>

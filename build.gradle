@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij.platform' version '2.16.0'
+}
+
+group = 'com.springdebugger'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+dependencies {
+    intellijPlatform {
+        intellijIdeaCommunity('2023.3')
+        bundledPlugin('com.intellij.java')
+    }
+
+    implementation 'org.yaml:snakeyaml:2.2'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testImplementation 'org.assertj:assertj-core:3.25.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        name = 'Spring Boot Debugger'
+        version = project.version
+        ideaVersion {
+            sinceBuild = '233'
+        }
+    }
+
+    signing {
+        certificateChain = providers.environmentVariable('CERTIFICATE_CHAIN')
+        privateKey = providers.environmentVariable('PRIVATE_KEY')
+        password = providers.environmentVariable('PRIVATE_KEY_PASSWORD')
+    }
+
+    publishing {
+        token = providers.environmentVariable('PUBLISH_TOKEN')
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
