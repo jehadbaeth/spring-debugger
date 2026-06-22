@@ -1,0 +1,11 @@
+java.lang.IllegalStateException: Failed to load ApplicationContext for [WebMergedContextConfiguration@...]
+	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:143)
+	at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:127)
+	at org.springframework.boot.test.context.SpringBootTestContextBootstrapper.processMergedContextConfiguration(SpringBootTestContextBootstrapper.java:152)
+	at org.springframework.boot.test.context.SpringBootTestContextBootstrapper.createModifiedConfig(SpringBootTestContextBootstrapper.java:379)
+	at org.springframework.test.context.TestContextManager.<init>(TestContextManager.java:137)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.getTestContextManager(SpringExtension.java:304)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.beforeAll(SpringExtension.java:113)
+Caused by: java.lang.NoSuchMethodError: 'java.util.List org.springframework.test.context.MergedContextConfiguration.getPropertySourceDescriptors()'
+	at org.springframework.boot.test.context.SpringBootTestContextBootstrapper.createModifiedConfig(SpringBootTestContextBootstrapper.java:379)
+	at org.springframework.boot.test.context.SpringBootTestContextBootstrapper.processMergedContextConfiguration(SpringBootTestContextBootstrapper.java:152)

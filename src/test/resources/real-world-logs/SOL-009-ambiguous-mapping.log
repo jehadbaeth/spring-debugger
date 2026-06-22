@@ -1,0 +1,14 @@
+2024-01-10 08:55:44.201  INFO 6631 --- [           main] com.example.Application                  : Starting Application
+
+Error starting ApplicationContext. To display the conditions report re-run your application with 'debug' enabled.
+
+2024-01-10 08:55:45.812 ERROR 6631 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'requestMappingHandlerMapping' defined in class path resource [org/springframework/boot/autoconfigure/web/servlet/WebMvcAutoConfiguration$EnableWebMvcConfiguration.class]: Ambiguous mapping. Cannot map 'careerController' method app.dldzl.career.server.controller.career.CareerController#getCareerById(UUID) to {GET [/v1/careers]}: There is already 'careerController' bean method app.dldzl.career.server.controller.career.CareerController#getCareers() mapped.
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1804)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:620)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:542)
+Caused by: java.lang.IllegalStateException: Ambiguous mapping. Cannot map 'careerController' method app.dldzl.career.server.controller.career.CareerController#getCareerById(UUID) to {GET [/v1/careers]}: There is already 'careerController' bean method app.dldzl.career.server.controller.career.CareerController#getCareers() mapped.
+	at org.springframework.web.servlet.handler.AbstractHandlerMethodMapping$MappingRegistry.validateMethodMapping(AbstractHandlerMethodMapping.java:667)
+	at org.springframework.web.servlet.handler.AbstractHandlerMethodMapping$MappingRegistry.register(AbstractHandlerMethodMapping.java:624)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping.registerHandlerMethod(RequestMappingHandlerMapping.java:486)
