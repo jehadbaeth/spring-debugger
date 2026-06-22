@@ -1,0 +1,22 @@
+2020-12-10 08:08:33.166  WARN 79750 --- [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'department' defined in file [/SpringBootBean/target/classes/com/yawintutor/Department.class]: Unsatisfied dependency expressed through constructor parameter 0; nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'lion' defined in file [/SpringBootBean/target/classes/com/yawintutor/Lion.class]: Unsatisfied dependency expressed through constructor parameter 0; nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'tiger' defined in file [/SpringBootBean/target/classes/com/yawintutor/Tiger.class]: Unsatisfied dependency expressed through constructor parameter 0; nested exception is org.springframework.beans.factory.BeanCurrentlyInCreationException: Error creating bean with name 'lion': Requested bean is currently in creation: Is there an unresolvable circular reference?
+
+2020-12-10 08:08:33.174  INFO 79750 --- [           main] ConditionEvaluationReportLoggingListener :
+
+Error starting ApplicationContext. To display the conditions report re-run your application with 'debug' enabled.
+
+2020-12-10 08:08:33.196 ERROR 79750 --- [           main] o.s.b.d.LoggingFailureAnalysisReporter   :
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+The dependencies of some of the beans in the application context form a cycle:
+
+   department defined in file [/SpringBootBean/target/classes/com/yawintutor/Department.class]
+┌─────┐
+|  lion defined in file [/SpringBootBean/target/classes/com/yawintutor/Lion.class]
+↑     ↓
+|  tiger defined in file [/SpringBootBean/target/classes/com/yawintutor/Tiger.class]
+└─────┘
