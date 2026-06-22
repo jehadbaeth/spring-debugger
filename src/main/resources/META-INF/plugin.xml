@@ -16,6 +16,18 @@
         <applicationService
             serviceImplementation="com.springdebugger.SpringDebuggerService"/>
 
+        <applicationService
+            serviceImplementation="com.springdebugger.settings.SpringDebuggerSettings"/>
+
+        <projectService
+            serviceImplementation="com.springdebugger.service.DiagnosisHistoryService"/>
+
+        <applicationConfigurable
+            parentId="tools"
+            id="com.springdebugger.settings"
+            displayName="Spring Boot Debugger"
+            instance="com.springdebugger.settings.SpringDebuggerSettingsConfigurable"/>
+
         <postStartupActivity
             implementation="com.springdebugger.SpringDebuggerStartupActivity"/>
 

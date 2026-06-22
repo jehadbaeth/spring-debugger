@@ -111,8 +111,16 @@ public final class LogExtractor {
                 || line.contains("Unable")
                 || line.contains("No qualifying bean")
                 || line.contains("required a bean")
+                || line.contains("required a single bean")
                 || line.contains("Port")
                 || line.contains("could not")
+                || line.contains("No handler")
+                || line.contains("Ambiguous")
+                || line.contains("Unmapped")
+                || line.contains("Cannot determine")
+                || line.contains("MapperImpl")
+                || line.contains("cycle")
+                || line.contains("circular")
                 || BUILD_ERROR_LINE.matcher(line).find();
     }
 }

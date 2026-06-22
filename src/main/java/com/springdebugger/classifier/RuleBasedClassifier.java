@@ -52,7 +52,9 @@ public final class RuleBasedClassifier {
         }
 
         if (criteria.getMessageContains() != null) {
-            if (!signal.anyLineContains(criteria.getMessageContains())) return false;
+            boolean inLines = signal.anyLineContains(criteria.getMessageContains());
+            boolean inExcerpt = containsIgnoreCase(signal.getRawExcerpt(), criteria.getMessageContains());
+            if (!inLines && !inExcerpt) return false;
         }
 
         if (criteria.getBannerDescriptionContains() != null) {

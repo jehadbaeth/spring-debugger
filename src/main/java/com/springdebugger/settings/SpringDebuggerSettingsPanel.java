@@ -1,0 +1,172 @@
+package com.springdebugger.settings;
+
+import com.intellij.ui.components.JBCheckBox;
+import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBTextField;
+import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.UI;
+import com.springdebugger.model.Confidence;
+
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * Settings panel shown inside the IDE Preferences dialog under Tools > Spring Boot Debugger.
+ */
+public final class SpringDebuggerSettingsPanel {
+
+    private JPanel root;
+    private JBCheckBox enabledBox;
+    private JComboBox<String> confidenceCombo;
+    private JSpinner maxHistorySpinner;
+    private JBCheckBox showBalloonBox;
+    private JBCheckBox focusToolWindowBox;
+    private JBCheckBox llmEnabledBox;
+    private JBTextField ollamaUrlField;
+    private JBTextField ollamaModelField;
+
+    public SpringDebuggerSettingsPanel() {
+        build();
+        reset();
+    }
+
+    private void build() {
+        root = new JPanel(new GridBagLayout());
+        root.setBorder(JBUI.Borders.empty(8));
+
+        GridBagConstraints label = labelConstraints();
+        GridBagConstraints field = fieldConstraints();
+
+        int row = 0;
+
+        // ── General section ─────────────────────────────────────────────────
+        addSectionHeader(root, "General", row++);
+
+        enabledBox = new JBCheckBox("Enable Spring Boot Debugger");
+        addRow(root, enabledBox, row++);
+
+        showBalloonBox = new JBCheckBox("Show notification balloon on new diagnosis");
+        addRow(root, showBalloonBox, row++);
+
+        focusToolWindowBox = new JBCheckBox("Focus tool window when an error is detected");
+        addRow(root, focusToolWindowBox, row++);
+
+        // ── Analysis section ─────────────────────────────────────────────────
+        addSectionHeader(root, "Analysis", row++);
+
+        addLabeledComponent(root, "Minimum confidence level:", createConfidenceCombo(), row++);
+        addLabeledComponent(root, "Maximum history entries:", createMaxHistorySpinner(), row++);
+
+        // ── LLM section (future) ─────────────────────────────────────────────
+        addSectionHeader(root, "LLM Fallback (coming in a future release)", row++);
+
+        llmEnabledBox = new JBCheckBox("Enable Ollama LLM fallback for unrecognised errors");
+        llmEnabledBox.setEnabled(false);
+        addRow(root, llmEnabledBox, row++);
+
+        ollamaUrlField = new JBTextField("http://localhost:11434");
+        ollamaUrlField.setEnabled(false);
+        addLabeledComponent(root, "Ollama base URL:", ollamaUrlField, row++);
+
+        ollamaModelField = new JBTextField("llama3.2");
+        ollamaModelField.setEnabled(false);
+        addLabeledComponent(root, "Ollama model:", ollamaModelField, row++);
+
+        JBLabel llmNote = new JBLabel(
+            "<html><i>The LLM fallback keeps all data local when Ollama is used.<br>" +
+            "It will be enabled once the offline rule engine is complete.</i></html>");
+        llmNote.setForeground(UIManager.getColor("Label.disabledForeground"));
+        addRow(root, llmNote, row++);
+
+        // filler
+        GridBagConstraints filler = new GridBagConstraints();
+        filler.gridx = 0; filler.gridy = row; filler.weighty = 1.0;
+        filler.gridwidth = 2; filler.fill = GridBagConstraints.VERTICAL;
+        root.add(new JPanel(), filler);
+    }
+
+    private JComboBox<String> createConfidenceCombo() {
+        confidenceCombo = new JComboBox<>(new String[]{"HIGH", "MEDIUM", "LOW"});
+        return confidenceCombo;
+    }
+
+    private JSpinner createMaxHistorySpinner() {
+        maxHistorySpinner = new JSpinner(new SpinnerNumberModel(30, 5, 200, 5));
+        maxHistorySpinner.setPreferredSize(new Dimension(70, maxHistorySpinner.getPreferredSize().height));
+        return maxHistorySpinner;
+    }
+
+    private void addSectionHeader(JPanel panel, String title, int row) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0; c.gridy = row; c.gridwidth = 2;
+        c.anchor = GridBagConstraints.WEST;
+        c.insets = row == 0 ? JBUI.insets(0, 0, 4, 0) : JBUI.insets(12, 0, 4, 0);
+        JBLabel header = new JBLabel("<html><b>" + title + "</b></html>");
+        panel.add(header, c);
+    }
+
+    private void addRow(JPanel panel, JComponent component, int row) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0; c.gridy = row; c.gridwidth = 2;
+        c.anchor = GridBagConstraints.WEST;
+        c.insets = JBUI.insets(2, 8, 2, 0);
+        panel.add(component, c);
+    }
+
+    private void addLabeledComponent(JPanel panel, String labelText, JComponent component, int row) {
+        GridBagConstraints lc = new GridBagConstraints();
+        lc.gridx = 0; lc.gridy = row; lc.anchor = GridBagConstraints.WEST;
+        lc.insets = JBUI.insets(2, 8, 2, 8);
+        panel.add(new JBLabel(labelText), lc);
+
+        GridBagConstraints fc = new GridBagConstraints();
+        fc.gridx = 1; fc.gridy = row; fc.anchor = GridBagConstraints.WEST;
+        fc.insets = JBUI.insets(2, 0, 2, 0);
+        fc.fill = GridBagConstraints.HORIZONTAL; fc.weightx = 1.0;
+        panel.add(component, fc);
+    }
+
+    private GridBagConstraints labelConstraints() {
+        GridBagConstraints c = new GridBagConstraints();
+        c.anchor = GridBagConstraints.WEST; c.insets = JBUI.insets(2, 8, 2, 8);
+        return c;
+    }
+
+    private GridBagConstraints fieldConstraints() {
+        GridBagConstraints c = new GridBagConstraints();
+        c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+        c.anchor = GridBagConstraints.WEST; c.insets = JBUI.insets(2, 0, 2, 0);
+        return c;
+    }
+
+    public JPanel getComponent() { return root; }
+
+    public boolean isModified() {
+        SpringDebuggerSettings s = SpringDebuggerSettings.getInstance();
+        return enabledBox.isSelected() != s.isEnabled()
+            || showBalloonBox.isSelected() != s.isShowNotificationBalloon()
+            || focusToolWindowBox.isSelected() != s.isFocusToolWindowOnError()
+            || !confidenceCombo.getSelectedItem().toString().equals(s.getMinimumConfidence().name())
+            || (int) maxHistorySpinner.getValue() != s.getMaxHistorySize();
+    }
+
+    public void apply() {
+        SpringDebuggerSettings s = SpringDebuggerSettings.getInstance();
+        s.setEnabled(enabledBox.isSelected());
+        s.setShowNotificationBalloon(showBalloonBox.isSelected());
+        s.setFocusToolWindowOnError(focusToolWindowBox.isSelected());
+        s.setMinimumConfidence(Confidence.valueOf(confidenceCombo.getSelectedItem().toString()));
+        s.setMaxHistorySize((int) maxHistorySpinner.getValue());
+    }
+
+    public void reset() {
+        SpringDebuggerSettings s = SpringDebuggerSettings.getInstance();
+        enabledBox.setSelected(s.isEnabled());
+        showBalloonBox.setSelected(s.isShowNotificationBalloon());
+        focusToolWindowBox.setSelected(s.isFocusToolWindowOnError());
+        confidenceCombo.setSelectedItem(s.getMinimumConfidence().name());
+        maxHistorySpinner.setValue(s.getMaxHistorySize());
+        ollamaUrlField.setText(s.getOllamaBaseUrl());
+        ollamaModelField.setText(s.getOllamaModel());
+    }
+}

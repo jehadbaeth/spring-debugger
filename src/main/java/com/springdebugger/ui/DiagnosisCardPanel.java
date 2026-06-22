@@ -3,61 +3,46 @@ package com.springdebugger.ui;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.openapi.wm.ToolWindowManager;
 import com.springdebugger.model.DiagnosisCard;
+import com.springdebugger.service.DiagnosisHistoryService;
+import com.springdebugger.settings.SpringDebuggerSettings;
 
 import javax.swing.*;
-import java.awt.*;
 
 /**
- * Renders a DiagnosisCard to the user.
- * For M0/M1: shows a sticky notification balloon in the IDE.
- * A dedicated tool window panel will replace this in M10.
+ * Entry point for surfacing a DiagnosisCard to the user.
+ *
+ * 1. Always pushes the card into DiagnosisHistoryService (which notifies the tool window).
+ * 2. Optionally shows a notification balloon (controlled by settings).
+ * 3. Optionally activates the Spring Debugger tool window (controlled by settings).
  */
-public final class DiagnosisCardPanel extends JPanel {
+public final class DiagnosisCardPanel {
 
     private static final String NOTIFICATION_GROUP = "Spring Debugger";
+    private static final String TOOL_WINDOW_ID    = "Spring Debugger";
 
-    private DiagnosisCardPanel(DiagnosisCard card) {
-        super(new BorderLayout(8, 8));
-        setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+    private DiagnosisCardPanel() {}
 
-        JLabel ruleLabel = new JLabel("[" + card.getRuleId() + "] " + card.getPhase().name());
-        ruleLabel.setFont(ruleLabel.getFont().deriveFont(Font.BOLD));
-
-        JTextArea diagnosisArea = new JTextArea(card.getDiagnosisSentence());
-        diagnosisArea.setLineWrap(true);
-        diagnosisArea.setWrapStyleWord(true);
-        diagnosisArea.setEditable(false);
-        diagnosisArea.setOpaque(false);
-
-        JTextArea fixArea = new JTextArea(card.getFixSentence());
-        fixArea.setLineWrap(true);
-        fixArea.setWrapStyleWord(true);
-        fixArea.setEditable(false);
-        fixArea.setOpaque(false);
-        fixArea.setForeground(new Color(0, 100, 0));
-
-        JPanel body = new JPanel(new GridLayout(2, 1, 0, 4));
-        body.add(diagnosisArea);
-        body.add(fixArea);
-
-        add(ruleLabel, BorderLayout.NORTH);
-        add(body, BorderLayout.CENTER);
-    }
-
-    /** Shows a diagnosis card as an IDE notification balloon. */
     public static void show(Project project, DiagnosisCard card) {
-        String content = "<b>" + escapeHtml(card.getDiagnosisSentence()) + "</b><br>"
-                + escapeHtml(card.getFixSentence());
+        DiagnosisHistoryService.getInstance(project).addDiagnosis(card);
 
-        NotificationGroupManager.getInstance()
+        SpringDebuggerSettings settings = SpringDebuggerSettings.getInstance();
+
+        if (settings.isShowNotificationBalloon()) {
+            String content = "<b>" + escapeHtml(card.getDiagnosisSentence()) + "</b><br>"
+                + escapeHtml(card.getFixSentence());
+            NotificationGroupManager.getInstance()
                 .getNotificationGroup(NOTIFICATION_GROUP)
                 .createNotification("Spring Boot Error Detected", content, NotificationType.WARNING)
                 .notify(project);
-    }
+        }
 
-    public static JComponent createPanel(DiagnosisCard card) {
-        return new DiagnosisCardPanel(card);
+        if (settings.isFocusToolWindowOnError()) {
+            ToolWindow tw = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
+            if (tw != null) tw.activate(null);
+        }
     }
 
     private static String escapeHtml(String text) {

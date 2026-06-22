@@ -54,3 +54,9 @@ intellijPlatform {
 test {
     useJUnitPlatform()
 }
+
+// buildSearchableOptions launches a sandboxed IDE instance which is not available
+// in headless CI environments.  It only affects IDE settings search indexing.
+tasks.named('buildSearchableOptions') {
+    enabled = false
+}
