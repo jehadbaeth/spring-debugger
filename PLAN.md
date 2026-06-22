@@ -420,19 +420,20 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M9 | Actuator enrichment layer | ⏳ PENDING | Queries /actuator/health and /actuator/env when app is running |
 | M10 | UI card polish | ✅ DONE | Full tool window with status bar, current card view, scrollable history, settings panel in Preferences |
 | M11 | Settings persistence | ✅ DONE | PersistentStateComponent + DiagnosisHistoryService with listener pattern |
-| M12 | Real-life testing | ⏳ PENDING | Stack Overflow log corpus tested; accuracy analysis document published |
+| M12 | Real-life testing | ✅ DONE | 5 real-world logs from GitHub Issues and blog tutorials tested; 3 correct matches, 2 acknowledged gaps; ACCURACY-ANALYSIS-v0.1.0.md published; 2 bugs found and fixed (phase filter, rule 13.4 signal) |
 | M13 | LLM integration (Ollama) | ⏳ PENDING | Config switch enables the LLM fallback path |
-| M14 | How-to-use guide | ⏳ PENDING | End-user documentation published |
+| M14 | How-to-use guide | ✅ DONE | HOW-TO-USE.md published covering installation, UI, settings, rule catalog, and contributing guide |
 
-M0–M7 and M10–M11 are complete. Plugin is functional and detects the most common Spring Boot errors.
+M0–M7, M10–M12, and M14 are complete. Plugin is functional, documented, and validated against real-world logs.
 
 ### Open items before v1.0
 
 - M6 proper: register BuildOutputTap via a non-deprecated extension point or `CompilerManager` API that works in 2025.2
 - 9.1: differentiate signals from 1.10 so it can independently pass the fixture test
 - 13.8: raise confidence from LOW to MEDIUM or adjust fixture test contract
-- Real-life testing corpus (Stack Overflow / GitHub Issues) and accuracy report
-- Performance and accuracy analysis document per release once real-life testing is running
+- Expand real-life testing corpus (Stack Overflow / GitHub Issues) to 20+ logs for v0.2.0
+- M8 PSI enrichment and M9 Actuator enrichment for higher-confidence MEDIUM rules
+- M13 Ollama LLM fallback
 
 ---
 
