@@ -527,7 +527,7 @@ rules:
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       causedByClass: "NoSuchBeanDefinitionException"
-      messageContains: "Mapper"
+      causedByMessage: "Mapper"
     diagnosis: "A MapStruct mapper interface is not in the Spring context because componentModel = \"spring\" is missing from its @Mapper annotation."
     fix: "Add componentModel = \"spring\" to the @Mapper annotation, then inject the mapper with @Autowired or constructor injection like any other Spring bean."
     confidence: MEDIUM

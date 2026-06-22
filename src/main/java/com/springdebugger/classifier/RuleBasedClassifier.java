@@ -23,6 +23,10 @@ public final class RuleBasedClassifier {
 
     public Optional<DiagnosisCard> classify(RawSignal signal) {
         for (Rule rule : catalog.all()) {
+            if (rule.getPhases() != null && !rule.getPhases().isEmpty()
+                    && !rule.getPhases().contains(signal.getPhase())) {
+                continue;
+            }
             if (matches(rule.getSignals(), signal)) {
                 String diagnosis = fillTemplate(rule.getDiagnosis(), signal, rule);
                 String fix = fillTemplate(rule.getFix(), signal, rule);
