@@ -481,3 +481,98 @@ rules:
     confidence: HIGH
     fixture: "fixtures/10.6-java-version.log"
     status: TODO
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Section 13: MapStruct Errors (Phase: COMPILE, STARTUP, RUNTIME)
+  # ─────────────────────────────────────────────────────────────────────
+
+  - id: "13.1"
+    name: "Unmapped target properties"
+    phases: [COMPILE]
+    taps: [BUILD_OUTPUT]
+    signals:
+      buildLineContains: "Unmapped target property"
+    diagnosis: "MapStruct found properties in the target type that have no source mapping."
+    fix: "Add an explicit @Mapping for each unmapped property, or annotate it with @Mapping(target = \"field\", ignore = true) if it should be skipped intentionally."
+    confidence: HIGH
+    fixture: "fixtures/13.1-unmapped-target.log"
+    status: TODO
+
+  - id: "13.2"
+    name: "Incompatible types in @Mapping"
+    phases: [COMPILE]
+    taps: [BUILD_OUTPUT]
+    signals:
+      buildLineContains: "Can't map property"
+    diagnosis: "MapStruct cannot map a source property to the target property because the types are incompatible and no conversion method exists for that pair."
+    fix: "Declare a custom mapping method that converts between the two types, or use a @Mapping expression attribute to specify the conversion explicitly."
+    confidence: HIGH
+    fixture: "fixtures/13.2-incompatible-types.log"
+    status: TODO
+
+  - id: "13.3"
+    name: "MapStruct implementation class missing"
+    phases: [COMPILE, STARTUP]
+    taps: [BUILD_OUTPUT, RUN_CONSOLE]
+    signals:
+      buildLineContains: "MapperImpl"
+    diagnosis: "The MapStruct annotation processor did not generate the mapper implementation class, so it does not exist at compile time or the Spring bean cannot be found at runtime."
+    fix: "Confirm annotation processing is enabled and that mapstruct-processor is declared in the annotationProcessor scope (not compileOnly or implementation)."
+    confidence: MEDIUM
+    fixture: "fixtures/13.3-mapperimpl-missing.log"
+    status: TODO
+
+  - id: "13.4"
+    name: "MapStruct mapper not a Spring bean"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "NoSuchBeanDefinitionException"
+      messageContains: "Mapper"
+    diagnosis: "A MapStruct mapper interface is not in the Spring context because componentModel = \"spring\" is missing from its @Mapper annotation."
+    fix: "Add componentModel = \"spring\" to the @Mapper annotation, then inject the mapper with @Autowired or constructor injection like any other Spring bean."
+    confidence: MEDIUM
+    fixture: "fixtures/13.4-mapper-not-spring-bean.log"
+    status: TODO
+
+  - id: "13.5"
+    name: "MapStruct cannot implement abstract method"
+    phases: [COMPILE]
+    taps: [BUILD_OUTPUT]
+    signals:
+      buildLineContains: "No implementation type is registered for return type"
+    diagnosis: "MapStruct cannot generate an implementation for a mapping method because the return type has no registered implementation strategy."
+    fix: "Provide a custom mapping method body or declare an intermediate mapping step; for complex third-party types use @BeanMapping(ignoreByDefault=true) and map only what MapStruct can handle."
+    confidence: HIGH
+    fixture: "fixtures/13.5-no-impl-for-return-type.log"
+    status: TODO
+
+  - id: "13.6"
+    name: "Missing @Mapper annotation"
+    phases: [COMPILE]
+    taps: [BUILD_OUTPUT]
+    signals:
+      buildLineContains: "Could not generate implementation"
+    diagnosis: "A mapper interface is missing the @Mapper annotation, so MapStruct does not recognise it and does not generate an implementation."
+    fix: "Add @Mapper (from org.mapstruct) to the interface; if it should be a Spring bean also set componentModel = \"spring\" in the same annotation."
+    confidence: HIGH
+    fixture: "fixtures/13.6-missing-mapper-annotation.log"
+    status: TODO
+
+  # 13.7 (Lombok/MapStruct processor order) is intentionally absent from the rule engine.
+  # Its signal "cannot find symbol" collides with rule 10.5. PSI enrichment is required
+  # to distinguish the two: check whether @Mapper and @Getter are both present and the
+  # annotationProcessor ordering. Implement in M8 (PSI enrichment layer).
+
+  - id: "13.8"
+    name: "MapStruct null value mapping surprise"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      causedByClass: "NullPointerException"
+      messageContains: "MapperImpl"
+    diagnosis: "A MapStruct mapper method is producing unexpected nulls because the default null value property mapping strategy leaves target fields untouched when the source is null."
+    fix: "Set @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL) or IGNORE on the method to make the null handling behaviour explicit."
+    confidence: LOW
+    fixture: "fixtures/13.8-null-mapping.log"
+    status: TODO
