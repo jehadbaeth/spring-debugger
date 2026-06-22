@@ -1,0 +1,20 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+An attempt was made to call a method that does not exist. The attempt was made from the following location: com.example.service.PaymentService.processPayment(PaymentService.java:45)
+
+Action:
+
+Correct the classpath of your application so that it contains compatible versions of the classes com.stripe.Stripe and com.stripe.model.Charge
+
+2024-01-15 10:23:45.600 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'paymentService': Initialization of bean failed
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1770)
+Caused by: java.lang.NoSuchMethodError: 'com.stripe.model.Charge com.stripe.Stripe.create(java.util.Map)'
+	at com.example.service.PaymentService.processPayment(PaymentService.java:45)

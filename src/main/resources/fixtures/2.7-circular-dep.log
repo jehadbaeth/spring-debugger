@@ -1,0 +1,19 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+The dependencies of some of the beans in the application context form a cycle:
+
+userService -> roleService -> permissionService -> userService
+
+Action:
+
+Relying upon circular references is discouraged and they are prohibited by default. Update your application to remove the dependency cycle between beans. As a last resort, it may be possible to break the dependency cycle automatically by setting spring.main.allow-circular-references to true.
+
+2024-01-15 10:23:45.700 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.boot.autoconfigure.AutoConfigurationFailureAnalysisReporter : The dependencies of some of the beans in the application context form a cycle.

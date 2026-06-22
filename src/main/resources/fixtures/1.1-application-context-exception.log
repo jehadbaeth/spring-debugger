@@ -1,0 +1,25 @@
+2024-01-15 10:23:45.123  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication using Java 17.0.9
+2024-01-15 10:23:46.234  INFO 12345 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2024-01-15 10:23:46.890  INFO 12345 --- [           main] o.s.boot.SpringApplication               : Starting application context
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Unable to start web server; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'servletWebServerFactoryCustomizerBeanPostProcessor'
+
+Action:
+
+Check your application's Spring Boot configuration.
+
+2024-01-15 10:23:47.012 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.context.ApplicationContextException: Unable to start web server
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.onRefresh(ServletWebServerApplicationContext.java:165)
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:578)
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'tomcatServletWebServerFactory'
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1770)
+Caused by: java.net.BindException: Address already in use
+	at sun.nio.ch.Net.bind0(Native Method)

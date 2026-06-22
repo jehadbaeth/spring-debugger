@@ -1,0 +1,10 @@
+2024-01-15 14:30:22.001 ERROR 12345 --- [http-nio-8080-exec-3] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is org.springframework.http.converter.HttpMessageConversionException: Type definition error: [simple type, class com.example.model.Order]] with root cause
+
+com.fasterxml.jackson.databind.exc.InvalidDefinitionException: could not initialize proxy - no Session
+	at com.fasterxml.jackson.databind.exc.InvalidDefinitionException.from(InvalidDefinitionException.java:67)
+Caused by: org.hibernate.LazyInitializationException: could not initialize proxy - no Session; lazy loading of collection com.example.model.Order.items
+	at org.hibernate.proxy.AbstractLazyInitializer.initialize(AbstractLazyInitializer.java:176)
+	at org.hibernate.proxy.AbstractLazyInitializer.getImplementation(AbstractLazyInitializer.java:310)
+	at org.hibernate.proxy.pojo.bytebuddy.ByteBuddyInterceptor.intercept(ByteBuddyInterceptor.java:45)
+	at com.example.model.Order$$HibernateProxy.getItems(Order.java)
+	at com.example.controller.OrderController.getOrder(OrderController.java:42)

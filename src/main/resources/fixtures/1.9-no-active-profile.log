@@ -1,0 +1,7 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+2024-01-15 10:23:45.123  INFO 12345 --- [           main] c.e.DemoApplication                      : No active profile set, falling back to default profiles: default
+2024-01-15 10:23:45.456  INFO 12345 --- [           main] o.s.b.c.config.ConfigDataEnvironment     : No active profile set, falling back to 1 default profile: "default"
+2024-01-15 10:23:45.789  WARN 12345 --- [           main] o.s.boot.SpringApplication               : No active profile set, falling back to default profiles: default. Set spring.profiles.active to override.
+2024-01-15 10:23:46.000  INFO 12345 --- [           main] com.example.DemoApplication              : No profile-specific properties loaded (expected: application-prod.properties)
+2024-01-15 10:23:46.500  INFO 12345 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2024-01-15 10:23:46.600  INFO 12345 --- [           main] com.example.DemoApplication              : Started DemoApplication in 1.234 seconds (JVM running for 2.345)

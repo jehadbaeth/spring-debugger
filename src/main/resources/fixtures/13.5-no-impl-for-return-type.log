@@ -1,0 +1,8 @@
+/Users/dev/project/src/main/java/com/example/mapper/DocumentMapper.java:18: error: No implementation type is registered for return type com.example.model.Document.
+    Document toEntity(DocumentDto dto);
+             ^
+/Users/dev/project/src/main/java/com/example/mapper/DocumentMapper.java:18: error: No implementation type is registered for return type java.io.InputStream.
+
+MapStruct cannot generate the implementation because the return type has no known strategy.
+
+BUILD FAILED

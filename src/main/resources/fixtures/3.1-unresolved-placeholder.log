@@ -1,0 +1,21 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Could not resolve placeholder 'app.database.url' in value "${app.database.url}"
+
+Action:
+
+Set the app.database.url property in application.properties or pass it as an environment variable.
+
+2024-01-15 10:23:45.600 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'dataSourceConfig': Injection of autowired dependencies failed
+	at org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor.postProcessProperties(AutowiredAnnotationBeanPostProcessor.java:377)
+Caused by: java.lang.IllegalArgumentException: Could not resolve placeholder 'app.database.url' in value "${app.database.url}"
+	at org.springframework.beans.factory.config.PropertyPlaceholderConfigurer.processProperties(PropertyPlaceholderConfigurer.java:223)
+	at org.springframework.beans.factory.config.PlaceholderConfigurerSupport.doProcessProperties(PlaceholderConfigurerSupport.java:181)

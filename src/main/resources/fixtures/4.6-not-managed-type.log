@@ -1,0 +1,21 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Error creating bean with name 'entityManagerFactory': Not a managed type: class com.example.model.Product
+
+Action:
+
+Ensure that your entity class has the @Entity annotation and is within the scan path of @EntityScan.
+
+2024-01-15 10:23:45.700 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Invocation of init method failed
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1770)
+Caused by: java.lang.IllegalArgumentException: Not a managed type: class com.example.model.Product
+	at org.hibernate.metamodel.internal.MetamodelImpl.managedType(MetamodelImpl.java:582)
+	at org.springframework.data.jpa.repository.support.JpaEntityInformationSupport.getEntityInformation(JpaEntityInformationSupport.java:66)

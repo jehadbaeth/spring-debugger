@@ -1,0 +1,13 @@
+error: cannot find symbol
+  symbol: class WebSecurityConfigurerAdapter
+  location: package org.springframework.security.config.annotation.web.configuration
+
+/Users/dev/project/src/main/java/com/example/security/SecurityConfig.java:12: error: cannot find symbol
+  public class SecurityConfig extends WebSecurityConfigurerAdapter {
+                                       ^
+  symbol: class WebSecurityConfigurerAdapter
+
+Note: WebSecurityConfigurerAdapter has been removed in Spring Security 6.x.
+Use SecurityFilterChain beans instead.
+
+BUILD FAILED

@@ -1,0 +1,20 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+The application failed to start because a class was compiled with a newer version of the Java Runtime than is available at runtime.
+
+Action:
+
+Align the Java version used to compile the application with the Java Runtime version in the target environment.
+
+2024-01-15 10:23:45.100 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'demoApplication': Unexpected exception during bean creation
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:608)
+Caused by: java.lang.UnsupportedClassVersionError: com/example/DemoApplication has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+	at java.lang.ClassLoader.defineClass1(Native Method)

@@ -1,0 +1,7 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] c.e.controller.OrderControllerTest       : Starting OrderControllerTest
+
+org.junit.jupiter.api.extension.TestInstantiationException: test setup failed
+	at org.junit.jupiter.engine.execution.LifecycleMethodUtils.invokeMethodsInDeclarationOrder(LifecycleMethodUtils.java:39)
+Caused by: org.mockito.exceptions.misusing.UnnecessaryStubbingException: Unnecessary stubbing detected - the stubbing at OrderControllerTest.java:45 was not used. If this was intentional, use lenient().when(...). If not, remove it.
+	at org.mockito.internal.exceptions.Reporter.foundUnnecessaryStubbings(Reporter.java:327)
+	at org.mockito.internal.junit.MismatchReportingTestListener.testFinished(MismatchReportingTestListener.java:60)

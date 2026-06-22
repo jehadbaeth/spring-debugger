@@ -1,0 +1,20 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+There is no PasswordEncoder mapped for the id "null". UserDetailsService bean is required but could not be found.
+
+Action:
+
+Consider defining a bean of type 'org.springframework.security.core.userdetails.UserDetailsService' in your configuration.
+
+2024-01-15 10:23:45.700 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'springSecurityFilterChain': Initialization of bean failed; Auto-configuration did not apply: UserDetailsService bean required but no UserDetailsService bean is present
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:608)
+Caused by: java.lang.IllegalArgumentException: UserDetailsService bean is required for the auto-configuration of Spring Security
+	at org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter.userDetailsServiceBean(WebSecurityConfigurerAdapter.java:433)

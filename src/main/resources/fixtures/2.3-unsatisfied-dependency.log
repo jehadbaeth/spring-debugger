@@ -1,0 +1,20 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 0 of constructor in com.example.InvoiceService has an unsatisfied dependency.
+
+Action:
+
+Consider defining the missing dependency bean in your configuration.
+
+2024-01-15 10:23:45.700 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'invoiceService' defined in file [InvoiceService.class]: Unsatisfied dependency expressed through constructor parameter 0
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:567)
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'invoiceService': Unsatisfied dependency expressed through constructor parameter 0; no beans of the declared type are available to satisfy this dependency
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:800)

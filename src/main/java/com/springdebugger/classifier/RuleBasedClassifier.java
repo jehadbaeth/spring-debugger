@@ -72,7 +72,9 @@ public final class RuleBasedClassifier {
         }
 
         if (criteria.getBuildLineContains() != null) {
-            if (!signal.anyLineContains(criteria.getBuildLineContains())) return false;
+            boolean inLines = signal.anyLineContains(criteria.getBuildLineContains());
+            boolean inExcerpt = containsIgnoreCase(signal.getRawExcerpt(), criteria.getBuildLineContains());
+            if (!inLines && !inExcerpt) return false;
         }
 
         return true;

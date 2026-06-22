@@ -1,0 +1,7 @@
+/Users/dev/project/src/main/java/com/example/mapper/OrderMapper.java:8: error: Could not generate implementation for interface OrderMapper: No @Mapper annotation found.
+public interface OrderMapper {
+                ^
+
+Note: Ensure the interface is annotated with @Mapper from the org.mapstruct package, not a different one.
+
+BUILD FAILED

@@ -1,0 +1,6 @@
+2024-01-15 14:30:22.001  WARN 12345 --- [http-nio-8080-exec-4] o.s.w.s.m.m.a.DefaultHandlerExceptionResolver : Resolved exception
+
+org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler: Request processing failed with validation errors
+	at org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor.resolveArgument(RequestResponseBodyMethodProcessor.java:144)
+Caused by: org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public org.springframework.http.ResponseEntity com.example.controller.UserController.createUser(com.example.dto.CreateUserRequest) with 2 errors: [Field error in object 'createUserRequest' on field 'email': rejected value [not-an-email]; default message [must be a well-formed email address]] [Field error on field 'name': rejected value [null], must not be blank]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor.resolveArgument(RequestResponseBodyMethodProcessor.java:144)

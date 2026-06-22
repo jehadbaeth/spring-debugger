@@ -1,0 +1,10 @@
+/Users/dev/project/src/main/java/com/example/mapper/UserMapper.java:15: warning: Unmapped target property: "createdAt".
+@Mapper(componentModel = "spring")
+^
+/Users/dev/project/src/main/java/com/example/mapper/UserMapper.java:15: warning: Unmapped target property: "updatedAt".
+@Mapper(componentModel = "spring")
+^
+
+Note: /Users/dev/project/src/main/java/com/example/mapper/UserMapper.java uses unchecked or unsafe operations.
+
+BUILD SUCCESSFUL (but with warnings - Unmapped target property: "createdAt", Unmapped target property: "updatedAt")

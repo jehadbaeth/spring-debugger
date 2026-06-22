@@ -1,0 +1,21 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Ambiguous mapping. Cannot map 'userController' method
+com.example.controller.UserController#getUser(Long)
+to {GET [/api/users/{id}]}: There is already 'adminController' bean method
+com.example.controller.AdminController#getUserById(Long) mapped.
+
+Action:
+
+Rename one controller mapping or add distinct path prefixes to avoid the clash.
+
+2024-01-15 10:23:45.700 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+java.lang.IllegalStateException: Ambiguous mapping. Cannot map 'userController' method com.example.controller.UserController#getUser(Long) to {GET [/api/users/{id}]}: There is already 'adminController' bean method com.example.controller.AdminController#getUserById(Long) mapped.
+	at org.springframework.web.servlet.handler.AbstractHandlerMethodMapping$MappingRegistry.assertUniqueMethodMapping(AbstractHandlerMethodMapping.java:600)

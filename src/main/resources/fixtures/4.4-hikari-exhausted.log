@@ -1,0 +1,13 @@
+2024-01-15 10:45:12.001  INFO 12345 --- [http-nio-8080-exec-5] com.example.OrderController              : Processing order request
+
+2024-01-15 10:45:22.356 ERROR 12345 --- [http-nio-8080-exec-5] o.h.engine.jdbc.spi.SqlExceptionHelper   : Connection is not available, request timed out after 30000ms.
+
+2024-01-15 10:45:22.357 ERROR 12345 --- [http-nio-8080-exec-5] o.s.transaction.interceptor.TransactionInterceptor : Application exception overridden by rollback exception
+
+org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction; nested exception is org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection
+	at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:448)
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection
+	at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:48)
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30000ms.
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:213)
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:162)

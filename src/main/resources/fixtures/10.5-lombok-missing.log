@@ -1,0 +1,16 @@
+/Users/dev/project/src/main/java/com/example/service/UserService.java:23: error: cannot find symbol
+        return user.getEmail();
+                   ^
+  symbol:   method getEmail()
+  location: variable user of type User
+
+/Users/dev/project/src/main/java/com/example/service/UserService.java:24: error: cannot find symbol
+        user.setName(request.getName());
+            ^
+  symbol:   method setName(String)
+  location: variable user of type User
+
+Note: Some messages have been simplified; recompile with -Xlint:all for details.
+2 errors
+
+BUILD FAILED

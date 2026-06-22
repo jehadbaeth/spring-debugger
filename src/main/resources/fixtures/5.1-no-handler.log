@@ -1,0 +1,8 @@
+2024-01-15 14:30:22.001  WARN 12345 --- [http-nio-8080-exec-2] o.s.web.servlet.PageNotFound             : No mapping for GET /api/v1/orders/456
+
+2024-01-15 14:30:22.002 ERROR 12345 --- [http-nio-8080-exec-2] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] threw exception
+
+org.springframework.web.server.ResponseStatusException: Request processing failed; nested exception is NoHandlerFoundException
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1065)
+Caused by: org.springframework.web.servlet.NoHandlerFoundException: No handler found for GET /api/v1/orders/456
+	at org.springframework.web.servlet.DispatcherServlet.noHandlerFound(DispatcherServlet.java:1325)

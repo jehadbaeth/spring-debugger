@@ -1,0 +1,9 @@
+/Users/dev/project/src/main/java/com/example/service/UserService.java:12: error: package com.example.mapper does not contain class UserMapperImpl
+import com.example.mapper.UserMapperImpl;
+                         ^
+
+Note: The following classes have been added to the list of types to be processed but are not known to MapStruct. MapperImpl was not generated for: com.example.mapper.UserMapper
+
+BUILD FAILED
+
+Note: Ensure mapstruct-processor is in the annotationProcessor configuration scope in your build file.

@@ -1,0 +1,22 @@
+2024-01-15 10:23:45.001  INFO 12345 --- [           main] com.example.DemoApplication              : Starting DemoApplication
+2024-01-15 10:23:45.500  INFO 12345 --- [           main] o.s.boot.SpringApplication               : Loading application context
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to parse configuration class [com.example.config.AppConfig]
+
+Action:
+
+Check that the configuration class is valid and all referenced classes exist on the classpath.
+
+2024-01-15 10:23:45.700 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanDefinitionStoreException: Failed to parse configuration class [com.example.config.AppConfig]; nested exception is java.io.FileNotFoundException: class path resource [com/example/missing/MissingClass.class] cannot be opened because it does not exist
+	at org.springframework.context.annotation.ConfigurationClassParser.parse(ConfigurationClassParser.java:189)
+	at org.springframework.context.annotation.ConfigurationClassPostProcessor.processConfigBeanDefinitions(ConfigurationClassPostProcessor.java:331)
+Caused by: org.springframework.beans.factory.BeanDefinitionStoreException: Failed to read candidate component class: class path resource [com/example/NonExistent.class]
+	at org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider.findCandidateComponents(ClassPathScanningCandidateComponentProvider.java:456)

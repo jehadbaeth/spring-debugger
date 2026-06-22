@@ -1,0 +1,9 @@
+/Users/dev/project/src/main/java/com/example/mapper/ProductMapper.java:22: error: Can't map property "java.time.Instant ProductDto.createdAt" to "java.util.Date Product.createdAt". Consider to declare/implement a mapping method: "java.util.Date map(java.time.Instant value)".
+    ProductDto toDto(Product product);
+                   ^
+
+/Users/dev/project/src/main/java/com/example/mapper/ProductMapper.java:23: error: Can't map property "java.math.BigDecimal ProductDto.price" to "double Product.price". Consider to add a custom converter.
+
+2 errors
+
+BUILD FAILED
