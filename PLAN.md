@@ -414,7 +414,7 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M3 | YAML rule loader | ✅ DONE | Rules loaded from `spring-boot-rules.yaml` at plugin startup |
 | M4 | Classifier (sections 1 and 2) | ✅ DONE | Rules implemented and passing fixtures |
 | M5 | TEST_CONSOLE tap | ✅ DONE | SMTRunnerEventsListener attached, section 9 rules passing |
-| M6 | BUILD_OUTPUT tap (partial) | 🔄 IN PROGRESS | Compile-phase rules match via rawExcerpt fallback; proper CompileTask registration deferred (see open decisions) |
+| M6 | BUILD_OUTPUT tap | 🔄 WIRED, LIVE CHECK PENDING | BuildOutputTap registered via the `compiler.task` extension (internal JPS builds); ExternalBuildOutputTap added for delegated Gradle/Maven builds. Shared BuildOutputAnalyzer is unit-tested; classification is fixture-verified. Not yet confirmed firing in a running IDE sandbox |
 | M7 | Full rule catalog | ✅ DONE | 43 of 44 rules DONE with passing fixtures; only 13.8 (MapStruct null-mapping) deferred to M8/PSI. Rule 9.1 removed (dead duplicate of 1.10); rules 4.14 (Redis) and 9.6 (Testcontainers) added |
 | M8 | PSI enrichment layer | ⏳ PENDING | Optional enrichment for MEDIUM-confidence rules |
 | M9 | Actuator enrichment layer | ⏳ PENDING | Queries /actuator/health and /actuator/env when app is running |
@@ -428,7 +428,7 @@ M0–M7, M10–M12, and M14 are complete. Plugin is functional, documented, and 
 
 ### Open items before v1.0
 
-- M6 proper: register BuildOutputTap via a non-deprecated extension point or `CompilerManager` API that works in 2025.2. This is the one remaining correctness debt — build rules currently match via the rawExcerpt fallback rather than a real compiler hook.
+- M6 live verification: the build taps are now registered (internal `compiler.task` plus external-system listener for delegated Gradle/Maven) and the parsing core is unit-tested, but firing has not been confirmed in a running IDE sandbox. Before marking M6 fully DONE, run the IntelliJ Community sandbox with a Gradle Spring project that has a MapStruct/WebSecurityConfigurerAdapter compile error (build delegated to Gradle, the default) and confirm ExternalBuildOutputTap surfaces the card.
 - 13.8 (MapStruct null-mapping): stays TODO on purpose. Its diagnosis claims a specific cause (null-value property mapping strategy) that an NPE-through-MapperImpl signal cannot prove. Promoting it to MEDIUM just to clear the test would mislabel the confidence. Resolve it with M8 (PSI) so the structural claim can be verified, or only after the signal is tightened.
 - Expand real-life testing corpus to 25+ logs for v0.2.0
 - M8 PSI enrichment and M9 Actuator enrichment for higher-confidence MEDIUM rules
