@@ -3,7 +3,7 @@ package com.springdebugger.tap;
 import com.intellij.execution.testframework.sm.runner.SMTRunnerEventsAdapter;
 import com.intellij.execution.testframework.sm.runner.SMTestProxy;
 import com.intellij.openapi.project.Project;
-import com.springdebugger.classifier.RuleBasedClassifier;
+import com.springdebugger.engine.DiagnosisPipeline;
 import com.springdebugger.extractor.LogExtractor;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.Phase;
@@ -22,12 +22,12 @@ public final class TestConsoleTap extends SMTRunnerEventsAdapter {
 
     private final Project project;
     private final LogExtractor extractor;
-    private final RuleBasedClassifier classifier;
+    private final DiagnosisPipeline pipeline;
 
     public TestConsoleTap(Project project, RuleCatalog catalog) {
         this.project = project;
         this.extractor = new LogExtractor();
-        this.classifier = new RuleBasedClassifier(catalog);
+        this.pipeline = new DiagnosisPipeline(catalog);
     }
 
     @Override
@@ -39,7 +39,7 @@ public final class TestConsoleTap extends SMTRunnerEventsAdapter {
 
         if (isSpringContextFailure(output)) {
             RawSignal signal = extractor.extract(output, Phase.TEST);
-            Optional<DiagnosisCard> card = classifier.classify(signal);
+            Optional<DiagnosisCard> card = pipeline.run(signal);
             card.ifPresent(c -> DiagnosisCardPanel.show(project, c));
         }
     }

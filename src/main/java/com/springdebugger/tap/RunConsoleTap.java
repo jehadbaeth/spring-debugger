@@ -4,7 +4,7 @@ import com.intellij.execution.process.ProcessEvent;
 import com.intellij.execution.process.ProcessListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
-import com.springdebugger.classifier.RuleBasedClassifier;
+import com.springdebugger.engine.DiagnosisPipeline;
 import com.springdebugger.extractor.LogExtractor;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.Phase;
@@ -27,7 +27,7 @@ public final class RunConsoleTap implements ProcessListener {
 
     private final Project project;
     private final LogExtractor extractor;
-    private final RuleBasedClassifier classifier;
+    private final DiagnosisPipeline pipeline;
     private final StringBuilder buffer = new StringBuilder();
     private boolean startupFailureDetected = false;
     private Phase currentPhase = Phase.STARTUP;
@@ -35,7 +35,7 @@ public final class RunConsoleTap implements ProcessListener {
     public RunConsoleTap(Project project, RuleCatalog catalog) {
         this.project = project;
         this.extractor = new LogExtractor();
-        this.classifier = new RuleBasedClassifier(catalog);
+        this.pipeline = new DiagnosisPipeline(catalog);
     }
 
     @Override
@@ -64,7 +64,7 @@ public final class RunConsoleTap implements ProcessListener {
 
     private void analyseBuffer() {
         RawSignal signal = extractor.extract(buffer.toString(), currentPhase);
-        Optional<DiagnosisCard> card = classifier.classify(signal);
+        Optional<DiagnosisCard> card = pipeline.run(signal);
         card.ifPresent(c -> DiagnosisCardPanel.show(project, c));
     }
 

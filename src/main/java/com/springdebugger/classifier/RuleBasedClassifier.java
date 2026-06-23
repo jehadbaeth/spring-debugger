@@ -1,5 +1,6 @@
 package com.springdebugger.classifier;
 
+import com.springdebugger.engine.DiagnosisEngine;
 import com.springdebugger.model.Confidence;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.RawSignal;
@@ -12,13 +13,20 @@ import java.util.Optional;
 /**
  * Matches a RawSignal against the loaded rule catalog and produces a DiagnosisCard.
  * Rules are evaluated in catalog order; the first rule where all non-null criteria match wins.
+ *
+ * This is the offline rule engine: the first {@link DiagnosisEngine} the pipeline tries.
  */
-public final class RuleBasedClassifier {
+public final class RuleBasedClassifier implements DiagnosisEngine {
 
     private final RuleCatalog catalog;
 
     public RuleBasedClassifier(RuleCatalog catalog) {
         this.catalog = catalog;
+    }
+
+    @Override
+    public Optional<DiagnosisCard> diagnose(RawSignal signal) {
+        return classify(signal);
     }
 
     public Optional<DiagnosisCard> classify(RawSignal signal) {

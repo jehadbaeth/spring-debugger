@@ -5,7 +5,7 @@ import com.intellij.openapi.compiler.CompileTask;
 import com.intellij.openapi.compiler.CompilerMessageCategory;
 import com.intellij.openapi.project.Project;
 import com.springdebugger.SpringDebuggerService;
-import com.springdebugger.classifier.RuleBasedClassifier;
+import com.springdebugger.engine.DiagnosisPipeline;
 import com.springdebugger.extractor.LogExtractor;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.Phase;
@@ -34,11 +34,11 @@ public final class BuildOutputTap implements CompileTask {
 
         if (!isSpringRelated(errorText)) return true;
 
-        RuleBasedClassifier classifier = new RuleBasedClassifier(
+        DiagnosisPipeline pipeline = new DiagnosisPipeline(
                 SpringDebuggerService.getInstance().getCatalog());
 
         RawSignal signal = extractor.extract(errorText, Phase.COMPILE);
-        Optional<DiagnosisCard> card = classifier.classify(signal);
+        Optional<DiagnosisCard> card = pipeline.run(signal);
         Project project = context.getProject();
         card.ifPresent(c -> DiagnosisCardPanel.show(project, c));
 
