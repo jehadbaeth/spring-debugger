@@ -4,7 +4,10 @@ import com.intellij.execution.process.ProcessEvent;
 import com.intellij.execution.process.ProcessListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
+import com.springdebugger.classifier.RuleBasedClassifier;
 import com.springdebugger.engine.DiagnosisPipeline;
+import com.springdebugger.enricher.IdeEnrichmentContext;
+import com.springdebugger.enricher.PsiEnricher;
 import com.springdebugger.extractor.LogExtractor;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.Phase;
@@ -13,6 +16,7 @@ import com.springdebugger.rule.RuleCatalog;
 import com.springdebugger.ui.DiagnosisCardPanel;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -35,7 +39,8 @@ public final class RunConsoleTap implements ProcessListener {
     public RunConsoleTap(Project project, RuleCatalog catalog) {
         this.project = project;
         this.extractor = new LogExtractor();
-        this.pipeline = new DiagnosisPipeline(catalog);
+        this.pipeline = new DiagnosisPipeline(
+                new RuleBasedClassifier(catalog), List.of(new PsiEnricher()), null);
     }
 
     @Override
@@ -64,7 +69,7 @@ public final class RunConsoleTap implements ProcessListener {
 
     private void analyseBuffer() {
         RawSignal signal = extractor.extract(buffer.toString(), currentPhase);
-        Optional<DiagnosisCard> card = pipeline.run(signal);
+        Optional<DiagnosisCard> card = pipeline.run(signal, new IdeEnrichmentContext(project));
         card.ifPresent(c -> DiagnosisCardPanel.show(project, c));
     }
 
