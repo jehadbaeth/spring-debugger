@@ -68,10 +68,10 @@ Analysis
   Minimum confidence level:  [ MEDIUM ▾ ]
   Maximum history entries:   [ 30      ▾ ]
 
-LLM Fallback (coming in a future release)
-  ☐  Enable Ollama LLM fallback (disabled — not yet implemented)
-  Ollama base URL:  [ http://localhost:11434  ]  (greyed out)
-  Ollama model:     [ llama3                 ]  (greyed out)
+LLM Fallback (local Ollama)
+  ☐  Enable Ollama LLM fallback for unrecognised errors
+  Ollama base URL:  [ http://localhost:11434  ]
+  Ollama model:     [ llama3.2               ]
 ```
 
 ---
@@ -326,10 +326,18 @@ Issues: https://github.com/jehadbaeth/spring-debugger/issues
 
 ## Roadmap
 
-- **v0.2.0** — expand real-world test corpus to 25+ logs; source logs for Jackson recursion and DataIntegrityViolation
-- **M6 proper** — register the build-output tap via a non-deprecated `CompileTask` API instead of the current rawExcerpt fallback (the one remaining correctness debt)
-- **M8 / rule 13.8** — PSI enrichment to verify structural claims; this also unblocks rule 13.8 (MapStruct null-mapping), which stays TODO until the null-value-strategy claim can be verified rather than guessed
-- **Future** — Actuator enrichment (query /actuator/health); Ollama LLM fallback for unrecognised errors (setting already present, not yet wired)
+Shipped:
+
+- **v0.2.0** — build taps wired (internal `compiler.task` + external Gradle/Maven listener); PSI enrichment (M8); Actuator enrichment (M9)
+- **v0.3.0** — local Ollama LLM fallback (M13); real-world corpus expanded to 28 logs, with four engine fixes the real logs exposed
+
+Remaining before v1.0:
+
+- **M6 live verification** — confirm the delegated-build tap fires in a running IDE sandbox (parsing is unit-tested; only live firing is unverified)
+- **LLM live round-trip** — exercise a real Ollama call (CI has no model; protocol and safety contract are unit-tested)
+- **Rule 13.8** — stays TODO until the MapStruct null-value-strategy claim can be verified rather than guessed
+- **Property-precedence enricher** — wire `ActuatorReader.effectivePropertySource` (parsing exists) into a consumer
+- **Stretch** — grow the corpus further; Kotlin support (currently out of scope)
 
 ---
 
