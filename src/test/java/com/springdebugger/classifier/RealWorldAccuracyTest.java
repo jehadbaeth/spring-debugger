@@ -89,9 +89,9 @@ class RealWorldAccuracyTest {
             "SOL-001",
             "real-world-logs/SOL-001-nosuchbean-test-context.log",
             Phase.TEST,
-            "1.10",
+            "2.3",
             "MATCH",
-            "jvt.me — Spring Boot 2.x, NoSuchBeanDefinitionException in @SpringBootTest; generic 'Failed to load ApplicationContext' fires as catch-all"
+            "jvt.me — Spring Boot 2.x, NoSuchBeanDefinitionException in @SpringBootTest. Deepest Caused by is UnsatisfiedDependencyException (the missing bean is inline via 'nested exception is'), so rule 2.3 fires with a more specific diagnosis than the 1.10 catch-all now that 1.10 is last"
         ),
         new TestCase(
             "SOL-002",
@@ -161,9 +161,9 @@ class RealWorldAccuracyTest {
             "SOL-010",
             "real-world-logs/SOL-010-nosuchmethod-test-no-match.log",
             Phase.TEST,
-            "1.10",
+            "10.1",
             "MATCH",
-            "GitHub spring-projects/spring-boot#38617 — Spring Boot 3.2.0 upgrade, NoSuchMethodError in test context; rule 10.1 (STARTUP/RUNTIME only) skipped by phase filter; 'Failed to load ApplicationContext' catch-all fires correctly"
+            "GitHub spring-projects/spring-boot#38617 — Spring Boot 3.2.0 upgrade, NoSuchMethodError in test context; rule 10.1 now covers TEST phase and wins over the 1.10 catch-all (moved to end of catalog)"
         )
     );
 

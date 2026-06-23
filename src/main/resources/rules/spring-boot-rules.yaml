@@ -92,18 +92,6 @@ rules:
     fixture: "fixtures/1.9-no-active-profile.log"
     status: DONE
 
-  - id: "1.10"
-    name: "Failed to load ApplicationContext (tests)"
-    phases: [TEST]
-    taps: [TEST_CONSOLE]
-    signals:
-      messageContains: "Failed to load ApplicationContext"
-    diagnosis: "The test application context could not be built; read the nested exception for the root cause."
-    fix: "Provide missing collaborators via @MockitoBean, narrow the test slice with @WebMvcTest or @DataJpaTest, or use a full @SpringBootTest if all beans are genuinely needed."
-    confidence: HIGH
-    fixture: "fixtures/1.10-failed-to-load-context.log"
-    status: DONE
-
   - id: "1.12"
     name: "Auto-configuration not applied"
     phases: [STARTUP]
@@ -460,8 +448,8 @@ rules:
 
   - id: "10.1"
     name: "NoSuchMethodError / NoClassDefFoundError"
-    phases: [STARTUP, RUNTIME]
-    taps: [RUN_CONSOLE]
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       causedByClass: "NoSuchMethodError"
     diagnosis: "Two versions of the same library are on the classpath and the wrong one loaded; it lacks a method that the compiled code expects."
@@ -588,3 +576,23 @@ rules:
     confidence: LOW
     fixture: "fixtures/13.8-null-mapping.log"
     status: TODO
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Last-resort catch-all. Must stay at the very END of the catalog so that
+  # any more specific rule (e.g. 10.1 NoSuchMethodError in a test, 2.1 a
+  # missing bean) wins first. This only fires when a test context failed to
+  # load and nothing more specific matched, pointing the developer at the
+  # nested exception. Moving this earlier would shadow specific test rules.
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: "1.10"
+    name: "Failed to load ApplicationContext (tests)"
+    phases: [TEST]
+    taps: [TEST_CONSOLE]
+    signals:
+      messageContains: "Failed to load ApplicationContext"
+    diagnosis: "The test application context could not be built; read the nested exception for the root cause."
+    fix: "Provide missing collaborators via @MockitoBean, narrow the test slice with @WebMvcTest or @DataJpaTest, or use a full @SpringBootTest if all beans are genuinely needed."
+    confidence: HIGH
+    fixture: "fixtures/1.10-failed-to-load-context.log"
+    status: DONE
