@@ -417,18 +417,23 @@ rules:
   # Section 9: Testing Errors
   # ─────────────────────────────────────────────────
 
-  - id: "9.1"
-    name: "Failed to load ApplicationContext in tests"
+  # 9.1 (generic "Failed to load ApplicationContext in tests") was removed: it
+  # duplicated rule 1.10 exactly and its causedByClass: IllegalStateException
+  # signal could never match, because the extractor keeps the DEEPEST Caused by,
+  # which in a context-load failure is always something more specific. Rule 1.10
+  # (now the last-resort catch-all at the end of the catalog) covers this case.
+
+  - id: "9.6"
+    name: "Testcontainers Docker not available"
     phases: [TEST]
     taps: [TEST_CONSOLE]
     signals:
-      causedByClass: "IllegalStateException"
-      messageContains: "Failed to load ApplicationContext"
-    diagnosis: "The test application context could not be built; read the nested exception for the root cause."
-    fix: "Provide missing collaborators via @MockitoBean, narrow the test slice with @WebMvcTest or @DataJpaTest, or use a full @SpringBootTest if all beans are genuinely needed."
+      messageContains: "Could not find a valid Docker environment"
+    diagnosis: "Testcontainers cannot start because no running Docker environment was found on this machine or CI runner."
+    fix: "Start Docker Desktop (or the Docker daemon) locally; in CI make sure the runner provides Docker, and pin image tags so pulls do not fail on restricted networks."
     confidence: HIGH
-    fixture: "fixtures/9.1-test-context-failed.log"
-    status: TODO
+    fixture: "fixtures/9.6-testcontainers-docker.log"
+    status: DONE
 
   - id: "9.2"
     name: "@MockBean not replacing real bean"

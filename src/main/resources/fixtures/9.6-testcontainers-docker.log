@@ -1,0 +1,12 @@
+2024-03-12 14:08:21.114  INFO 4456 --- [           main] c.e.OrderRepositoryIntegrationTest       : Starting OrderRepositoryIntegrationTest
+
+java.lang.IllegalStateException: Failed to load ApplicationContext for [WebMergedContextConfiguration@...]
+	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:143)
+	at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:127)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.getApplicationContext(SpringExtension.java:147)
+Caused by: java.lang.IllegalStateException: Could not find a valid Docker environment. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.lambda$getFirstValidStrategy$7(DockerClientProviderStrategy.java:215)
+	at java.base/java.util.Optional.orElseThrow(Optional.java:403)
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:207)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:122)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:322)
