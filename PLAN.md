@@ -420,19 +420,30 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M9 | Actuator enrichment layer | ✅ DONE (narrow surface) | ActuatorReader parses /actuator/health and /actuator/env; ActuatorEnricher confirms non-HIGH RUNTIME cards against live health and upgrades to HIGH. RunConsoleTap detects the bound port. Parsing/logic unit-tested; fires only when the app stays alive and exposes Actuator |
 | M10 | UI card polish | ✅ DONE | Full tool window with status bar, current card view, scrollable history, settings panel in Preferences |
 | M11 | Settings persistence | ✅ DONE | PersistentStateComponent + DiagnosisHistoryService with listener pattern |
-| M12 | Real-life testing | ✅ DONE | 15 real-world logs from GitHub Issues and blog tutorials tested; 13/13 expected matches correct, 2 acknowledged format gaps, 0 false positives; ACCURACY-ANALYSIS-v0.1.0.md (living doc); several bugs and gaps found and fixed (phase filter, rule 13.4 signal, catch-all ordering, 10.1 TEST phase, Redis rule, DONE-only runtime) |
+| M12 | Real-life testing | ✅ DONE | 28 real-world logs from GitHub Issues, Q&A, and blog tutorials; 26/26 expected matches correct, 2 acknowledged format gaps, 0 false positives. Per-release analysis docs (v0.1.0, v0.2.0, v0.3.0). Real logs drove many fixes: phase filter, rule 13.4 signal, catch-all ordering, 10.1 TEST phase, Redis rule, DONE-only runtime, inline nested-exception/top-level extraction, 1.3 precedence, 4.13/5.5 wrapper keying |
 | M13 | LLM integration (Ollama) | ✅ DONE | LlmDiagnosisEngine wired to the pipeline fallback, fires only when no rule matches. Local Ollama only; cloud providers deliberately not built. Safety contract (unparseable reply shows nothing) is unit-tested. Settings UI live. Off by default |
 | M14 | How-to-use guide | ✅ DONE | HOW-TO-USE.md published covering installation, UI, settings, rule catalog, and contributing guide |
 
-M0–M7, M10–M12, and M14 are complete. Plugin is functional, documented, and validated against real-world logs.
+All milestones M0–M14 are implemented as of v0.3.0. The plugin is functional, documented,
+and validated against a 28-log real-world corpus. M8 (PSI), M9 (Actuator), and M13 (LLM)
+shipped in v0.2.0–v0.3.0.
 
 ### Open items before v1.0
 
-- M6 live verification: the build taps are now registered (internal `compiler.task` plus external-system listener for delegated Gradle/Maven) and the parsing core is unit-tested, but firing has not been confirmed in a running IDE sandbox. Before marking M6 fully DONE, run the IntelliJ Community sandbox with a Gradle Spring project that has a MapStruct/WebSecurityConfigurerAdapter compile error (build delegated to Gradle, the default) and confirm ExternalBuildOutputTap surfaces the card.
-- 13.8 (MapStruct null-mapping): stays TODO on purpose. Its diagnosis claims a specific cause (null-value property mapping strategy) that an NPE-through-MapperImpl signal cannot prove. Promoting it to MEDIUM just to clear the test would mislabel the confidence. Resolve it with M8 (PSI) so the structural claim can be verified, or only after the signal is tightened.
-- Expand real-life testing corpus to 25+ logs for v0.2.0
-- M8 PSI enrichment and M9 Actuator enrichment for higher-confidence MEDIUM rules
-- M13 Ollama LLM fallback
+- M6 live verification: the build taps are registered (internal `compiler.task` plus
+  external-system listener for delegated Gradle/Maven) and the parsing core is unit-tested,
+  but firing has not been confirmed in a running IDE sandbox. This is the one remaining
+  manual check before M6 is fully DONE — run the IntelliJ Community sandbox with a Gradle
+  Spring project that has a MapStruct/WebSecurityConfigurerAdapter compile error (build
+  delegated to Gradle, the default) and confirm ExternalBuildOutputTap surfaces the card.
+- LLM live round-trip: the M13 safety contract and protocol are unit-tested, but a live
+  call to a running Ollama instance is not exercised in CI (no model available).
+- 13.8 (MapStruct null-mapping): stays TODO on purpose. Its diagnosis claims a specific
+  cause (null-value property mapping strategy) that neither the signal nor PSI can prove.
+  Promoting it to MEDIUM just to clear the test would mislabel the confidence.
+- `ActuatorReader.effectivePropertySource` is implemented and tested but has no enricher
+  consumer yet; it is scaffolding for a future property-precedence enricher.
+- Stretch: grow the real-world corpus further and add Kotlin support (currently out of scope).
 
 ### Resolved since v0.1.0
 
