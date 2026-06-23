@@ -8,6 +8,7 @@ import com.springdebugger.classifier.RuleBasedClassifier;
 import com.springdebugger.engine.DiagnosisPipeline;
 import com.springdebugger.enricher.ActuatorEnricher;
 import com.springdebugger.enricher.IdeEnrichmentContext;
+import com.springdebugger.enricher.PropertyPrecedenceEnricher;
 import com.springdebugger.enricher.PsiEnricher;
 import com.springdebugger.extractor.LogExtractor;
 import com.springdebugger.llm.LlmFallback;
@@ -49,7 +50,7 @@ public final class RunConsoleTap implements ProcessListener {
         this.extractor = new LogExtractor();
         this.pipeline = new DiagnosisPipeline(
                 new RuleBasedClassifier(catalog),
-                List.of(new PsiEnricher(), new ActuatorEnricher()),
+                List.of(new PsiEnricher(), new ActuatorEnricher(), new PropertyPrecedenceEnricher()),
                 LlmFallback.fromSettings());
     }
 
