@@ -11,11 +11,14 @@ No reading cascading stack traces. No Googling the exception class name.
 - **Real-time detection** — attaches to IntelliJ's run, test, and build streams; no polling, no file watching
 - **43 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
 - **Three-layer signal extraction** — reads `Caused by:` chains, failure analysis banners, and build error lines
+- **Build-aware** — taps both IntelliJ internal builds and delegated Gradle/Maven builds for compile-phase rules
+- **PSI enrichment** — confirms structural claims against your source (a missing bean has no stereotype, a type is a `@Mapper`, a class is outside the scan tree) and upgrades uncertain matches to HIGH
+- **Actuator enrichment** — when a runtime error leaves the app alive, confirms the diagnosis against live `/actuator/health`
 - **Diagnosis history** — every diagnosis is stored per session; double-click any entry to re-inspect it
 - **Copy Fix / Copy Diagnosis** — one-click clipboard for both sentences
 - **Settings panel** — minimum confidence threshold, history size, balloon notifications, tool window focus
 - **Phase-aware matching** — COMPILE rules do not fire on STARTUP logs; RUNTIME rules do not fire on TEST logs
-- **Offline by design** — no network calls, no telemetry, no API keys
+- **Offline by design** — no network calls leave your machine; the optional LLM fallback uses local Ollama only
 
 ---
 
