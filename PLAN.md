@@ -421,7 +421,7 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M10 | UI card polish | ✅ DONE | Full tool window with status bar, current card view, scrollable history, settings panel in Preferences |
 | M11 | Settings persistence | ✅ DONE | PersistentStateComponent + DiagnosisHistoryService with listener pattern |
 | M12 | Real-life testing | ✅ DONE | 15 real-world logs from GitHub Issues and blog tutorials tested; 13/13 expected matches correct, 2 acknowledged format gaps, 0 false positives; ACCURACY-ANALYSIS-v0.1.0.md (living doc); several bugs and gaps found and fixed (phase filter, rule 13.4 signal, catch-all ordering, 10.1 TEST phase, Redis rule, DONE-only runtime) |
-| M13 | LLM integration (Ollama) | ⏳ PENDING | Config switch enables the LLM fallback path |
+| M13 | LLM integration (Ollama) | ✅ DONE | LlmDiagnosisEngine wired to the pipeline fallback, fires only when no rule matches. Local Ollama only; cloud providers deliberately not built. Safety contract (unparseable reply shows nothing) is unit-tested. Settings UI live. Off by default |
 | M14 | How-to-use guide | ✅ DONE | HOW-TO-USE.md published covering installation, UI, settings, rule catalog, and contributing guide |
 
 M0–M7, M10–M12, and M14 are complete. Plugin is functional, documented, and validated against real-world logs.

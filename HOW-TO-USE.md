@@ -106,9 +106,24 @@ Open **Settings → Tools → Spring Boot Debugger** (or click the **⚙** gear 
 | Minimum confidence level | MEDIUM | LOW confidence diagnoses are filtered out by default; raise to HIGH to see only the most certain matches. |
 | Maximum history entries | 30 | How many past diagnoses to keep per session. |
 
-### LLM Fallback (coming in a future release)
+### LLM Fallback (local Ollama)
 
-The settings panel includes an **Ollama LLM Fallback** section. This is intentionally disabled in 0.1.0 and will be wired up in a future release. When enabled it will route unrecognised errors through a local Ollama model — no data leaves your machine, which is why this approach was chosen over cloud LLM providers.
+The settings panel includes an **Ollama LLM Fallback** section. It is **off by default**. When enabled, any error that no rule recognises is routed through a local Ollama model, which returns a one-sentence diagnosis and one-sentence fix shown as an `llm` card at MEDIUM confidence.
+
+| Setting | Default | Description |
+|---|---|---|
+| Enable Ollama LLM fallback | Off | Master switch for the fallback. When off, only the offline rule engine runs. |
+| Ollama base URL | http://localhost:11434 | Where your local Ollama instance listens. |
+| Ollama model | llama3.2 | The model name to query (must already be pulled in Ollama). |
+
+How it behaves:
+
+- The rule engine is always tried first. The LLM fires only when no rule matches.
+- All data stays on your machine: requests go to your local Ollama instance, never to a cloud provider. This is deliberate, error logs can contain secrets.
+- If the model reply cannot be parsed into both a diagnosis and a fix, nothing is shown rather than a malformed guess.
+- The call is time-bounded so a slow or missing Ollama instance never hangs your run or test session.
+
+To use it: install [Ollama](https://ollama.com), run `ollama pull llama3.2` (or your preferred model), then enable the fallback in settings.
 
 ---
 
