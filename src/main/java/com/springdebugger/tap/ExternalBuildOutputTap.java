@@ -41,16 +41,27 @@ public final class ExternalBuildOutputTap extends ExternalSystemTaskNotification
 
     @Override
     public void onEnd(@NotNull ExternalSystemTaskId id) {
-        StringBuilder buffer = buffers.remove(id);
-        if (buffer == null || buffer.length() == 0) return;
-        if (id.getType() != ExternalSystemTaskType.EXECUTE_TASK) return;
+        String output = drainBuffer(id);
+        if (output == null) return;
 
         Project project = id.findProject();
         if (project == null) return;
 
         BuildOutputAnalyzer analyzer = new BuildOutputAnalyzer(
                 SpringDebuggerService.getInstance().getCatalog());
-        Optional<DiagnosisCard> card = analyzer.analyze(buffer.toString());
+        Optional<DiagnosisCard> card = analyzer.analyze(output);
         card.ifPresent(c -> DiagnosisCardPanel.show(project, c));
+    }
+
+    /**
+     * Removes and returns the buffered output for a finished task, or null when there is
+     * nothing to analyse. Package-visible so the buffering/filtering can be unit-tested
+     * without the IDE-coupled {@code findProject}/{@code show} steps.
+     */
+    String drainBuffer(ExternalSystemTaskId id) {
+        StringBuilder buffer = buffers.remove(id);
+        if (buffer == null || buffer.length() == 0) return null;
+        if (id.getType() != ExternalSystemTaskType.EXECUTE_TASK) return null;
+        return buffer.toString();
     }
 }
