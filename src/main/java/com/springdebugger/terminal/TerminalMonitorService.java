@@ -9,8 +9,11 @@ import com.springdebugger.tap.ConsoleDiagnoser;
 import com.springdebugger.tap.RunConsoleTap;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.ui.DiagnosisCardPanel;
+import com.springdebugger.rule.RuleCatalog;
 
-import java.util.Optional;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -30,9 +33,9 @@ public final class TerminalMonitorService {
 
     private final Project project;
     private final TerminalTextDiffer differ = new TerminalTextDiffer();
+    private final Set<String> shownKeys = new HashSet<>();
     private volatile JBTerminalWidget widget;
     private volatile ScheduledFuture<?> task;
-    private volatile String lastShownKey = "";
 
     public TerminalMonitorService(Project project) {
         this.project = project;
@@ -46,7 +49,9 @@ public final class TerminalMonitorService {
         stop();
         this.widget = target;
         this.differ.reset();
-        this.lastShownKey = "";
+        synchronized (shownKeys) {
+            this.shownKeys.clear();
+        }
         this.task = AppExecutorUtil.getAppScheduledExecutorService()
                 .scheduleWithFixedDelay(this::poll, POLL_MS, POLL_MS, TimeUnit.MILLISECONDS);
     }
@@ -83,14 +88,15 @@ public final class TerminalMonitorService {
         String delta = differ.newText(full);
         if (delta.isEmpty() || !RunConsoleTap.containsErrorSignature(delta)) return;
 
-        Optional<DiagnosisCard> card = new ConsoleDiagnoser(
-                SpringDebuggerService.getInstance().getCatalog()).diagnose(full, project);
-        card.ifPresent(c -> {
-            String key = c.getRuleId() + "|" + c.getDiagnosisSentence();
-            if (!key.equals(lastShownKey)) {
-                lastShownKey = key;
-                DiagnosisCardPanel.show(project, c);
+        RuleCatalog catalog = SpringDebuggerService.getInstance().getCatalog();
+        List<DiagnosisCard> cards = new ConsoleDiagnoser(catalog).diagnoseAll(full, project);
+        boolean firstOfBurst = true;
+        for (DiagnosisCard card : cards) {
+            synchronized (shownKeys) {
+                if (!shownKeys.add(card.groupingKey())) continue;
             }
-        });
+            DiagnosisCardPanel.show(project, card, !firstOfBurst);
+            firstOfBurst = false;
+        }
     }
 }

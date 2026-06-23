@@ -46,9 +46,15 @@ public final class ConsoleDiagnoser {
      * integration run against a long-lived app needs, where many server-side errors interleave.
      */
     public List<DiagnosisCard> diagnoseAll(String output, Project project) {
+        return diagnoseAllWith(output, project != null ? new IdeEnrichmentContext(project) : null);
+    }
+
+    /** As above, but with a caller-supplied enrichment context (e.g. one that knows the app port). */
+    public List<DiagnosisCard> diagnoseAllWith(String output, EnrichmentContext context) {
+        DiagnosisPipeline pipeline = buildPipeline();
         Map<String, DiagnosisCard> byKey = new LinkedHashMap<>();
         for (String block : StackTraceSegmenter.segment(output)) {
-            diagnose(block, project).ifPresent(card -> byKey.putIfAbsent(key(card), card));
+            diagnoseBlock(block, context, pipeline).ifPresent(card -> byKey.putIfAbsent(key(card), card));
         }
         return new ArrayList<>(byKey.values());
     }
@@ -59,13 +65,20 @@ public final class ConsoleDiagnoser {
     }
 
     public Optional<DiagnosisCard> diagnose(String output, Project project) {
-        if (output == null || output.isBlank()) return Optional.empty();
-
         EnrichmentContext context = project != null ? new IdeEnrichmentContext(project) : null;
-        DiagnosisPipeline pipeline = new DiagnosisPipeline(
+        return diagnoseBlock(output, context, buildPipeline());
+    }
+
+    private DiagnosisPipeline buildPipeline() {
+        return new DiagnosisPipeline(
                 new RuleBasedClassifier(catalog),
                 List.of(new PsiEnricher(), new ActuatorEnricher(), new PropertyPrecedenceEnricher()),
                 LlmFallback.fromSettings());
+    }
+
+    private Optional<DiagnosisCard> diagnoseBlock(String output, EnrichmentContext context,
+                                                  DiagnosisPipeline pipeline) {
+        if (output == null || output.isBlank()) return Optional.empty();
 
         Optional<DiagnosisCard> startup = pipeline.run(extractor.extract(output, Phase.STARTUP), context);
         if (startup.isPresent()) return startup;

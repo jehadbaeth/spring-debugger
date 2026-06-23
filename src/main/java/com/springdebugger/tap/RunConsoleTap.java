@@ -5,37 +5,29 @@ import com.intellij.execution.process.ProcessListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.util.concurrency.AppExecutorUtil;
-import com.springdebugger.classifier.RuleBasedClassifier;
-import com.springdebugger.engine.DiagnosisPipeline;
-import com.springdebugger.enricher.ActuatorEnricher;
 import com.springdebugger.enricher.IdeEnrichmentContext;
-import com.springdebugger.enricher.PropertyPrecedenceEnricher;
-import com.springdebugger.enricher.PsiEnricher;
-import com.springdebugger.extractor.LogExtractor;
-import com.springdebugger.llm.LlmFallback;
 import com.springdebugger.model.DiagnosisCard;
-import com.springdebugger.model.Phase;
-import com.springdebugger.model.RawSignal;
 import com.springdebugger.rule.RuleCatalog;
 import com.springdebugger.ui.DiagnosisCardPanel;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Attaches to a run configuration's process and buffers stdout/stderr, then classifies the
- * output when a Spring Boot error appears.
+ * Attaches to a run configuration's process, buffers stdout/stderr, and classifies the output
+ * when a Spring Boot error appears.
  *
- * <p>Analysis is debounced: when an error signature is seen, analysis is scheduled a short
- * delay later and rescheduled on every further chunk. This means it runs once the stack has
- * finished streaming (Spring emits the banner and the Caused-by chain in separate chunks), so
- * it works for a runtime exception in a still-running app, not only at process death.
- * Termination is a final backstop. At most one card is shown per run.
+ * <p>Analysis is debounced: when an error signature is seen it is scheduled a short delay later
+ * and rescheduled on every further chunk, so it runs once the stack has finished streaming and
+ * works for a runtime exception in a still-running app, not only at process death. It surfaces
+ * every distinct error (an integration run can throw several), de-duplicated per run, and only
+ * balloons the first of a burst so negative tests do not flood the UI.
  */
 public final class RunConsoleTap implements ProcessListener {
 
@@ -49,21 +41,15 @@ public final class RunConsoleTap implements ProcessListener {
             "(?:Tomcat|Netty|Jetty|Undertow)[^\\n]*?started on port[\\s(]*s?[)\\s:]*?(\\d{2,5})");
 
     private final Project project;
-    private final LogExtractor extractor;
-    private final DiagnosisPipeline pipeline;
+    private final ConsoleDiagnoser diagnoser;
     private final StringBuilder buffer = new StringBuilder();
-    private volatile boolean cardShown = false;
-    private volatile Phase currentPhase = Phase.STARTUP;
+    private final Set<String> shownKeys = new HashSet<>();
     private volatile int appPort = -1;
     private volatile ScheduledFuture<?> pending;
 
     public RunConsoleTap(Project project, RuleCatalog catalog) {
         this.project = project;
-        this.extractor = new LogExtractor();
-        this.pipeline = new DiagnosisPipeline(
-                new RuleBasedClassifier(catalog),
-                List.of(new PsiEnricher(), new ActuatorEnricher(), new PropertyPrecedenceEnricher()),
-                LlmFallback.fromSettings());
+        this.diagnoser = new ConsoleDiagnoser(catalog);
     }
 
     @Override
@@ -73,12 +59,6 @@ public final class RunConsoleTap implements ProcessListener {
             if (buffer.length() < BUFFER_MAX_CHARS) {
                 buffer.append(text);
             }
-        }
-
-        if (text.contains(STARTUP_FAILURE_MARKER)) {
-            currentPhase = Phase.STARTUP;
-        } else if (text.contains(RUNTIME_EXCEPTION_MARKER)) {
-            currentPhase = Phase.RUNTIME;
         }
 
         if (appPort < 0 && text.contains("started on port")) {
@@ -92,9 +72,9 @@ public final class RunConsoleTap implements ProcessListener {
             }
         }
 
-        // Debounce: schedule (or reschedule) analysis once an error signature appears, so it
-        // fires after the stack has finished streaming rather than on a partial buffer.
-        if (!cardShown && containsErrorSignature(text)) {
+        // Debounce: (re)schedule analysis whenever an error signature appears, so it fires
+        // after the stack has finished streaming rather than on a partial buffer.
+        if (containsErrorSignature(text)) {
             scheduleAnalysis();
         }
     }
@@ -114,17 +94,17 @@ public final class RunConsoleTap implements ProcessListener {
     }
 
     private synchronized void analyseBuffer() {
-        if (cardShown) return;
         String snapshot;
         synchronized (buffer) {
             snapshot = buffer.toString();
         }
-        RawSignal signal = extractor.extract(snapshot, currentPhase);
-        Optional<DiagnosisCard> card = pipeline.run(signal, new IdeEnrichmentContext(project, appPort));
-        card.ifPresent(c -> {
-            cardShown = true;
-            DiagnosisCardPanel.show(project, c);
-        });
+        List<DiagnosisCard> cards = diagnoser.diagnoseAllWith(snapshot, new IdeEnrichmentContext(project, appPort));
+        boolean firstOfBurst = true;
+        for (DiagnosisCard card : cards) {
+            if (!shownKeys.add(card.groupingKey())) continue; // already surfaced this run
+            DiagnosisCardPanel.show(project, card, !firstOfBurst);
+            firstOfBurst = false;
+        }
     }
 
     /** True if a chunk looks like the start/body of an error worth analysing. Pure: tested. */
