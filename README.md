@@ -303,13 +303,13 @@ A rule is DONE only when a fixture log file exists and `ClassifierFixtureTest` p
 
 ## Accuracy
 
-Real-world testing against 15 logs sourced from GitHub Issues and developer blogs:
+Real-world testing against 28 logs sourced from GitHub Issues, StackOverflow-style Q&A, and developer blogs:
 
-- **13 of 13** expected matches were correct (100%)
-- **0 false positives** (after the v0.1.1–v0.1.3 bug fixes)
-- **2 acknowledged gaps** documented in [ACCURACY-ANALYSIS-v0.1.0.md](ACCURACY-ANALYSIS-v0.1.0.md)
+- **26 of 26** expected matches were correct (100%)
+- **0 false positives**
+- **2 acknowledged format gaps** (legacy "expected at least 1 bean" phrasing)
 
-See the full analysis document for per-rule results, root cause analysis of the two bugs found during testing, and the planned v0.2.0 improvements.
+Testing against the real logs drove four engine fixes in v0.3.0 (inline `nested exception is` parsing, top-level exception fallback, catalog precedence, wrapper-level keying for 4.13/5.5). See the per-release analysis docs ([v0.1.0](ACCURACY-ANALYSIS-v0.1.0.md), [v0.2.0](ACCURACY-ANALYSIS-v0.2.0.md), [v0.3.0](ACCURACY-ANALYSIS-v0.3.0.md)) for full results and honest limitations.
 
 ---
 
