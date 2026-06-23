@@ -571,18 +571,12 @@ rules:
   # to distinguish the two: check whether @Mapper and @Getter are both present and the
   # annotationProcessor ordering. Implement in M8 (PSI enrichment layer).
 
-  - id: "13.8"
-    name: "MapStruct null value mapping surprise"
-    phases: [RUNTIME]
-    taps: [RUN_CONSOLE]
-    signals:
-      causedByClass: "NullPointerException"
-      messageContains: "MapperImpl"
-    diagnosis: "A MapStruct mapper method is producing unexpected nulls because the default null value property mapping strategy leaves target fields untouched when the source is null."
-    fix: "Set @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL) or IGNORE on the method to make the null handling behaviour explicit."
-    confidence: LOW
-    fixture: "fixtures/13.8-null-mapping.log"
-    status: TODO
+  # 13.8 (MapStruct nullValuePropertyMappingStrategy leaves fields null) is intentionally
+  # NOT a rule in this engine. It produces no exception and no distinctive log line: the
+  # symptom is a silently-null field at runtime. A log-based engine cannot detect it without
+  # false-positiving on every mapper. It belongs in a static-analysis inspection (PSI), not
+  # here, and is documented as out of scope for the log classifier rather than left as a
+  # permanent TODO that can never be satisfied from logs.
 
   # ──────────────────────────────────────────────────────────────────────
   # Generic wrapper rule, kept near the end on purpose. BeanCreationException

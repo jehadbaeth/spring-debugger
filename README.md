@@ -335,7 +335,7 @@ Remaining before v1.0:
 
 - **M6 live verification** — confirm the delegated-build tap fires in a running IDE sandbox (parsing is unit-tested; only live firing is unverified)
 - **LLM live round-trip** — exercise a real Ollama call (CI has no model; protocol and safety contract are unit-tested)
-- **Rule 13.8** — stays TODO until the MapStruct null-value-strategy claim can be verified rather than guessed
+- **Live IDE confirmation** — a few GUI-only scenarios still need a human at the IDE (see PLAN open items)
 - **Property-precedence enricher** — wire `ActuatorReader.effectivePropertySource` (parsing exists) into a consumer
 - **Stretch** — grow the corpus further; Kotlin support (currently out of scope)
 

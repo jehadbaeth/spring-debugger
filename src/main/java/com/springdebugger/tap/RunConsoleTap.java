@@ -4,6 +4,7 @@ import com.intellij.execution.process.ProcessEvent;
 import com.intellij.execution.process.ProcessListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import com.springdebugger.classifier.RuleBasedClassifier;
 import com.springdebugger.engine.DiagnosisPipeline;
 import com.springdebugger.enricher.ActuatorEnricher;
@@ -21,18 +22,28 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Attaches to a run configuration's process and buffers stdout/stderr.
- * Triggers extraction and classification when Spring Boot error patterns appear.
+ * Attaches to a run configuration's process and buffers stdout/stderr, then classifies the
+ * output when a Spring Boot error appears.
+ *
+ * <p>Analysis is debounced: when an error signature is seen, analysis is scheduled a short
+ * delay later and rescheduled on every further chunk. This means it runs once the stack has
+ * finished streaming (Spring emits the banner and the Caused-by chain in separate chunks), so
+ * it works for a runtime exception in a still-running app, not only at process death.
+ * Termination is a final backstop. At most one card is shown per run.
  */
 public final class RunConsoleTap implements ProcessListener {
 
     private static final int BUFFER_MAX_CHARS = 200_000;
     private static final String STARTUP_FAILURE_MARKER = "APPLICATION FAILED TO START";
     private static final String RUNTIME_EXCEPTION_MARKER = "Exception in thread";
+    /** How long the output must settle after an error signature before we analyse. */
+    private static final long DEBOUNCE_MS = 1200;
     /** Captures the bound HTTP port from the Tomcat/Netty/Jetty startup line. */
     private static final Pattern PORT_LINE = Pattern.compile(
             "(?:Tomcat|Netty|Jetty|Undertow)[^\\n]*?started on port[\\s(]*s?[)\\s:]*?(\\d{2,5})");
@@ -41,10 +52,10 @@ public final class RunConsoleTap implements ProcessListener {
     private final LogExtractor extractor;
     private final DiagnosisPipeline pipeline;
     private final StringBuilder buffer = new StringBuilder();
-    private boolean startupFailureDetected = false;
-    private boolean cardShown = false;
-    private Phase currentPhase = Phase.STARTUP;
-    private int appPort = -1;
+    private volatile boolean cardShown = false;
+    private volatile Phase currentPhase = Phase.STARTUP;
+    private volatile int appPort = -1;
+    private volatile ScheduledFuture<?> pending;
 
     public RunConsoleTap(Project project, RuleCatalog catalog) {
         this.project = project;
@@ -58,16 +69,15 @@ public final class RunConsoleTap implements ProcessListener {
     @Override
     public void onTextAvailable(@NotNull ProcessEvent event, @NotNull Key outputType) {
         String text = event.getText();
-        if (buffer.length() < BUFFER_MAX_CHARS) {
-            buffer.append(text);
+        synchronized (buffer) {
+            if (buffer.length() < BUFFER_MAX_CHARS) {
+                buffer.append(text);
+            }
         }
 
-        if (!startupFailureDetected && text.contains(STARTUP_FAILURE_MARKER)) {
-            startupFailureDetected = true;
+        if (text.contains(STARTUP_FAILURE_MARKER)) {
             currentPhase = Phase.STARTUP;
-        }
-
-        if (text.contains(RUNTIME_EXCEPTION_MARKER)) {
+        } else if (text.contains(RUNTIME_EXCEPTION_MARKER)) {
             currentPhase = Phase.RUNTIME;
         }
 
@@ -81,25 +91,49 @@ public final class RunConsoleTap implements ProcessListener {
                 }
             }
         }
+
+        // Debounce: schedule (or reschedule) analysis once an error signature appears, so it
+        // fires after the stack has finished streaming rather than on a partial buffer.
+        if (!cardShown && containsErrorSignature(text)) {
+            scheduleAnalysis();
+        }
     }
 
     @Override
     public void processTerminated(@NotNull ProcessEvent event) {
-        // Analyse at termination with the full buffer (any exit code). Spring streams the
-        // banner and the Caused-by chain in separate chunks, so analysing mid-stream risks
-        // acting on a partial trace; waiting for the end gives the complete failure. The
-        // classifier returns nothing for a clean run, so no narrow exit-code gate is needed.
+        ScheduledFuture<?> p = pending;
+        if (p != null) p.cancel(false);
         analyseBuffer();
     }
 
-    private void analyseBuffer() {
+    private void scheduleAnalysis() {
+        ScheduledFuture<?> previous = pending;
+        if (previous != null) previous.cancel(false);
+        pending = AppExecutorUtil.getAppScheduledExecutorService()
+                .schedule(this::analyseBuffer, DEBOUNCE_MS, TimeUnit.MILLISECONDS);
+    }
+
+    private synchronized void analyseBuffer() {
         if (cardShown) return;
-        RawSignal signal = extractor.extract(buffer.toString(), currentPhase);
+        String snapshot;
+        synchronized (buffer) {
+            snapshot = buffer.toString();
+        }
+        RawSignal signal = extractor.extract(snapshot, currentPhase);
         Optional<DiagnosisCard> card = pipeline.run(signal, new IdeEnrichmentContext(project, appPort));
         card.ifPresent(c -> {
             cardShown = true;
             DiagnosisCardPanel.show(project, c);
         });
+    }
+
+    /** True if a chunk looks like the start/body of an error worth analysing. Pure: tested. */
+    static boolean containsErrorSignature(String text) {
+        if (text == null) return false;
+        return text.contains(STARTUP_FAILURE_MARKER)
+                || text.contains(RUNTIME_EXCEPTION_MARKER)
+                || text.contains("Caused by:")
+                || (text.contains("ERROR") && text.contains("Exception"));
     }
 
     @Override public void startNotified(@NotNull ProcessEvent event) {}

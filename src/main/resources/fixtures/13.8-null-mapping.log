@@ -1,8 +1,0 @@
-2024-01-15 14:30:22.001 ERROR 12345 --- [http-nio-8080-exec-1] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] threw exception
-
-java.lang.NullPointerException: null
-	at com.example.mapper.OrderMapperImpl.updateOrderFromDto(OrderMapperImpl.java:67)
-	at com.example.service.OrderService.updateOrder(OrderService.java:45)
-	at com.example.controller.OrderController.updateOrder(OrderController.java:38)
-
-Note: The MapperImpl is leaving fields as null when the source property is null. This is the default behaviour for MapStruct; configure NullValuePropertyMappingStrategy to change it.

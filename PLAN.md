@@ -374,7 +374,7 @@ MapStruct errors split into two families. Compile-time errors come from the MapS
 | 13.5 | MapStruct cannot implement abstract method | BUILD_OUTPUT | `buildLineContains`: "No implementation type is registered for return type" OR "can't generate mapping method" | "MapStruct cannot generate an implementation for a mapping method because the return type has no registered implementation strategy." | "Provide a custom mapping method body or declare an intermediate mapping step; if the type is a complex third-party class, use @BeanMapping(ignoreByDefault=true) and map only what MapStruct can handle." |
 | 13.6 | Missing @Mapper annotation on mapper class | BUILD_OUTPUT, STARTUP | `buildLineContains`: "Could not generate implementation" OR PSI: class implements a mapper interface but lacks @Mapper | "A mapper class or interface is missing the @Mapper annotation, so MapStruct does not recognise it as a mapper and does not generate an implementation." | "Add @Mapper (from org.mapstruct, not another library) to the interface; if componentModel = \"spring\" is also needed, add it at the same time." |
 | 13.7 | MapStruct and Lombok processor order conflict | BUILD_OUTPUT | `buildLineContains`: "cannot find symbol" AND Lombok-generated getter absent during MapStruct processing | "Lombok and MapStruct annotation processors are running in the wrong order; MapStruct tries to read getters before Lombok has generated them." | "In Gradle, declare Lombok before MapStruct in the annotationProcessor configuration: annotationProcessor 'org.projectlombok:lombok' must appear before annotationProcessor 'org.mapstruct:mapstruct-processor'." |
-| 13.8 | MapStruct ignoring null values unexpectedly | RUNTIME | No exception; mapped object has null fields despite non-null source | "MapStruct's default nullValuePropertyMappingStrategy leaves target fields null when the corresponding source value is null, which can be surprising when partial updates are expected." | "Set @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE) on the mapping method to keep existing target values when the source is null, or SET to overwrite with null explicitly." |
+| 13.8 | MapStruct ignoring null values unexpectedly | (removed from engine) | No exception and no distinctive log line; the symptom is a silently-null field at runtime. A log-based engine cannot detect this without false-positiving on every mapper, so it is documented as a static-analysis (PSI) concern and is NOT a rule. | n/a | n/a |
 
 ---
 
@@ -423,7 +423,7 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M4 | Classifier (sections 1 and 2) | ✅ DONE | Rules implemented and passing fixtures |
 | M5 | TEST_CONSOLE tap | ✅ DONE | SMTRunnerEventsListener attached, section 9 rules passing |
 | M6 | BUILD_OUTPUT tap | 🔄 WIRED, LIVE CHECK PENDING | BuildOutputTap registered via `compiler.task` (internal JPS); ExternalBuildOutputTap via the external-system listener (delegated Gradle/Maven). Shared BuildOutputAnalyzer unit-tested; classification fixture-verified; the external tap's buffering/filtering unit-tested (ExternalBuildOutputTapTest). Only the live IDE event delivery to the registered listener remains a manual sandbox check |
-| M7 | Full rule catalog | ✅ DONE | 43 of 44 rules DONE with passing fixtures; only 13.8 (MapStruct null-mapping) deferred to M8/PSI. Rule 9.1 removed (dead duplicate of 1.10); rules 4.14 (Redis) and 9.6 (Testcontainers) added |
+| M7 | Full rule catalog | ✅ DONE | 43 rules, all DONE with passing fixtures, zero TODO. Rule 9.1 removed (dead duplicate of 1.10); 4.14 (Redis) and 9.6 (Testcontainers) added; 13.8 (MapStruct null-mapping) removed as not log-detectable (static-analysis concern) |
 | M8 | PSI enrichment layer | ✅ DONE | PsiEnricher confirms structural claims for non-HIGH matches: MapStruct @Mapper confirmation (13.3/13.4 upgrade to HIGH), DI missing-stereotype and outside-scan-tree detection (2.x). IdeEnrichmentContext is the thin PSI adapter; logic unit-tested with stubbed ClassFacts. Wired into run and test taps |
 | M9 | Actuator enrichment layer | ✅ DONE (narrow surface) | ActuatorReader parses /actuator/health and /actuator/env; ActuatorEnricher confirms non-HIGH RUNTIME cards against live health and upgrades to HIGH. RunConsoleTap detects the bound port. Parsing/logic unit-tested; fires only when the app stays alive and exposes Actuator |
 | M10 | UI card polish | ✅ DONE | Full tool window with status bar, current card view, scrollable history, settings panel in Preferences |
@@ -450,9 +450,10 @@ shipped in v0.2.0–v0.3.0.
   production, and fail-closed on an unreachable port are all verified. Only a real model's
   content is unexercised (outside our control); a check with an installed model is a manual
   nicety, not a code gap.
-- 13.8 (MapStruct null-mapping): stays TODO on purpose. Its diagnosis claims a specific
-  cause (null-value property mapping strategy) that neither the signal nor PSI can prove.
-  This is a permanent design decision, not unfinished work.
+- 13.8 (MapStruct null-mapping): REMOVED from the engine. It produces no exception and no
+  log line, so a log-based classifier cannot detect it; it is a static-analysis concern,
+  documented as out of scope rather than left as an unsatisfiable TODO. The catalog now has
+  zero TODO rules.
 - `ActuatorReader.effectivePropertySource` is now consumed by PropertyPrecedenceEnricher
   (wired into RunConsoleTap), so the Actuator layer is end-to-end. RESOLVED.
 - RunConsoleTap analyses at process termination (any exit code), which covers startup

@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.3.2  
+**Version:** 0.3.3  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
