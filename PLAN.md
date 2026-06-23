@@ -416,7 +416,7 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M5 | TEST_CONSOLE tap | ✅ DONE | SMTRunnerEventsListener attached, section 9 rules passing |
 | M6 | BUILD_OUTPUT tap | 🔄 WIRED, LIVE CHECK PENDING | BuildOutputTap registered via the `compiler.task` extension (internal JPS builds); ExternalBuildOutputTap added for delegated Gradle/Maven builds. Shared BuildOutputAnalyzer is unit-tested; classification is fixture-verified. Not yet confirmed firing in a running IDE sandbox |
 | M7 | Full rule catalog | ✅ DONE | 43 of 44 rules DONE with passing fixtures; only 13.8 (MapStruct null-mapping) deferred to M8/PSI. Rule 9.1 removed (dead duplicate of 1.10); rules 4.14 (Redis) and 9.6 (Testcontainers) added |
-| M8 | PSI enrichment layer | ⏳ PENDING | Optional enrichment for MEDIUM-confidence rules |
+| M8 | PSI enrichment layer | ✅ DONE | PsiEnricher confirms structural claims for non-HIGH matches: MapStruct @Mapper confirmation (13.3/13.4 upgrade to HIGH), DI missing-stereotype and outside-scan-tree detection (2.x). IdeEnrichmentContext is the thin PSI adapter; logic unit-tested with stubbed ClassFacts. Wired into run and test taps |
 | M9 | Actuator enrichment layer | ⏳ PENDING | Queries /actuator/health and /actuator/env when app is running |
 | M10 | UI card polish | ✅ DONE | Full tool window with status bar, current card view, scrollable history, settings panel in Preferences |
 | M11 | Settings persistence | ✅ DONE | PersistentStateComponent + DiagnosisHistoryService with listener pattern |

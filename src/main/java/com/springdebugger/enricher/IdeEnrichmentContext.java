@@ -10,6 +10,11 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.psi.search.searches.AnnotatedElementsSearch;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -24,10 +29,20 @@ import java.util.Set;
  */
 public final class IdeEnrichmentContext implements EnrichmentContext {
 
+    /** Actuator probes must be quick; a slow or absent endpoint should not stall diagnosis. */
+    private static final Duration HTTP_TIMEOUT = Duration.ofMillis(800);
+
     private final Project project;
+    /** The detected HTTP port of the running app, or -1 when unknown (no Actuator probing then). */
+    private final int appPort;
 
     public IdeEnrichmentContext(Project project) {
+        this(project, -1);
+    }
+
+    public IdeEnrichmentContext(Project project, int appPort) {
         this.project = project;
+        this.appPort = appPort;
     }
 
     @Override
@@ -61,9 +76,23 @@ public final class IdeEnrichmentContext implements EnrichmentContext {
     }
 
     @Override
-    public Optional<String> httpGet(String url) {
-        // Actuator HTTP is the M9 context's job; PSI-only enrichment never reaches a running app.
-        return Optional.empty();
+    public Optional<String> httpGet(String path) {
+        if (appPort <= 0) return Optional.empty();
+        String base = path.startsWith("http") ? path : "http://localhost:" + appPort + path;
+        try {
+            HttpClient client = HttpClient.newBuilder().connectTimeout(HTTP_TIMEOUT).build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(base))
+                    .timeout(HTTP_TIMEOUT)
+                    .GET()
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() / 100 == 2) return Optional.of(response.body());
+            return Optional.empty();
+        } catch (Exception e) {
+            // App not reachable, no Actuator, or timed out: enrichment simply does not fire.
+            return Optional.empty();
+        }
     }
 
     private PsiClass resolve(String name) {
