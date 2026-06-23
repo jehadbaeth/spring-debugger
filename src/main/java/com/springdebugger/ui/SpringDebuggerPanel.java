@@ -144,7 +144,7 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
         }
 
         SpringDebuggerSettings settings = SpringDebuggerSettings.getInstance();
-        int ruleCount = SpringDebuggerService.getInstance().getCatalog().size();
+        int ruleCount = SpringDebuggerService.getInstance().getCatalog().activeCount();
 
         if (settings.isEnabled()) {
             statusLabel.setText("● Monitoring  ·  " + ruleCount + " rules");

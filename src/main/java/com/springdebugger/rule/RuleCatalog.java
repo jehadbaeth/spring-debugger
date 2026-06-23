@@ -94,4 +94,13 @@ public final class RuleCatalog {
     public List<Rule> all() { return rules; }
     public Rule byId(String id) { return byId.get(id); }
     public int size() { return rules.size(); }
+
+    /** Number of validated, active rules (status DONE). This is what the engine actually evaluates. */
+    public int activeCount() {
+        int n = 0;
+        for (Rule r : rules) {
+            if ("DONE".equals(r.getStatus())) n++;
+        }
+        return n;
+    }
 }

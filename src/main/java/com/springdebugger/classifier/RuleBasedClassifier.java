@@ -23,6 +23,12 @@ public final class RuleBasedClassifier {
 
     public Optional<DiagnosisCard> classify(RawSignal signal) {
         for (Rule rule : catalog.all()) {
+            // Only validated rules are active. A rule is DONE only when it has a
+            // fixture that passes ClassifierFixtureTest; TODO rules are unvalidated
+            // and must not fire in production.
+            if (!"DONE".equals(rule.getStatus())) {
+                continue;
+            }
             if (rule.getPhases() != null && !rule.getPhases().isEmpty()
                     && !rule.getPhases().contains(signal.getPhase())) {
                 continue;
