@@ -10,8 +10,8 @@ rules:
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       bannerDescriptionContains: "Unable to start web server"
-    diagnosis: "The application context failed to start; this is a wrapper exception and the real cause is in the innermost Caused by line below the banner."
-    fix: "Scroll to the deepest Caused by in the log and jump to the matching section in the guide; the top-level ApplicationContextException is always a wrapper."
+    diagnosis: "The Spring application context failed to start and threw ApplicationContextException, which is only a wrapper: the real cause is the deepest 'Caused by' line further down the log, where the web server, a bean, or an auto-configuration actually failed."
+    fix: "Scroll to the innermost 'Caused by' in the stack trace and diagnose that exception, not this one. The most common roots are a port conflict, a failed DataSource, or a bean that could not be created; once the deepest cause is fixed, this wrapper disappears."
     confidence: HIGH
     fixture: "fixtures/1.1-application-context-exception.log"
     status: DONE
@@ -22,8 +22,8 @@ rules:
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       causedByClass: "BeanDefinitionStoreException"
-    diagnosis: "Spring could not parse a @Configuration class or @PropertySource, usually because of a bad @Import or a class reference that does not exist."
-    fix: "Check recently edited @Configuration classes and any @PropertySource or @Import annotations for missing or misspelled class references."
+    diagnosis: "Spring could not read or parse a bean definition source, typically a @Configuration class, a @PropertySource file, or an @Import/XML reference that points at something missing or malformed, so the definition phase fails and the context never finishes loading."
+    fix: "Check the @Configuration classes, @Import, and @PropertySource declarations you edited most recently and confirm every referenced class and resource exists and is spelled correctly. The deepest 'Caused by' usually names the exact file or class that could not be parsed."
     confidence: HIGH
     fixture: "fixtures/1.2-bean-definition-store.log"
     status: DONE
@@ -35,8 +35,8 @@ rules:
     signals:
       causedByClass: "BeanInstantiationException"
       messageContains: "No default constructor found"
-    diagnosis: "Spring cannot instantiate a bean because it has no default constructor or the constructor threw an exception."
-    fix: "Add a no-arg constructor, or move risky initialisation logic into a @PostConstruct method where exceptions are easier to trace."
+    diagnosis: "Spring located the bean's class but could not create an instance of it, either because it has no usable no-argument constructor or because its constructor threw while running; construction happens during context refresh, so this fails startup."
+    fix: "Add a public no-arg constructor (for an entity or DTO with Lombok, @NoArgsConstructor), or move risky initialisation out of the constructor into a @PostConstruct method where the failure is easier to trace. Read the nested 'Caused by' to see whether it is a missing constructor or a thrown exception."
     confidence: HIGH
     fixture: "fixtures/1.4-bean-instantiation.log"
     status: DONE
@@ -48,8 +48,8 @@ rules:
     signals:
       causedByClass: "BeanDefinitionOverrideException"
       messageContains: "could not be registered"
-    diagnosis: "Two beans are registered under the same name, which is disallowed by default in Spring Boot 2.1+."
-    fix: "Rename one bean with @Bean(\"uniqueName\") or remove the duplicate definition; avoid spring.main.allow-bean-definition-overriding=true as it hides real conflicts."
+    diagnosis: "Two different bean definitions are registered under the same bean name, which Spring Boot forbids by default since 2.1 to stop one bean silently shadowing another; this usually happens when a component is both component-scanned and declared as an @Bean, or two @Bean methods share a name."
+    fix: "Give one of the beans a distinct name with @Bean(\"uniqueName\") or remove the duplicate definition. Do not set spring.main.allow-bean-definition-overriding=true except as a temporary diagnostic, because it hides the real conflict and lets an unintended bean win."
     confidence: HIGH
     fixture: "fixtures/1.5-bean-definition-override.log"
     status: DONE
@@ -73,8 +73,8 @@ rules:
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       messageContains: "No active profile set, falling back to default profiles"
-    diagnosis: "No Spring profile is active, so profile-specific configuration files and @Profile-gated beans are not loaded."
-    fix: "Set spring.profiles.active=yourprofile in application.properties, via SPRING_PROFILES_ACTIVE environment variable, or with -Dspring.profiles.active=yourprofile as a JVM argument."
+    diagnosis: "No Spring profile is active, so the application runs on the default profile only: profile-specific files such as application-dev.yml and any @Profile-gated beans are not loaded. This is a warning rather than a failure, but it often explains missing configuration."
+    fix: "Activate the intended profile with spring.profiles.active=<profile> in application.properties, the SPRING_PROFILES_ACTIVE environment variable, or -Dspring.profiles.active=<profile> as a JVM argument, and confirm the startup log lists it under 'The following profiles are active'."
     confidence: HIGH
     fixture: "fixtures/1.9-no-active-profile.log"
     status: DONE
@@ -85,8 +85,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       messageContains: "UserDetailsService bean"
-    diagnosis: "A Spring Boot auto-configuration was not applied because the required starter dependency is missing from the classpath."
-    fix: "Add the missing starter (e.g. spring-boot-starter-data-jpa or spring-boot-starter-web) and re-run; use --debug to print the auto-configuration report and confirm."
+    diagnosis: "A Spring Boot auto-configuration did not activate because a starter it is conditional on is missing from the classpath, so the beans it would have created (a DataSource, a security filter chain, and so on) are absent; the symptom is usually a missing bean or unexpected default behaviour rather than a hard error."
+    fix: "Add the starter that provides the feature (for example spring-boot-starter-data-jpa, spring-boot-starter-web, or spring-boot-starter-security) and rebuild. Run with --debug to print the auto-configuration report and confirm the entry moves from 'Negative matches' to 'Positive matches'."
     confidence: MEDIUM
     fixture: "fixtures/1.12-autoconfiguration-missing.log"
     status: DONE
@@ -97,8 +97,8 @@ rules:
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       causedByClass: "BeanCurrentlyInCreationException"
-    diagnosis: "A circular dependency was detected during startup; beans depend on each other in a cycle that Spring cannot resolve."
-    fix: "Break the cycle by extracting shared logic into a third bean; as a last resort use @Lazy on one injection point, or spring.main.allow-circular-references=true only while debugging."
+    diagnosis: "Spring detected a circular dependency during startup: two or more beans require each other through constructor injection, so none can be fully created first and Spring fails fast rather than resolving the cycle."
+    fix: "Break the cycle by extracting the shared logic into a third bean that both depend on, or redesign so the dependency flows one way. As a temporary measure annotate one injection point with @Lazy, or set spring.main.allow-circular-references=true only while debugging; neither is a real fix."
     confidence: HIGH
     fixture: "fixtures/1.13-circular-dependency.log"
     status: DONE
@@ -117,8 +117,8 @@ rules:
     signals:
       causedByClass: "NoSuchBeanDefinitionException"
       causedByMessage: "Mapper"
-    diagnosis: "A MapStruct mapper interface is not in the Spring context because componentModel = \"spring\" is missing from its @Mapper annotation."
-    fix: "Add componentModel = \"spring\" to the @Mapper annotation, then inject the mapper with @Autowired or constructor injection like any other Spring bean."
+    diagnosis: "A @Mapper interface could not be injected because its generated implementation is not registered as a Spring bean; MapStruct only registers it when componentModel = \"spring\" is set on the @Mapper annotation, so without that the mapper is invisible to the context."
+    fix: "Add componentModel = \"spring\" to the @Mapper annotation (@Mapper(componentModel = \"spring\")), then inject the mapper with constructor injection like any other bean, and rebuild so the processor regenerates the implementation."
     confidence: MEDIUM
     fixture: "fixtures/13.4-mapper-not-spring-bean.log"
     status: DONE
@@ -148,8 +148,8 @@ rules:
     signals:
       causedByClass: "NoUniqueBeanDefinitionException"
       messageContains: "required a single bean, but"
-    diagnosis: "More than one bean matches the injection type and Spring cannot choose between them."
-    fix: "Mark one implementation @Primary, or use @Qualifier(\"beanName\") at the injection point to specify which one you want."
+    diagnosis: "More than one bean matches the injected type {{beanType}}, so Spring cannot decide which one to wire and fails; this typically happens when two implementations of the same interface are both registered as beans."
+    fix: "Mark the intended implementation @Primary, or disambiguate at the injection point with @Qualifier(\"beanName\") (the bean name defaults to the decapitalised class name). The error message lists the candidate bean names to choose from."
     confidence: HIGH
     fixture: "fixtures/2.2-no-unique-bean.log"
     status: DONE
@@ -160,8 +160,8 @@ rules:
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       causedByClass: "UnsatisfiedDependencyException"
-    diagnosis: "A bean has an unsatisfied dependency; read the nested exception to find whether the dependency is missing or ambiguous."
-    fix: "Resolve the nested NoSuchBeanDefinitionException or NoUniqueBeanDefinitionException shown in the Caused by chain."
+    diagnosis: "A bean could not be wired because one of its dependencies could not be satisfied; UnsatisfiedDependencyException is a wrapper, and the nested 'Caused by' says whether the dependency is missing (NoSuchBeanDefinitionException) or ambiguous (NoUniqueBeanDefinitionException)."
+    fix: "Read the nested 'Caused by': if a bean is missing, declare or component-scan it; if it is ambiguous, mark one @Primary or add @Qualifier. The failing bean and the dependency it needs are both named in the message."
     confidence: MEDIUM
     fixture: "fixtures/2.3-unsatisfied-dependency.log"
     status: DONE
@@ -172,8 +172,8 @@ rules:
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       messageContains: "The dependencies of some of the beans in the application context form a cycle"
-    diagnosis: "Beans in the application context depend on each other in a cycle that Spring cannot resolve with constructor injection."
-    fix: "Refactor to break the cycle by extracting shared logic into a third bean; use @Lazy on one injection point only as a temporary measure."
+    diagnosis: "Beans in the application context depend on each other in a cycle (A needs B, B needs A, possibly through more beans), which Spring cannot resolve with constructor injection and reports via a failure-analysis banner that lists the cycle."
+    fix: "Break the cycle by extracting the shared logic into a third bean, or invert one dependency so it flows one way. As a temporary workaround put @Lazy on one injection point or set spring.main.allow-circular-references=true while debugging; the banner shows the exact beans in the cycle to target."
     confidence: HIGH
     fixture: "fixtures/2.7-circular-dep.log"
     status: DONE
@@ -201,8 +201,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       messageContains: "Failed to bind properties"
-    diagnosis: "A property value cannot be converted to the expected Java type."
-    fix: "Fix the value format: Duration accepts '5s' or '200ms', DataSize accepts '10MB', and enum values are matched case-insensitively."
+    diagnosis: "A configuration property value could not be converted to the Java type the target field expects (for example a non-numeric string bound to an int, or a malformed Duration/DataSize/enum), so binding fails at startup; the failure-analysis banner names the property, the offending value, and the required type."
+    fix: "Correct the value to match the type: Duration accepts forms like '5s', '200ms', or '1h'; DataSize accepts '10MB'; enums match case-insensitively by name; booleans must be true/false. Fix the property named in the banner in application.properties or the active profile file."
     confidence: HIGH
     fixture: "fixtures/3.4-type-conversion.log"
     status: DONE
@@ -213,8 +213,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       causedByClass: "ScannerException"
-    diagnosis: "The application YAML file has a syntax error that prevented it from being parsed."
-    fix: "Fix the indentation or syntax at the reported line; use only spaces (never tabs) and quote strings that contain special characters like colons or brackets."
+    diagnosis: "An application YAML file has a syntax error and could not be parsed, so none of its properties are loaded and startup fails; the parser reports the line and column, and the usual causes are tabs used for indentation, misaligned keys, or an unquoted value containing a special character."
+    fix: "Fix the indentation or syntax at the reported line using spaces only (never tabs), keep keys aligned consistently, and quote any value containing ':', '@', '{', or other special characters. Paste the file into a YAML validator if the offending line is not obvious."
     confidence: HIGH
     fixture: "fixtures/3.5-yaml-syntax.log"
     status: DONE
@@ -229,8 +229,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       bannerDescriptionContains: "Cannot determine embedded database driver class"
-    diagnosis: "The JPA starter is on the classpath but no datasource URL is configured and no embedded database is present."
-    fix: "Configure spring.datasource.url, username, and password for a real database, or add the H2 dependency (com.h2database:h2) for development use."
+    diagnosis: "The JPA/Hibernate starter is on the classpath but Spring Boot found no datasource URL and no embedded database (H2, HSQLDB, Derby), so it cannot auto-configure a DataSource and aborts startup. This usually means the connection properties are missing or a dev/test profile that supplies them is not active."
+    fix: "For a real database set spring.datasource.url, spring.datasource.username, and spring.datasource.password plus the JDBC driver dependency. For local development or tests add an embedded database such as com.h2database:h2 to the classpath; if this module does not need a database, exclude DataSourceAutoConfiguration."
     confidence: HIGH
     fixture: "fixtures/4.1-no-embedded-db.log"
     status: DONE
@@ -241,8 +241,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       bannerDescriptionContains: "Failed to configure a DataSource"
-    diagnosis: "Spring Boot cannot auto-configure a DataSource because the 'url' attribute is missing from application properties."
-    fix: "Provide spring.datasource.url and driver, or exclude DataSourceAutoConfiguration if a datasource is not needed in this context."
+    diagnosis: "Spring Boot tried to auto-configure a DataSource but spring.datasource.url is missing, so it cannot determine what to connect to and fails with a failure-analysis banner; the JPA/JDBC starter is present but unconfigured."
+    fix: "Provide spring.datasource.url (and username, password, and driver-class-name if the driver cannot be inferred), or, if this module does not actually need a datasource, exclude it with @SpringBootApplication(exclude = DataSourceAutoConfiguration.class). Confirm the properties live in the active profile."
     confidence: HIGH
     fixture: "fixtures/4.2-no-datasource.log"
     status: DONE
@@ -254,8 +254,8 @@ rules:
     signals:
       causedByClass: "SQLTransientConnectionException"
       messageContains: "Connection is not available, request timed out"
-    diagnosis: "The HikariCP connection pool is exhausted; all connections are held and none was returned within the timeout."
-    fix: "Enable Hikari leak detection with spring.datasource.hikari.leak-detection-threshold=20000 to find which code path holds connections; fix the leak before increasing pool size."
+    diagnosis: "The HikariCP connection pool is exhausted: every connection is checked out and none was returned within connectionTimeout, so the request times out. This is almost always a connection leak (connections not closed) or a pool sized too small for the load, not a database outage."
+    fix: "Turn on leak detection with spring.datasource.hikari.leak-detection-threshold=20000 to log the stack traces holding connections, and fix those paths to close/return connections (try-with-resources, or let Spring manage the transaction). Only after fixing leaks consider raising spring.datasource.hikari.maximum-pool-size."
     confidence: HIGH
     fixture: "fixtures/4.4-hikari-exhausted.log"
     status: DONE
@@ -267,8 +267,8 @@ rules:
     signals:
       causedByClass: "IllegalArgumentException"
       messageContains: "Not a managed type"
-    diagnosis: "A class is not recognised as a JPA entity, either because it lacks @Entity or is outside Hibernate's entity scan path."
-    fix: "Add @Entity to the class; if it is outside the main package tree add @EntityScan(basePackages=\"com.example.entities\") to a @Configuration class."
+    diagnosis: "Hibernate does not recognise a class as a JPA entity, either because it is missing the @Entity annotation or because it lives outside the package tree Hibernate scans for entities, so the repository or query referencing it fails."
+    fix: "Add @Entity and an @Id field to the class. If the entity is in a different package from your @SpringBootApplication, point Hibernate at it with @EntityScan(basePackages = \"com.example.domain\") on a @Configuration class; the exception message names the offending class."
     confidence: HIGH
     fixture: "fixtures/4.6-not-managed-type.log"
     status: DONE
@@ -280,8 +280,8 @@ rules:
     signals:
       causedByClass: "LazyInitializationException"
       messageContains: "could not initialize proxy - no Session"
-    diagnosis: "A lazily loaded JPA association was accessed after the Hibernate session closed, typically during JSON serialisation in the controller layer."
-    fix: "Fetch the association inside the transaction using JOIN FETCH or an @EntityGraph, or map the entity to a DTO before the transaction ends."
+    diagnosis: "A lazily-loaded JPA association was accessed after its Hibernate session/transaction had already closed, so Hibernate cannot initialise the proxy; this most often happens when an entity is serialised to JSON in the controller after the @Transactional service method returned."
+    fix: "Load the association while the transaction is open using a JOIN FETCH query or an @EntityGraph, or convert the entity to a DTO inside the transaction so the controller never touches a lazy proxy. Avoid spring.jpa.open-in-view=true as a fix: it hides the boundary problem and hurts performance."
     confidence: HIGH
     fixture: "fixtures/4.8-lazy-init.log"
     status: DONE
@@ -295,8 +295,8 @@ rules:
       # deepest Caused by is the JDBC driver's constraint exception, while the
       # Spring DataIntegrityViolationException is the outer wrapper (NEW-003).
       messageContains: "DataIntegrityViolationException"
-    diagnosis: "A database write violated a constraint (unique, not-null, foreign key, or check)."
-    fix: "Read the deepest Caused by for the exact constraint name and fix the data before persisting; map this exception to a meaningful API error in your @RestControllerAdvice."
+    diagnosis: "A database write violated a constraint (unique, not-null, foreign key, or check), so the transaction was rolled back; DataIntegrityViolationException is Spring's wrapper and the deepest 'Caused by' from the JDBC driver names the exact constraint and column."
+    fix: "Read the deepest 'Caused by' for the constraint name, then validate or de-duplicate the input before persisting so the violation cannot occur. Map this exception in a @RestControllerAdvice to return a meaningful 4xx instead of a 500, and add an application-level check (for example a uniqueness query) for a friendlier message."
     confidence: HIGH
     fixture: "fixtures/4.13-constraint-violation.log"
     status: DONE
@@ -308,8 +308,8 @@ rules:
     signals:
       causedByClass: "IllegalStateException"
       causedByMessage: "RedisConnectionFactory is required"
-    diagnosis: "A RedisTemplate or RedisConnectionFactory bean is being created but no connection factory is configured, so Spring Data Redis cannot connect."
-    fix: "Add spring-boot-starter-data-redis to the classpath and configure spring.data.redis.host and spring.data.redis.port, or define a LettuceConnectionFactory @Bean explicitly."
+    diagnosis: "A RedisTemplate or other Spring Data Redis bean is being created but no RedisConnectionFactory is configured, so there is nothing to connect to Redis with and the context fails; usually the Redis starter is missing or the connection properties are absent."
+    fix: "Add spring-boot-starter-data-redis to the build and set spring.data.redis.host and spring.data.redis.port (and password if required), or define a LettuceConnectionFactory (or JedisConnectionFactory) @Bean explicitly. Confirm the properties live in the active profile."
     confidence: HIGH
     fixture: "fixtures/4.14-redis-connection-factory.log"
     status: DONE
@@ -324,8 +324,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       causedByClass: "NoHandlerFoundException"
-    diagnosis: "No handler was mapped to the requested path; the controller may not be scanned or the path mapping is wrong."
-    fix: "Verify the exact path including any server.servlet.context-path prefix, confirm the controller is a registered Spring bean, and enable spring.mvc.throw-exception-if-no-handler-found=true during debugging."
+    diagnosis: "No controller handler is mapped to the requested HTTP method and path, so Spring MVC raised NoHandlerFoundException (404). The controller may not be component-scanned, the path or method may not match the mapping, or a context-path prefix may be missing."
+    fix: "Verify the exact path including any server.servlet.context-path and the HTTP method against the @GetMapping/@PostMapping value, and confirm the controller is a scanned @RestController/@Controller bean. Enable spring.mvc.throw-exception-if-no-handler-found=true so 404s surface as this exception during debugging."
     confidence: HIGH
     fixture: "fixtures/5.1-no-handler.log"
     status: DONE
@@ -339,8 +339,8 @@ rules:
       # "Resolved [...MethodArgumentNotValidException: ...]" with no Caused by
       # chain, so the class name appears in the body, not as a deepest cause.
       messageContains: "MethodArgumentNotValidException"
-    diagnosis: "Bean Validation rejected the request body because one or more field constraints were violated."
-    fix: "This is validation working correctly; handle it with @ExceptionHandler(MethodArgumentNotValidException.class) in a @RestControllerAdvice to return a clean 400 error response."
+    diagnosis: "Bean Validation (@Valid) rejected the request body because one or more field constraints failed, so Spring raised MethodArgumentNotValidException and returned 400; this is validation working as designed, and the message lists the rejected fields and the constraints they violated."
+    fix: "Handle it in a @RestControllerAdvice with @ExceptionHandler(MethodArgumentNotValidException.class), reading getBindingResult().getFieldErrors() to build a clean, structured 400 payload. Fix the offending request data, or adjust the constraint annotations on the DTO if the rule itself is wrong."
     confidence: HIGH
     fixture: "fixtures/5.5-validation-failure.log"
     status: DONE
@@ -351,8 +351,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       messageContains: "Ambiguous mapping. Cannot map"
-    diagnosis: "Two controller methods are mapped to the same path and HTTP method combination, which Spring cannot resolve at startup."
-    fix: "Make the mappings distinct by using different paths, HTTP methods, or 'params' and 'headers' conditions on the @RequestMapping annotation."
+    diagnosis: "Two controller methods are mapped to the same HTTP method and path, so Spring cannot decide which should handle a request and fails at startup with an ambiguous-mapping error; this often happens after copy-pasting a handler or merging branches."
+    fix: "Make the mappings unique by changing the path, the HTTP method, or by adding distinguishing conditions (params, headers, consumes, or produces) to one @RequestMapping. The error message names both conflicting methods so you can pick which to change."
     confidence: HIGH
     fixture: "fixtures/5.8-ambiguous-mapping.log"
     status: DONE
@@ -367,8 +367,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       messageContains: "Using generated security password"
-    diagnosis: "Spring Security is active with default configuration; all endpoints are locked and a random password was generated because no SecurityFilterChain bean was defined."
-    fix: "Define a @Bean of type SecurityFilterChain that declares your own authorization rules and user store, replacing the auto-configured default."
+    diagnosis: "Spring Security is on the classpath with no custom configuration, so it auto-secures every endpoint with HTTP Basic and prints a random generated password at startup; every request now returns 401 until authenticated. This is the default lockdown, not an error."
+    fix: "Define your own security: add a @Bean SecurityFilterChain that declares which paths are public and which require authentication, plus a real user store (a UserDetailsService, or an OAuth2/JWT resource server). For a quick local login use the printed password with username 'user', but never rely on the generated password in real environments."
     confidence: HIGH
     fixture: "fixtures/6.2-generated-password.log"
     status: DONE
@@ -379,8 +379,8 @@ rules:
     taps: [BUILD_OUTPUT]
     signals:
       buildLineContains: "WebSecurityConfigurerAdapter"
-    diagnosis: "WebSecurityConfigurerAdapter was removed in Spring Security 6 / Spring Boot 3 and cannot be extended."
-    fix: "Migrate to the component-based model: expose a @Bean of type SecurityFilterChain and optionally a WebSecurityCustomizer @Bean instead of extending WebSecurityConfigurerAdapter."
+    diagnosis: "The code extends WebSecurityConfigurerAdapter, which was removed in Spring Security 6 / Spring Boot 3, so it no longer compiles or loads; Spring Security moved to a component-based configuration model."
+    fix: "Delete the adapter subclass and expose the equivalent beans instead: a @Bean SecurityFilterChain(HttpSecurity) for request authorization, a @Bean WebSecurityCustomizer to ignore static resources, and a @Bean UserDetailsService or AuthenticationManager for the user store. The Spring Security migration guide maps each overridden method to its bean."
     confidence: HIGH
     fixture: "fixtures/6.4-web-security-configurer.log"
     status: DONE
@@ -391,8 +391,8 @@ rules:
     taps: [RUN_CONSOLE]
     signals:
       messageContains: "There is no PasswordEncoder mapped for the id"
-    diagnosis: "Passwords are stored without a {bcrypt}-style encoding prefix, so DelegatingPasswordEncoder cannot verify them."
-    fix: "Encode all passwords with BCryptPasswordEncoder before storing them and ensure new passwords are encoded on write."
+    diagnosis: "A stored password has no {id} encoding prefix (such as {bcrypt}), so Spring Security's default DelegatingPasswordEncoder cannot tell which algorithm to verify it with and throws 'There is no PasswordEncoder mapped for the id'; this usually means passwords were saved in plain text or with an unprefixed hash."
+    fix: "Encode passwords with BCryptPasswordEncoder (or another PasswordEncoder) before storing them so they are saved with the correct {bcrypt} prefix, and re-encode existing rows. If you must read legacy unprefixed hashes, configure the matching encoder explicitly rather than storing plaintext."
     confidence: HIGH
     fixture: "fixtures/6.5-password-encoder.log"
     status: DONE
@@ -408,8 +408,8 @@ rules:
     signals:
       causedByClass: "StackOverflowError"
       messageContains: "Infinite recursion"
-    diagnosis: "Jackson is looping infinitely while serialising a bidirectional JPA relationship where each side references the other."
-    fix: "Break the cycle with @JsonManagedReference and @JsonBackReference, use @JsonIgnore on one side, or map the entity to a DTO before serialising it."
+    diagnosis: "Jackson recursed infinitely while serialising a bidirectional JPA relationship where each side references the other (for example Order has a Customer and Customer has a List<Order>), producing a StackOverflowError because serialisation never terminates."
+    fix: "Break the cycle on one side: annotate the parent reference with @JsonManagedReference and the child back-reference with @JsonBackReference, or put @JsonIgnore on the side you do not need in the output. The cleanest long-term fix is to serialise DTOs instead of entities so the API shape is explicit."
     confidence: HIGH
     fixture: "fixtures/7.2-infinite-recursion.log"
     status: DONE
@@ -421,8 +421,8 @@ rules:
     signals:
       causedByClass: "InvalidDefinitionException"
       messageContains: "no Creators, like default constructor"
-    diagnosis: "Jackson cannot deserialise the target type because it has no default constructor and no @JsonCreator."
-    fix: "Add a no-arg constructor, or annotate an existing constructor with @JsonCreator and annotate each parameter with @JsonProperty."
+    diagnosis: "Jackson cannot deserialise the incoming JSON into the target type because that type has no default (no-arg) constructor and no @JsonCreator, so Jackson has no way to instantiate it; this commonly hits immutable classes and types like Page/PageImpl."
+    fix: "Add a no-arg constructor, or annotate the intended constructor with @JsonCreator and each parameter with @JsonProperty(\"field\"). For Java records or third-party types, register the appropriate module (for example the parameter-names module) or deserialise into a concrete DTO you control."
     confidence: HIGH
     fixture: "fixtures/7.4-no-default-constructor.log"
     status: DONE
@@ -443,8 +443,8 @@ rules:
     taps: [TEST_CONSOLE]
     signals:
       messageContains: "Could not find a valid Docker environment"
-    diagnosis: "Testcontainers cannot start because no running Docker environment was found on this machine or CI runner."
-    fix: "Start Docker Desktop (or the Docker daemon) locally; in CI make sure the runner provides Docker, and pin image tags so pulls do not fail on restricted networks."
+    diagnosis: "Testcontainers could not find a running Docker environment, so it cannot start the containers the tests depend on and the test context fails; Docker is either not installed, not running, or not reachable from this process (common on CI runners without a Docker service)."
+    fix: "Start Docker Desktop or the Docker daemon locally and confirm 'docker ps' works. In CI make sure the runner provides Docker (a docker service or docker-in-docker), set DOCKER_HOST if it listens on a non-default socket, and pin image tags so pulls do not fail on restricted networks."
     confidence: HIGH
     fixture: "fixtures/9.6-testcontainers-docker.log"
     status: DONE
@@ -455,8 +455,8 @@ rules:
     taps: [TEST_CONSOLE]
     signals:
       causedByClass: "UnnecessaryStubbingException"
-    diagnosis: "Mockito's strict stubbing detected a stub that was set up but never called, often indicating the real bean ran instead of the mock."
-    fix: "Use @MockitoBean (Boot 3.4+) instead of plain Mockito @Mock to replace the bean in the Spring context; plain @Mock does not interact with the Spring lifecycle."
+    diagnosis: "Mockito's strict stubbing flagged a stub that was configured but never invoked, which usually means the code under test took a different path than expected, or the real Spring bean ran instead of the mock; the test fails even if the assertions would pass."
+    fix: "Remove the unused stub, or mark a genuinely conditional one lenient(). If a mock is being bypassed in a Spring test, replace plain @Mock with @MockitoBean (Boot 3.4+) or @MockBean so the mock actually replaces the bean in the application context rather than sitting unused."
     confidence: MEDIUM
     fixture: "fixtures/9.2-mockbean-not-replacing.log"
     status: DONE
@@ -471,8 +471,8 @@ rules:
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
       causedByClass: "NoSuchMethodError"
-    diagnosis: "Two versions of the same library are on the classpath and the wrong one loaded; it lacks a method that the compiled code expects."
-    fix: "Run 'mvn dependency:tree' or 'gradle dependencies' to find the version conflict, exclude the unwanted transitive version, and let the Spring Boot BOM manage the correct version."
+    diagnosis: "Two versions of the same library are on the classpath and the wrong one loaded at runtime; it lacks a method or class your code (or another library) was compiled against, producing NoSuchMethodError/NoClassDefFoundError. This is a dependency conflict, not a code bug."
+    fix: "Run 'mvn dependency:tree' or 'gradle dependencies' to find which dependencies pull in the conflicting versions, then exclude the unwanted transitive version and let the Spring Boot dependency BOM manage the correct one. Avoid pinning a library to a version the BOM does not expect."
     confidence: HIGH
     fixture: "fixtures/10.1-no-such-method.log"
     status: DONE
@@ -483,8 +483,8 @@ rules:
     taps: [BUILD_OUTPUT]
     signals:
       buildLineContains: "cannot find symbol"
-    diagnosis: "Lombok annotations are not generating code, likely because annotation processing is disabled or the Lombok IntelliJ plugin is not installed."
-    fix: "Enable annotation processing in IntelliJ (Settings > Build > Compiler > Annotation Processors) and declare Lombok as an annotationProcessor dependency in your build file."
+    diagnosis: "Code that Lombok should generate (getters, setters, builders, constructors) is missing at compile time, so references to it fail with 'cannot find symbol'; annotation processing is disabled, Lombok is not on the annotation-processor path, or in the IDE the Lombok plugin is not installed."
+    fix: "Enable annotation processing in IntelliJ (Settings > Build, Execution, Deployment > Compiler > Annotation Processors), install the Lombok plugin, and in the build declare Lombok in the annotationProcessor scope (Gradle) or annotationProcessorPaths (Maven), not just compileOnly. Rebuild after enabling."
     confidence: MEDIUM
     fixture: "fixtures/10.5-lombok-missing.log"
     status: DONE
@@ -495,8 +495,8 @@ rules:
     taps: [RUN_CONSOLE, BUILD_OUTPUT]
     signals:
       causedByClass: "UnsupportedClassVersionError"
-    diagnosis: "The classes were compiled with a newer JDK than the JRE running them."
-    fix: "Align the sourceCompatibility or <java.version> in the build file with the JDK version on the target machine; verify with 'java -version' on the deployment target."
+    diagnosis: "The classes were compiled targeting a newer Java bytecode version than the JRE/JDK running them, so the runtime rejects them with UnsupportedClassVersionError; the build JDK and the run/deploy JDK are out of step."
+    fix: "Make the build target and runtime JDK match: set sourceCompatibility/targetCompatibility (Gradle) or maven.compiler.release / <java.version> (Maven) to a version the target supports, or upgrade the JDK on the run/deploy machine. Verify with 'java -version' where the app actually runs."
     confidence: HIGH
     fixture: "fixtures/10.6-java-version.log"
     status: DONE
@@ -511,8 +511,8 @@ rules:
     taps: [BUILD_OUTPUT]
     signals:
       buildLineContains: "Unmapped target property"
-    diagnosis: "MapStruct found properties in the target type that have no source mapping."
-    fix: "Add an explicit @Mapping for each unmapped property, or annotate it with @Mapping(target = \"field\", ignore = true) if it should be skipped intentionally."
+    diagnosis: "MapStruct found one or more properties on the target type with no corresponding source mapping; with unmappedTargetPolicy = ERROR this fails the build (otherwise it is a warning), because MapStruct will not silently leave those fields unset."
+    fix: "Add an explicit @Mapping(source = \"...\", target = \"field\") for each unmapped property, or @Mapping(target = \"field\", ignore = true) if it should intentionally stay unset. The compiler message lists every unmapped target property by name."
     confidence: HIGH
     fixture: "fixtures/13.1-unmapped-target.log"
     status: DONE
@@ -523,8 +523,8 @@ rules:
     taps: [BUILD_OUTPUT]
     signals:
       buildLineContains: "Can't map property"
-    diagnosis: "MapStruct cannot map a source property to the target property because the types are incompatible and no conversion method exists for that pair."
-    fix: "Declare a custom mapping method that converts between the two types, or use a @Mapping expression attribute to specify the conversion explicitly."
+    diagnosis: "MapStruct cannot map a source property to a target property because their types are incompatible and it knows no built-in conversion or mapping method for that pair, so it fails the build rather than guessing."
+    fix: "Provide the conversion: add a mapping method (or shared @Mapper) that converts between the two types and reference it with @Mapping(target = \"field\", qualifiedByName = \"...\"), or supply an expression/dateFormat/numberFormat where applicable. The message names the exact source and target properties."
     confidence: HIGH
     fixture: "fixtures/13.2-incompatible-types.log"
     status: DONE
@@ -535,8 +535,8 @@ rules:
     taps: [BUILD_OUTPUT, RUN_CONSOLE]
     signals:
       buildLineContains: "MapperImpl"
-    diagnosis: "The MapStruct annotation processor did not generate the mapper implementation class, so it does not exist at compile time or the Spring bean cannot be found at runtime."
-    fix: "Confirm annotation processing is enabled and that mapstruct-processor is declared in the annotationProcessor scope (not compileOnly or implementation)."
+    diagnosis: "The MapStruct annotation processor did not run, so the generated implementation class (XxxMapperImpl) was never produced: the symbol is missing at compile time, or at runtime no implementation bean exists. Annotation processing is off or the processor is not on the right classpath."
+    fix: "Enable annotation processing and declare org.mapstruct:mapstruct-processor in the annotationProcessor scope (Gradle) or the maven-compiler-plugin annotationProcessorPaths (Maven), not compileOnly/implementation. If Lombok is also present, add lombok-mapstruct-binding so the two processors cooperate, then rebuild."
     confidence: MEDIUM
     fixture: "fixtures/13.3-mapperimpl-missing.log"
     status: DONE
@@ -548,8 +548,8 @@ rules:
     taps: [BUILD_OUTPUT]
     signals:
       buildLineContains: "No implementation type is registered for return type"
-    diagnosis: "MapStruct cannot generate an implementation for a mapping method because the return type has no registered implementation strategy."
-    fix: "Provide a custom mapping method body or declare an intermediate mapping step; for complex third-party types use @BeanMapping(ignoreByDefault=true) and map only what MapStruct can handle."
+    diagnosis: "MapStruct cannot generate a mapping method because the return type is an abstract type or interface with no registered implementation it can instantiate, so it does not know what concrete class to create."
+    fix: "Map to a concrete type, or tell MapStruct which implementation to use: for custom abstract types provide a mapping method that returns a concrete instance, and for partial mappings use @BeanMapping(ignoreByDefault = true) to map only the fields you can. Collections and maps are usually inferred automatically."
     confidence: HIGH
     fixture: "fixtures/13.5-no-impl-for-return-type.log"
     status: DONE
@@ -560,8 +560,8 @@ rules:
     taps: [BUILD_OUTPUT]
     signals:
       buildLineContains: "Could not generate implementation"
-    diagnosis: "A mapper interface is missing the @Mapper annotation, so MapStruct does not recognise it and does not generate an implementation."
-    fix: "Add @Mapper (from org.mapstruct) to the interface; if it should be a Spring bean also set componentModel = \"spring\" in the same annotation."
+    diagnosis: "An interface intended to be a MapStruct mapper is missing the @Mapper annotation (or it was imported from the wrong package), so MapStruct does not recognise it and generates no implementation."
+    fix: "Add @Mapper from org.mapstruct to the interface and check the import is org.mapstruct.Mapper, not another library. If it must be a Spring bean, set componentModel = \"spring\" in the same annotation so the generated impl is registered for injection."
     confidence: HIGH
     fixture: "fixtures/13.6-missing-mapper-annotation.log"
     status: DONE
