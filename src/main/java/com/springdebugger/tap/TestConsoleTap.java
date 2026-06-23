@@ -8,6 +8,7 @@ import com.springdebugger.engine.DiagnosisPipeline;
 import com.springdebugger.enricher.IdeEnrichmentContext;
 import com.springdebugger.enricher.PsiEnricher;
 import com.springdebugger.extractor.LogExtractor;
+import com.springdebugger.llm.LlmFallback;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.Phase;
 import com.springdebugger.model.RawSignal;
@@ -32,7 +33,9 @@ public final class TestConsoleTap extends SMTRunnerEventsAdapter {
         this.project = project;
         this.extractor = new LogExtractor();
         this.pipeline = new DiagnosisPipeline(
-                new RuleBasedClassifier(catalog), List.of(new PsiEnricher()), null);
+                new RuleBasedClassifier(catalog),
+                List.of(new PsiEnricher()),
+                LlmFallback.fromSettings());
     }
 
     @Override

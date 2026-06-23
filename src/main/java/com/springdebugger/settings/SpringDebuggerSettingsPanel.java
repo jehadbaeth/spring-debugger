@@ -57,26 +57,27 @@ public final class SpringDebuggerSettingsPanel {
         addLabeledComponent(root, "Minimum confidence level:", createConfidenceCombo(), row++);
         addLabeledComponent(root, "Maximum history entries:", createMaxHistorySpinner(), row++);
 
-        // ── LLM section (future) ─────────────────────────────────────────────
-        addSectionHeader(root, "LLM Fallback (coming in a future release)", row++);
+        // ── LLM section ──────────────────────────────────────────────────────
+        addSectionHeader(root, "LLM Fallback (local Ollama)", row++);
 
         llmEnabledBox = new JBCheckBox("Enable Ollama LLM fallback for unrecognised errors");
-        llmEnabledBox.setEnabled(false);
         addRow(root, llmEnabledBox, row++);
 
         ollamaUrlField = new JBTextField("http://localhost:11434");
-        ollamaUrlField.setEnabled(false);
         addLabeledComponent(root, "Ollama base URL:", ollamaUrlField, row++);
 
         ollamaModelField = new JBTextField("llama3.2");
-        ollamaModelField.setEnabled(false);
         addLabeledComponent(root, "Ollama model:", ollamaModelField, row++);
 
         JBLabel llmNote = new JBLabel(
-            "<html><i>The LLM fallback keeps all data local when Ollama is used.<br>" +
-            "It will be enabled once the offline rule engine is complete.</i></html>");
+            "<html><i>The fallback runs only when no rule matches. All data stays on your<br>" +
+            "machine: requests go to your local Ollama instance, never to a cloud provider.</i></html>");
         llmNote.setForeground(UIManager.getColor("Label.disabledForeground"));
         addRow(root, llmNote, row++);
+
+        // URL and model are only meaningful when the fallback is enabled.
+        llmEnabledBox.addActionListener(e -> updateLlmFieldState());
+        updateLlmFieldState();
 
         // filler
         GridBagConstraints filler = new GridBagConstraints();
@@ -147,7 +148,10 @@ public final class SpringDebuggerSettingsPanel {
             || showBalloonBox.isSelected() != s.isShowNotificationBalloon()
             || focusToolWindowBox.isSelected() != s.isFocusToolWindowOnError()
             || !confidenceCombo.getSelectedItem().toString().equals(s.getMinimumConfidence().name())
-            || (int) maxHistorySpinner.getValue() != s.getMaxHistorySize();
+            || (int) maxHistorySpinner.getValue() != s.getMaxHistorySize()
+            || llmEnabledBox.isSelected() != s.isLlmEnabled()
+            || !ollamaUrlField.getText().equals(s.getOllamaBaseUrl())
+            || !ollamaModelField.getText().equals(s.getOllamaModel());
     }
 
     public void apply() {
@@ -157,6 +161,9 @@ public final class SpringDebuggerSettingsPanel {
         s.setFocusToolWindowOnError(focusToolWindowBox.isSelected());
         s.setMinimumConfidence(Confidence.valueOf(confidenceCombo.getSelectedItem().toString()));
         s.setMaxHistorySize((int) maxHistorySpinner.getValue());
+        s.setLlmEnabled(llmEnabledBox.isSelected());
+        s.setOllamaBaseUrl(ollamaUrlField.getText().trim());
+        s.setOllamaModel(ollamaModelField.getText().trim());
     }
 
     public void reset() {
@@ -166,7 +173,15 @@ public final class SpringDebuggerSettingsPanel {
         focusToolWindowBox.setSelected(s.isFocusToolWindowOnError());
         confidenceCombo.setSelectedItem(s.getMinimumConfidence().name());
         maxHistorySpinner.setValue(s.getMaxHistorySize());
+        llmEnabledBox.setSelected(s.isLlmEnabled());
         ollamaUrlField.setText(s.getOllamaBaseUrl());
         ollamaModelField.setText(s.getOllamaModel());
+        updateLlmFieldState();
+    }
+
+    private void updateLlmFieldState() {
+        boolean on = llmEnabledBox.isSelected();
+        ollamaUrlField.setEnabled(on);
+        ollamaModelField.setEnabled(on);
     }
 }

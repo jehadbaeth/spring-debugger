@@ -10,6 +10,7 @@ import com.springdebugger.enricher.ActuatorEnricher;
 import com.springdebugger.enricher.IdeEnrichmentContext;
 import com.springdebugger.enricher.PsiEnricher;
 import com.springdebugger.extractor.LogExtractor;
+import com.springdebugger.llm.LlmFallback;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.Phase;
 import com.springdebugger.model.RawSignal;
@@ -49,7 +50,7 @@ public final class RunConsoleTap implements ProcessListener {
         this.pipeline = new DiagnosisPipeline(
                 new RuleBasedClassifier(catalog),
                 List.of(new PsiEnricher(), new ActuatorEnricher()),
-                null);
+                LlmFallback.fromSettings());
     }
 
     @Override
