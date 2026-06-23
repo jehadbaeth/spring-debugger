@@ -1,0 +1,7 @@
+2024-03-15 10:55:14.789  WARN 12345 --- [ad | producer-1] org.apache.kafka.clients.NetworkClient   : [Producer clientId=producer-1] Bootstrap broker kafka-broker:9093 (id: -1 rack: null) disconnected
+2024-03-15 10:55:14.892 ERROR 12345 --- [ntainer#0-0-C-1] o.s.k.l.KafkaMessageListenerContainer   : Consumer exception
+
+org.springframework.kafka.KafkaException: Consumer failed to poll; nested exception is org.apache.kafka.common.errors.SaslAuthenticationException: Authentication failed during authentication due to invalid credentials with SASL mechanism SCRAM-SHA-512
+	at org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer.pollAndInvoke(KafkaMessageListenerContainer.java:1316)
+Caused by: org.apache.kafka.common.errors.SaslAuthenticationException: Authentication failed during authentication due to invalid credentials with SASL mechanism SCRAM-SHA-512
+	at org.apache.kafka.common.security.authenticator.SaslClientAuthenticator.createSaslToken(SaslClientAuthenticator.java:521)

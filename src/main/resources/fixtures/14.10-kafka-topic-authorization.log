@@ -1,0 +1,5 @@
+2024-03-15 11:30:02.456 ERROR 12345 --- [ntainer#0-0-C-1] o.s.k.l.KafkaMessageListenerContainer   : Authorization Exception and no authorizationExceptionRetryInterval set
+
+org.apache.kafka.common.errors.TopicAuthorizationException: Not authorized to access topics: [orders-events]
+2024-03-15 11:30:02.457  INFO 12345 --- [ntainer#0-0-C-1] o.s.k.l.KafkaMessageListenerContainer   : Stopping container due to fatal consumer exception
+2024-03-15 11:30:02.460  INFO 12345 --- [ntainer#0-0-C-1] o.s.k.l.KafkaMessageListenerContainer   : Stopped org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory#0 id=myConsumerId

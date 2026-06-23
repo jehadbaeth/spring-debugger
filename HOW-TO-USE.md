@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.3.7  
+**Version:** 0.4.0  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -45,7 +45,7 @@ After restarting, you will see a **Spring Debugger** panel at the bottom of the 
 Open the panel. It shows:
 
 ```
-● Monitoring  ·  43 rules
+● Monitoring  ·  55 rules
 ```
 
 The green dot means the plugin is active and watching. No further setup is needed for offline mode.
@@ -143,6 +143,7 @@ Each rule has an ID like `2.1` or `13.4`. The number before the dot is the catal
 | 9 | Test context errors |
 | 10 | Build, packaging, and classpath conflicts |
 | 13 | MapStruct mapper errors |
+| 14 | Spring Kafka errors |
 
 ---
 
@@ -160,7 +161,7 @@ By default, LOW confidence diagnoses are not shown. Adjust **Minimum confidence 
 
 ## What errors does it detect?
 
-The plugin currently recognises 43 error patterns:
+The plugin currently recognises 55 error patterns:
 
 **Application context / startup (10 rules)**  
 `ApplicationContextException`, `BeanDefinitionStoreException`, `BeanCreationException`, `BeanInstantiationException`, `BeanDefinitionOverrideException`, port already in use, no active profile, failed to load ApplicationContext (tests), missing auto-configuration, `BeanCurrentlyInCreationException`.

@@ -1,0 +1,7 @@
+2024-03-15 09:30:11.234 ERROR 12345 --- [ntainer#0-0-C-1] o.s.k.l.KafkaMessageListenerContainer   : Consumer exception
+
+org.springframework.kafka.KafkaException: Consumer failed to poll; nested exception is org.apache.kafka.common.errors.InvalidGroupIdException: The configured groupId is invalid
+	at org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer.pollAndInvoke(KafkaMessageListenerContainer.java:1316)
+Caused by: org.apache.kafka.common.errors.InvalidGroupIdException: The configured groupId is invalid
+	at org.apache.kafka.clients.consumer.internals.ConsumerCoordinator.sendJoinGroupRequest(ConsumerCoordinator.java:615)
+2024-03-15 09:30:11.236  INFO 12345 --- [ntainer#0-0-C-1] o.s.k.l.KafkaMessageListenerContainer   : Stopped container for group.id: null

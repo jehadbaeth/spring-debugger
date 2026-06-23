@@ -1,0 +1,10 @@
+2024-03-15 10:00:01.234 ERROR 12345 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'kafkaProducerFactory' defined in class path resource [com/example/KafkaConfig.class]: Instantiation of bean failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.springframework.kafka.core.DefaultKafkaProducerFactory]: Constructor threw exception
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateBean(AbstractAutowireCapableBeanFactory.java:1320)
+Caused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.springframework.kafka.core.DefaultKafkaProducerFactory]: Constructor threw exception
+	at org.springframework.beans.BeanUtils.instantiateClass(BeanUtils.java:224)
+Caused by: org.apache.kafka.common.config.ConfigException: Missing required configuration "bootstrap.servers" which has no default value.
+	at org.apache.kafka.common.config.ConfigDef.parseValue(ConfigDef.java:463)
+	at org.apache.kafka.common.config.ConfigDef.parse(ConfigDef.java:453)
+	at org.apache.kafka.clients.producer.KafkaProducer.<init>(KafkaProducer.java:300)

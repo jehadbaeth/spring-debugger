@@ -1,0 +1,6 @@
+2024-03-15 11:15:23.456 ERROR 7716 --- [ntainer#0-0-C-1] o.s.k.l.LoggingErrorHandler              : Error while processing: ConsumerRecord(topic = stock-quotes, partition = 0, leaderEpoch = 0, offset = 2420)
+org.apache.kafka.common.errors.RecordDeserializationException: Error deserializing key/value for partition stock-quotes-0 at offset 2420. If needed, please seek past the record to continue consumption.
+	at org.apache.kafka.clients.consumer.internals.Fetcher.parseRecord(Fetcher.java:1429)
+	at org.apache.kafka.clients.consumer.internals.Fetcher.parseCompletedFetch(Fetcher.java:1349)
+Caused by: com.fasterxml.jackson.core.JsonParseException: Unexpected character ('%' (code 37)): expected a valid value
+	at com.fasterxml.jackson.core.JsonParser._constructError(JsonParser.java:2391)

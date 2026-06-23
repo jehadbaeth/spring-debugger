@@ -1,0 +1,7 @@
+2024-03-15 14:22:01.234  WARN 12345 --- [ntainer#0-0-C-1] o.a.k.c.c.internals.ConsumerCoordinator  : [Consumer clientId=consumer-my-group-1, groupId=my-group] consumer poll timeout has expired. This means the time between subsequent calls to poll() was longer than the configured max.poll.interval.ms.
+2024-03-15 14:22:01.567 ERROR 12345 --- [ntainer#0-0-C-1] o.s.k.l.KafkaMessageListenerContainer   : Error committing offset
+
+org.springframework.kafka.KafkaException: Seek to current after exception; nested exception is org.apache.kafka.clients.consumer.CommitFailedException: Commit cannot be completed since the group has already rebalanced and assigned the partitions to another member. This means that the time between subsequent calls to poll() was longer than the configured max.poll.interval.ms, which is currently set to 300000.
+	at org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer.doInvokeOnMessage(KafkaMessageListenerContainer.java:2384)
+Caused by: org.apache.kafka.clients.consumer.CommitFailedException: Commit cannot be completed since the group has already rebalanced and assigned the partitions to another member. This means that the time between subsequent calls to poll() was longer than the configured max.poll.interval.ms, which is currently set to 300000.
+	at org.apache.kafka.clients.consumer.internals.ConsumerCoordinator.throwCommitFailedException(ConsumerCoordinator.java:214)

@@ -579,6 +579,160 @@ rules:
   # permanent TODO that can never be satisfied from logs.
 
   # ──────────────────────────────────────────────────────────────────────
+  # Section 14: Spring Kafka errors (Phase: STARTUP, RUNTIME, TEST)
+  # Several Kafka failures share an exception class (SerializationException,
+  # TimeoutException, ConfigException), so these rules key on a distinctive
+  # message substring. Order matters: the trusted-packages rule (14.4) comes
+  # before the general deserialization rule (14.5) because a trusted-packages
+  # failure also contains "Error deserializing key/value".
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: "14.1"
+    name: "Kafka broker not reachable"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "Failed to update metadata after"
+    diagnosis: "The Kafka client cannot reach any broker: it repeatedly fails to connect to the bootstrap broker (node -1) and times out fetching cluster metadata, so no producer or consumer can start. This is almost always a wrong address, a broker that is down, or a network/firewall block rather than an application bug."
+    fix: "Confirm spring.kafka.bootstrap-servers points at a reachable host:port (e.g. broker:9092) and test it with 'nc -zv <host> <port>'. In Docker/Kubernetes/cloud, set the broker's advertised.listeners to an address the client can actually resolve (not an internal container name) and open the port in any firewall or security group; the client reconnects automatically once the broker is reachable."
+    confidence: HIGH
+    fixture: "fixtures/14.1-kafka-broker-unreachable.log"
+    status: DONE
+
+  - id: "14.2"
+    name: "Kafka bootstrap-servers not configured"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "ConfigException"
+      messageContains: "bootstrap.servers"
+    diagnosis: "The Kafka client configuration is missing the required 'bootstrap.servers' property, so the producer/consumer factory cannot be constructed and the application context fails to start. Common causes are an absent property, a typo such as 'bootstrap-server' (missing the trailing s), or the value living in a profile that is not active."
+    fix: "Add spring.kafka.bootstrap-servers=<host>:<port> to application.properties or the active profile file. If you build custom ConsumerFactory/ProducerFactory beans, inject KafkaProperties and use kafkaProperties.buildConsumerProperties()/buildProducerProperties() so the value propagates, and watch for typos because Spring silently ignores unknown spring.kafka.* keys."
+    confidence: HIGH
+    fixture: "fixtures/14.2-kafka-missing-bootstrap.log"
+    status: DONE
+
+  - id: "14.3"
+    name: "Kafka consumer group.id invalid or missing"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "InvalidGroupIdException"
+    diagnosis: "A Kafka consumer is using group management or committing offsets without a valid group.id, so the broker rejects the join-group request and the listener stops. Newer Kafka clients no longer default the group id, so it must be set explicitly."
+    fix: "Set spring.kafka.consumer.group-id=<your-group> in application.properties, or specify it on the listener with @KafkaListener(topics = \"...\", groupId = \"...\"). The group id must be a non-empty string and, when ACLs are enabled, must have Read permission on the group."
+    confidence: HIGH
+    fixture: "fixtures/14.3-kafka-invalid-group-id.log"
+    status: DONE
+
+  - id: "14.4"
+    name: "Kafka JsonDeserializer trusted packages not configured"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "is not in the trusted packages"
+    diagnosis: "Spring Kafka's JsonDeserializer read the target class name from the message's __TypeId__ header, but that class's package is not in the deserializer's trusted-packages allowlist, so it refuses to instantiate it (a deserialization security control). The deepest cause is an IllegalArgumentException naming the blocked class."
+    fix: "Add the package to the allowlist: spring.kafka.consumer.properties.spring.json.trusted.packages=com.example.* (comma-separated, wildcards allowed), or '*' to trust all (only for fully trusted producers). Alternatively stop sending type headers on the producer (spring.kafka.producer.properties.spring.json.add.type.headers=false) and set a fixed target type on the consumer with spring.kafka.consumer.properties.spring.json.value.default.type=com.example.MyEvent."
+    confidence: HIGH
+    fixture: "fixtures/14.4-kafka-trusted-packages.log"
+    status: DONE
+
+  - id: "14.5"
+    name: "Kafka consumer deserialization failure (poison pill)"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "Error deserializing key/value for partition"
+    diagnosis: "A consumed record could not be deserialized into the target type (a 'poison pill'): the configured deserializer threw while converting the raw bytes, usually because the producer used a different format or schema, or a malformed message is on the topic. Without an error-handling deserializer the consumer is stuck at that offset and cannot advance."
+    fix: "Wrap the real deserializer with ErrorHandlingDeserializer so bad records are captured instead of blocking the consumer: spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.ErrorHandlingDeserializer plus spring.kafka.consumer.properties.spring.deserializer.value.delegate.class=<your real deserializer>. Then configure a DefaultErrorHandler with a DeadLetterPublishingRecoverer to route failures to a DLT topic, and confirm the producer and consumer agree on the serialization format."
+    confidence: HIGH
+    fixture: "fixtures/14.5-kafka-consumer-deserialization.log"
+    status: DONE
+
+  - id: "14.6"
+    name: "Kafka producer serialization failure"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "Can't serialize data"
+    diagnosis: "The Kafka producer failed to serialize the value before sending: the configured serializer threw, typically because the payload class lacks Jackson getters or a no-arg constructor, contains a non-serializable field, or jackson-databind is missing. KafkaTemplate.send therefore returns a failed future and the message is never published."
+    fix: "Give the payload class a public no-arg constructor and standard getters/setters (or @JsonProperty annotations), and ensure com.fasterxml.jackson.core:jackson-databind is on the classpath. Configure spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JsonSerializer, and handle the returned future (or add a ProducerListener) so per-message serialization failures are logged and recovered."
+    confidence: HIGH
+    fixture: "fixtures/14.6-kafka-producer-serialization.log"
+    status: DONE
+
+  - id: "14.7"
+    name: "Kafka topic does not exist"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "UNKNOWN_TOPIC_OR_PARTITION"
+    diagnosis: "A consumer or producer references a topic that does not exist on the broker (auto-create is usually disabled in production), so metadata requests return UNKNOWN_TOPIC_OR_PARTITION. The listener starts but silently receives nothing, or sends fail, and the client retries indefinitely; a misspelled topic name is the most common cause."
+    fix: "Verify the exact topic name with 'kafka-topics.sh --list --bootstrap-server <host>:<port>'. Create it with a @Bean NewTopic in a @Configuration class so Spring Kafka's KafkaAdmin provisions it on startup, and set spring.kafka.admin.fail-fast=true so a missing or unreachable topic fails startup loudly instead of failing silently."
+    confidence: HIGH
+    fixture: "fixtures/14.7-kafka-unknown-topic.log"
+    status: DONE
+
+  - id: "14.8"
+    name: "Kafka consumer rebalance / commit failed (poll interval exceeded)"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "Commit cannot be completed since the group has already rebalanced"
+    diagnosis: "The consumer took longer than max.poll.interval.ms (default 5 minutes) to process a batch between poll() calls, so the broker treated it as dead, rebalanced its partitions to another member, and then rejected its offset commit with CommitFailedException. Those records may be reprocessed by the new owner."
+    fix: "Either speed up processing or allow more time: raise spring.kafka.consumer.properties.max.poll.interval.ms (e.g. 600000) and/or lower spring.kafka.consumer.max-poll-records (default 500) so each batch is smaller. For long or unpredictable work, hand records to a bounded executor and return from the listener quickly, and tune heartbeat.interval.ms/session.timeout.ms if heartbeat failures also appear."
+    confidence: HIGH
+    fixture: "fixtures/14.8-kafka-commit-failed.log"
+    status: DONE
+
+  - id: "14.9"
+    name: "Kafka SASL authentication failure"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "SaslAuthenticationException"
+    diagnosis: "The Kafka client failed SASL authentication during the connection handshake, so the broker closed the connection before any topic operation. Typical causes are wrong credentials, a mechanism mismatch (for example PLAINTEXT instead of PLAIN), or a malformed sasl.jaas.config string; this is not retriable."
+    fix: "Check the spring.kafka.properties.sasl.jaas.config syntax (e.g. org.apache.kafka.common.security.plain.PlainLoginModule required username=\"u\" password=\"p\";) and make sure spring.kafka.properties.sasl.mechanism (PLAIN, SCRAM-SHA-256, ...) and spring.kafka.properties.security.protocol (SASL_SSL or SASL_PLAINTEXT) match the broker. Verify the same credentials work through the Kafka CLI with --command-config before retrying."
+    confidence: HIGH
+    fixture: "fixtures/14.9-kafka-sasl-auth.log"
+    status: DONE
+
+  - id: "14.10"
+    name: "Kafka topic authorization failure"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "Not authorized to access topics"
+    diagnosis: "Authentication succeeded but the authenticated principal lacks the ACL required for the topic (Read for consumers, Write for producers, Describe for admin), so the broker returns a topic authorization failure and the listener container stops as a fatal error by default."
+    fix: "Grant the ACL, e.g. 'kafka-acls.sh --add --allow-principal User:<name> --operation Read --topic <topic> --bootstrap-server <host>:<port>' (use Write and Describe for producers, and also grant Read on the consumer group). In Spring Kafka set containerProperties.setAuthorizationExceptionRetryInterval(Duration.ofSeconds(10)) so transient ACL-propagation delays are retried instead of stopping the container."
+    confidence: HIGH
+    fixture: "fixtures/14.10-kafka-topic-authorization.log"
+    status: DONE
+
+  - id: "14.11"
+    name: "Kafka offset out of range (no reset policy)"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "Offsets out of range with no configured reset policy"
+    diagnosis: "The consumer's committed offset no longer exists on the broker (the log segments were deleted by retention while the consumer was offline) and auto.offset.reset is set to 'none', so the client throws OffsetOutOfRangeException instead of repositioning."
+    fix: "Set spring.kafka.consumer.auto-offset-reset=earliest (replay from the start of what is retained) or latest (skip to the end, accepting data loss), depending on your needs. Avoid auto.offset.reset=none unless you handle the reset manually, and consider increasing the topic's retention.ms if consumers are regularly offline long enough to fall behind retention."
+    confidence: HIGH
+    fixture: "fixtures/14.11-kafka-offset-out-of-range.log"
+    status: DONE
+
+  - id: "14.12"
+    name: "Kafka record too large"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "RecordTooLargeException"
+    diagnosis: "A record exceeds a configured size limit. Producer-side it is larger than max.request.size (default 1 MB) and is rejected before sending; broker-side it exceeds message.max.bytes or the topic's max.message.bytes. The same RecordTooLargeException is thrown in both cases."
+    fix: "Align all three limits: spring.kafka.producer.properties.max.request.size, the broker's message.max.bytes (or per-topic max.message.bytes via kafka-configs.sh), and the consumer's spring.kafka.consumer.properties.max.partition.fetch.bytes / fetch-max-bytes. Prefer enabling compression (spring.kafka.producer.compression-type=lz4) or splitting large payloads into chunks rather than raising the limits without bound."
+    confidence: HIGH
+    fixture: "fixtures/14.12-kafka-record-too-large.log"
+    status: DONE
+
+  # ──────────────────────────────────────────────────────────────────────
   # Generic wrapper rule, kept near the end on purpose. BeanCreationException
   # wraps almost every startup failure ("Error creating bean with name ...").
   # If it sat in section 1 it would preempt specific banner rules such as 4.1

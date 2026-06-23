@@ -1,0 +1,4 @@
+2024-03-15 09:10:12.345  WARN 12345 --- [ntainer#0-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-myapp-1, groupId=my-consumer-group] Error while fetching metadata with correlation id 49 : {orders-events=UNKNOWN_TOPIC_OR_PARTITION}
+2024-03-15 09:10:12.346  WARN 12345 --- [ntainer#0-0-C-1] o.a.k.c.c.internals.ConsumerCoordinator : [Consumer clientId=consumer-myapp-1, groupId=my-consumer-group] error in onPartitionsAssigned
+org.apache.kafka.common.errors.UnknownTopicOrPartitionException: This server does not host this topic-partition.
+2024-03-15 09:10:13.350  WARN 12345 --- [ntainer#0-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-myapp-1, groupId=my-consumer-group] Error while fetching metadata with correlation id 51 : {orders-events=UNKNOWN_TOPIC_OR_PARTITION}

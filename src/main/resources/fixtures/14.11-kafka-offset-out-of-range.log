@@ -1,0 +1,6 @@
+2024-03-15 16:10:33.789 ERROR 12345 --- [ntainer#0-0-C-1] o.s.k.l.KafkaMessageListenerContainer   : Consumer exception
+
+org.springframework.kafka.KafkaException: Consumer failed to poll; nested exception is org.apache.kafka.clients.consumer.OffsetOutOfRangeException: Offsets out of range with no configured reset policy for partitions: {my-topic-0=12543}
+	at org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer.pollAndInvoke(KafkaMessageListenerContainer.java:1316)
+Caused by: org.apache.kafka.clients.consumer.OffsetOutOfRangeException: Offsets out of range with no configured reset policy for partitions: {my-topic-0=12543}
+	at org.apache.kafka.clients.consumer.internals.Fetcher.parseCompletedFetch(Fetcher.java:1349)

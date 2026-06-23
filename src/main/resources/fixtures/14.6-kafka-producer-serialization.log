@@ -1,0 +1,9 @@
+2024-03-15 12:01:05.789 ERROR 12345 --- [nio-8080-exec-1] c.e.service.OrderService                 : Failed to send Kafka message
+
+org.springframework.kafka.KafkaException: Send failed; nested exception is org.apache.kafka.common.errors.SerializationException: Can't serialize data [com.example.Order@6f3b5d3] for topic [orders]
+	at org.springframework.kafka.core.KafkaTemplate.doSend(KafkaTemplate.java:370)
+	at org.springframework.kafka.core.KafkaTemplate.send(KafkaTemplate.java:282)
+Caused by: org.apache.kafka.common.errors.SerializationException: Can't serialize data [com.example.Order@6f3b5d3] for topic [orders]
+	at org.springframework.kafka.support.serializer.JsonSerializer.serialize(JsonSerializer.java:152)
+Caused by: com.fasterxml.jackson.databind.exc.InvalidDefinitionException: No serializer found for class com.example.Order$InternalDetails and no properties discovered to create BeanSerializer
+	at com.fasterxml.jackson.databind.exc.InvalidDefinitionException.from(InvalidDefinitionException.java:77)

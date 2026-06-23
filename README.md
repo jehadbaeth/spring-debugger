@@ -9,7 +9,7 @@ No reading cascading stack traces. No Googling the exception class name.
 ## Features
 
 - **Real-time detection** — attaches to IntelliJ's run, test, and build streams; no polling, no file watching
-- **43 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
+- **55 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
 - **Three-layer signal extraction** — reads `Caused by:` chains, failure analysis banners, and build error lines
 - **Build-aware** — taps both IntelliJ internal builds and delegated Gradle/Maven builds for compile-phase rules
 - **PSI enrichment** — confirms structural claims against your source (a missing bean has no stereotype, a type is a `@Mapper`, a class is outside the scan tree) and upgrades uncertain matches to HIGH
@@ -29,7 +29,7 @@ No reading cascading stack traces. No Googling the exception class name.
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  Spring Debugger                                            ⚙           │
-│  ● Monitoring  ·  43 rules                                              │
+│  ● Monitoring  ·  55 rules                                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  [2.1]  STARTUP  ●HIGH                                                  │
 │                                                                         │
@@ -170,6 +170,23 @@ LLM Fallback (local Ollama)
 | 13.4 | Mapper not a Spring bean | Caused by: NoSuchBeanDefinitionException + Caused-by message contains "Mapper" |
 | 13.5 | No implementation type | Build line: "No implementation type is registered for return type" |
 | 13.6 | Missing @Mapper annotation | Build line: containing annotation check |
+
+### Section 14 — Spring Kafka (12 rules)
+
+| Rule | Error | Signal |
+|---|---|---|
+| 14.1 | Broker not reachable | "Failed to update metadata after" |
+| 14.2 | bootstrap-servers not configured | Caused by: ConfigException + "bootstrap.servers" |
+| 14.3 | Consumer group.id invalid/missing | "InvalidGroupIdException" |
+| 14.4 | JsonDeserializer trusted packages | "is not in the trusted packages" |
+| 14.5 | Consumer deserialization (poison pill) | "Error deserializing key/value for partition" |
+| 14.6 | Producer serialization failure | "Can't serialize data" |
+| 14.7 | Topic does not exist | "UNKNOWN_TOPIC_OR_PARTITION" |
+| 14.8 | Rebalance / commit failed (poll interval) | "Commit cannot be completed since the group has already rebalanced" |
+| 14.9 | SASL authentication failure | "SaslAuthenticationException" |
+| 14.10 | Topic authorization failure | "Not authorized to access topics" |
+| 14.11 | Offset out of range (no reset policy) | "Offsets out of range with no configured reset policy" |
+| 14.12 | Record too large | "RecordTooLargeException" |
 
 ---
 
