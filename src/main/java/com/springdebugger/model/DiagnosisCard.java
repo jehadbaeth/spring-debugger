@@ -28,6 +28,11 @@ public final class DiagnosisCard {
         this.excerpt = excerpt;
     }
 
+    /** Stable identity for de-duplication and history grouping (same rule + same diagnosis). */
+    public String groupingKey() {
+        return ruleId + "|" + diagnosisSentence;
+    }
+
     public String getRuleId() { return ruleId; }
     public Phase getPhase() { return phase; }
     public String getDiagnosisSentence() { return diagnosisSentence; }

@@ -55,7 +55,7 @@ public final class ConsoleDiagnoser {
 
     /** Stable identity of a diagnosis for de-duplication and history grouping. */
     public static String key(DiagnosisCard card) {
-        return card.getRuleId() + "|" + card.getDiagnosisSentence();
+        return card.groupingKey();
     }
 
     public Optional<DiagnosisCard> diagnose(String output, Project project) {

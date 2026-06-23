@@ -181,7 +181,7 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
     private JBList<DiagnosisCard> buildHistoryList() {
         JBList<DiagnosisCard> list = new JBList<>(historyModel);
         list.setEmptyText("No diagnosis history yet");
-        list.setCellRenderer(new HistoryCellRenderer());
+        list.setCellRenderer(new HistoryCellRenderer(project));
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.addMouseListener(new MouseAdapter() {
             @Override
@@ -394,6 +394,12 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
 
     private static final class HistoryCellRenderer extends DefaultListCellRenderer {
 
+        private final Project project;
+
+        HistoryCellRenderer(Project project) {
+            this.project = project;
+        }
+
         @Override
         public Component getListCellRendererComponent(
                 JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -401,9 +407,13 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof DiagnosisCard card) {
                 String diagnosis = StringUtil.shortenTextWithEllipsis(card.getDiagnosisSentence(), 80, 0);
+                int count = DiagnosisHistoryService.getInstance(project).getOccurrences(card);
+                String badge = count > 1
+                    ? "  <span style='color:gray'>×" + count + "</span>"
+                    : "";
                 setText("<html><b>[" + card.getRuleId() + "]</b>  "
                     + "<span style='color:gray'>" + card.getPhase().name() + "</span>  "
-                    + diagnosis + "</html>");
+                    + diagnosis + badge + "</html>");
                 setBorder(JBUI.Borders.empty(3, 6));
             }
             return this;

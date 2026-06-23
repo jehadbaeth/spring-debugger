@@ -25,6 +25,15 @@ public final class DiagnosisCardPanel {
     private DiagnosisCardPanel() {}
 
     public static void show(Project project, DiagnosisCard card) {
+        show(project, card, false);
+    }
+
+    /**
+     * Surfaces a card. When {@code quiet} is true the balloon and tool-window activation are
+     * skipped and only the history is updated; the taps use this for the secondary errors in a
+     * burst (an integration run can emit many at once) so the plugin does not become the noise.
+     */
+    public static void show(Project project, DiagnosisCard card, boolean quiet) {
         // The taps call this from process-listener and test-event threads, never the EDT.
         // The history store is thread-safe, but the notification balloon and tool window
         // must be touched on the EDT, so marshal the whole surfacing there. Without this the
@@ -33,6 +42,8 @@ public final class DiagnosisCardPanel {
             if (project.isDisposed()) return;
 
             DiagnosisHistoryService.getInstance(project).addDiagnosis(card);
+
+            if (quiet) return;
 
             SpringDebuggerSettings settings = SpringDebuggerSettings.getInstance();
 

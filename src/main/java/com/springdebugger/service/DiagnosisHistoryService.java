@@ -9,8 +9,10 @@ import com.springdebugger.settings.SpringDebuggerSettings;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -21,6 +23,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public final class DiagnosisHistoryService {
 
     private final LinkedList<DiagnosisCard> history = new LinkedList<>();
+    /** How many times each distinct diagnosis (by grouping key) has been seen this session. */
+    private final Map<String, Integer> occurrences = new HashMap<>();
     private final CopyOnWriteArrayList<Runnable> listeners = new CopyOnWriteArrayList<>();
 
     public static DiagnosisHistoryService getInstance(Project project) {
@@ -34,11 +38,30 @@ public final class DiagnosisHistoryService {
         Confidence minimum = settings.getMinimumConfidence();
         if (card.getConfidence().ordinal() > minimum.ordinal()) return;
 
+        // Group repeats: the same diagnosis (rule + text) collapses to one row with a count
+        // that bumps each time it recurs, so a broken endpoint hit many times during an
+        // integration run does not flood the history.
+        String key = card.groupingKey();
+        if (occurrences.containsKey(key)) {
+            occurrences.put(key, occurrences.get(key) + 1);
+            history.removeIf(c -> c.groupingKey().equals(key));
+        } else {
+            occurrences.put(key, 1);
+        }
+
         history.addFirst(card);
         int max = settings.getMaxHistorySize();
-        while (history.size() > max) history.removeLast();
+        while (history.size() > max) {
+            DiagnosisCard removed = history.removeLast();
+            occurrences.remove(removed.groupingKey());
+        }
 
         notifyListeners();
+    }
+
+    /** How many times the given diagnosis has occurred this session (>= 1). */
+    public synchronized int getOccurrences(DiagnosisCard card) {
+        return occurrences.getOrDefault(card.groupingKey(), 1);
     }
 
     public synchronized List<DiagnosisCard> getHistory() {
@@ -47,6 +70,7 @@ public final class DiagnosisHistoryService {
 
     public synchronized void clear() {
         history.clear();
+        occurrences.clear();
         notifyListeners();
     }
 
