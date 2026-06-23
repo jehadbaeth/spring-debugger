@@ -5,22 +5,11 @@ import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskNotifica
 import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskType;
 import com.intellij.openapi.project.Project;
 import com.springdebugger.SpringDebuggerService;
-import com.springdebugger.classifier.RuleBasedClassifier;
-import com.springdebugger.engine.DiagnosisPipeline;
-import com.springdebugger.enricher.ActuatorEnricher;
-import com.springdebugger.enricher.IdeEnrichmentContext;
-import com.springdebugger.enricher.PropertyPrecedenceEnricher;
-import com.springdebugger.enricher.PsiEnricher;
-import com.springdebugger.extractor.LogExtractor;
-import com.springdebugger.llm.LlmFallback;
 import com.springdebugger.model.DiagnosisCard;
-import com.springdebugger.model.Phase;
-import com.springdebugger.model.RawSignal;
 import com.springdebugger.rule.RuleCatalog;
 import com.springdebugger.ui.DiagnosisCardPanel;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,7 +33,6 @@ public final class ExternalBuildOutputTap extends ExternalSystemTaskNotification
     /** Hard cap so a noisy build cannot grow a buffer without bound. */
     private static final int BUFFER_MAX_CHARS = 300_000;
 
-    private final LogExtractor extractor = new LogExtractor();
     private final Map<ExternalSystemTaskId, StringBuilder> buffers = new ConcurrentHashMap<>();
 
     @Override
@@ -75,24 +63,7 @@ public final class ExternalBuildOutputTap extends ExternalSystemTaskNotification
      * can be unit-tested; PSI/Actuator enrichment only engages when a real project is given.
      */
     Optional<DiagnosisCard> analyse(String output, Project project, RuleCatalog catalog) {
-        IdeEnrichmentContext context = project != null ? new IdeEnrichmentContext(project) : null;
-        DiagnosisPipeline pipeline = new DiagnosisPipeline(
-                new RuleBasedClassifier(catalog),
-                List.of(new PsiEnricher(), new ActuatorEnricher(), new PropertyPrecedenceEnricher()),
-                LlmFallback.fromSettings());
-
-        // 1) Application startup failure (gradle bootRun / spring-boot:run). Tried first
-        //    because it is the common case; the phase filter lets compile/runtime-only rules
-        //    fall through to steps 2 and 3 when they do not apply at STARTUP.
-        Optional<DiagnosisCard> startup = pipeline.run(extractor.extract(output, Phase.STARTUP), context);
-        if (startup.isPresent()) return startup;
-
-        // 2) Compile failure (gradle build): the build analyzer applies its Spring-marker gate.
-        Optional<DiagnosisCard> compile = new BuildOutputAnalyzer(catalog).analyze(output);
-        if (compile.isPresent()) return compile;
-
-        // 3) Runtime / Kafka exception from a running task.
-        return pipeline.run(extractor.extract(output, Phase.RUNTIME), context);
+        return new ConsoleDiagnoser(catalog).diagnose(output, project);
     }
 
     /**

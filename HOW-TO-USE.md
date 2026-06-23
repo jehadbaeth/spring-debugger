@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.4.1  
+**Version:** 0.5.0  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -80,6 +80,24 @@ rooted at your @SpringBootApplication class.
 ## Running Spring Boot tests
 
 Run tests with **Shift+F10** or through the test runner. If the test application context fails to build the same diagnosis card appears in the tool window — including the relevant rule for missing beans, circular dependencies, or missing mocks.
+
+---
+
+## Running from the Gradle or Maven tool window
+
+When you launch a task from the Gradle or Maven panel (for example `bootRun` or `spring-boot:run`), or use delegated builds, the output streams through IntelliJ's external-system bus. Spring Boot Debugger taps that stream, so a compile failure, a startup failure, or a runtime/Kafka exception from a delegated run is diagnosed the same as a normal Run launch. No setup is needed.
+
+---
+
+## Monitoring a terminal
+
+If you run your app or build from the integrated **Terminal** (for example `./gradlew bootRun` or `mvn spring-boot:run` typed directly), there is no process handle to attach to, so you tell the plugin which terminal to watch:
+
+1. Open the **Spring Debugger** tool window.
+2. Click the **▶ Monitor terminal** button in the panel toolbar.
+3. Pick the terminal tab you want to watch. To stop, open the same menu and choose **Stop monitoring**.
+
+While monitoring, the plugin polls that terminal's output and surfaces a diagnosis card when a Spring Boot error appears, exactly like the Run and Test taps. Only one terminal is watched at a time. The terminal has no streaming API, so detection is poll-based and may lag a second or two behind the output, and the **Terminal** plugin must be enabled.
 
 ---
 

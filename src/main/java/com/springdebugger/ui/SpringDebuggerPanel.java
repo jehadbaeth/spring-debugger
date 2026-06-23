@@ -4,6 +4,8 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.terminal.JBTerminalWidget;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.JBColor;
@@ -21,7 +23,9 @@ import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.service.DiagnosisHistoryService;
 import com.springdebugger.settings.SpringDebuggerSettings;
 import com.springdebugger.settings.SpringDebuggerSettingsConfigurable;
+import com.springdebugger.terminal.TerminalMonitorService;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.plugins.terminal.TerminalView;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -77,6 +81,17 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
         statusLabel.setFont(statusLabel.getFont().deriveFont(Font.BOLD));
         bar.add(statusLabel, BorderLayout.WEST);
 
+        JPanel east = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        east.setOpaque(false);
+
+        JButton terminalBtn = new JButton(AllIcons.Actions.Execute);
+        terminalBtn.setToolTipText("Monitor an open terminal for Spring Boot errors");
+        terminalBtn.setBorderPainted(false);
+        terminalBtn.setContentAreaFilled(false);
+        terminalBtn.setFocusPainted(false);
+        terminalBtn.addActionListener(e -> chooseTerminal(terminalBtn));
+        east.add(terminalBtn);
+
         JButton settingsBtn = new JButton(AllIcons.General.Settings);
         settingsBtn.setToolTipText("Open Spring Boot Debugger settings");
         settingsBtn.setBorderPainted(false);
@@ -84,9 +99,53 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
         settingsBtn.setFocusPainted(false);
         settingsBtn.addActionListener(e ->
             ShowSettingsUtil.getInstance().showSettingsDialog(project, SpringDebuggerSettingsConfigurable.class));
-        bar.add(settingsBtn, BorderLayout.EAST);
+        east.add(settingsBtn);
 
+        bar.add(east, BorderLayout.EAST);
         return bar;
+    }
+
+    /**
+     * Lets the user pick which open terminal tab to monitor (or stop monitoring). A terminal
+     * has no process handle, so the monitor polls the chosen tab's text buffer.
+     */
+    private void chooseTerminal(java.awt.Component anchor) {
+        TerminalMonitorService monitor = TerminalMonitorService.getInstance(project);
+        List<JBTerminalWidget> widgets = new java.util.ArrayList<>(TerminalView.getInstance(project).getWidgets());
+
+        List<String> labels = new java.util.ArrayList<>();
+        if (monitor.isMonitoring()) labels.add("■  Stop monitoring");
+        for (JBTerminalWidget w : widgets) labels.add("▶  " + terminalLabel(w));
+
+        if (labels.isEmpty()) {
+            JBPopupFactory.getInstance().createMessage("No open terminals to monitor").showUnderneathOf(anchor);
+            return;
+        }
+
+        JBPopupFactory.getInstance().createPopupChooserBuilder(labels)
+            .setTitle("Monitor Terminal")
+            .setItemChosenCallback(choice -> {
+                if (choice.startsWith("■")) {
+                    monitor.stop();
+                    return;
+                }
+                int index = labels.indexOf(choice) - (monitor.isMonitoring() ? 1 : 0);
+                if (index >= 0 && index < widgets.size()) {
+                    monitor.monitor(widgets.get(index));
+                }
+            })
+            .createPopup()
+            .showUnderneathOf(anchor);
+    }
+
+    private String terminalLabel(JBTerminalWidget widget) {
+        try {
+            String title = widget.getTerminalTitle().getDefaultTitle();
+            if (title != null && !title.isBlank()) return title;
+        } catch (Throwable ignored) {
+            // fall through to a generic label
+        }
+        return "Terminal";
     }
 
     // ── Content ───────────────────────────────────────────────────────────────

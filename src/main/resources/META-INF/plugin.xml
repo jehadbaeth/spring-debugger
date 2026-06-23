@@ -10,6 +10,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
+    <depends>org.jetbrains.plugins.terminal</depends>
 
     <extensions defaultExtensionNs="com.intellij">
 
@@ -21,6 +22,9 @@
 
         <projectService
             serviceImplementation="com.springdebugger.service.DiagnosisHistoryService"/>
+
+        <projectService
+            serviceImplementation="com.springdebugger.terminal.TerminalMonitorService"/>
 
         <applicationConfigurable
             parentId="tools"

@@ -128,7 +128,7 @@ public final class RunConsoleTap implements ProcessListener {
     }
 
     /** True if a chunk looks like the start/body of an error worth analysing. Pure: tested. */
-    static boolean containsErrorSignature(String text) {
+    public static boolean containsErrorSignature(String text) {
         if (text == null) return false;
         return text.contains(STARTUP_FAILURE_MARKER)
                 || text.contains(RUNTIME_EXCEPTION_MARKER)

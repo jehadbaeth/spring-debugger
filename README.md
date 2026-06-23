@@ -8,7 +8,9 @@ No reading cascading stack traces. No Googling the exception class name.
 
 ## Features
 
-- **Real-time detection** — attaches to IntelliJ's run, test, and build streams; no polling, no file watching
+- **Real-time detection** — attaches to IntelliJ's run, test, and build streams
+- **Gradle/Maven tool window** — diagnoses compile, startup, and runtime/Kafka failures from tasks run in the Gradle or Maven panel (delegated runs), not just the Run button
+- **Terminal monitoring** — pick an open terminal tab and have the plugin watch its output for Spring Boot errors (for apps started with `./gradlew bootRun`, `mvn spring-boot:run`, etc.)
 - **55 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
 - **Three-layer signal extraction** — reads `Caused by:` chains, failure analysis banners, and build error lines
 - **Build-aware** — taps both IntelliJ internal builds and delegated Gradle/Maven builds for compile-phase rules
