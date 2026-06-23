@@ -11,7 +11,8 @@ No reading cascading stack traces. No Googling the exception class name.
 - **Real-time detection** — attaches to IntelliJ's run, test, and build streams
 - **Gradle/Maven tool window** — diagnoses compile, startup, and runtime/Kafka failures from tasks run in the Gradle or Maven panel (delegated runs), not just the Run button
 - **Terminal monitoring** — pick an open terminal tab and have the plugin watch its output for Spring Boot errors (for apps started with `./gradlew bootRun`, `mvn spring-boot:run`, etc.)
-- **55 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
+- **Multi-error extraction** — pulls every distinct server-side error out of a noisy, long-running log (e.g. an integration suite hitting a live app), de-duplicated into a grouped history with counts, instead of collapsing to one
+- **56 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
 - **Three-layer signal extraction** — reads `Caused by:` chains, failure analysis banners, and build error lines
 - **Build-aware** — taps both IntelliJ internal builds and delegated Gradle/Maven builds for compile-phase rules
 - **PSI enrichment** — confirms structural claims against your source (a missing bean has no stereotype, a type is a `@Mapper`, a class is outside the scan tree) and upgrades uncertain matches to HIGH
@@ -31,7 +32,7 @@ No reading cascading stack traces. No Googling the exception class name.
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  Spring Debugger                                            ⚙           │
-│  ● Monitoring  ·  55 rules                                              │
+│  ● Monitoring  ·  56 rules                                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  [2.1]  STARTUP  ●HIGH                                                  │
 │                                                                         │
@@ -95,14 +96,15 @@ LLM Fallback (local Ollama)
 | 1.12 | Auto-configuration not applied | "UserDetailsService bean" |
 | 1.13 | BeanCurrentlyInCreationException | Caused by: BeanCurrentlyInCreationException |
 
-### Section 2 — Dependency injection (4 rules)
+### Section 2 — Dependency injection (5 rules)
 
 | Rule | Error | Signal |
 |---|---|---|
-| 2.1 | NoSuchBeanDefinitionException | Caused by: NoSuchBeanDefinitionException + "required a bean of type" |
+| 2.1 | NoSuchBeanDefinitionException | Caused by: NoSuchBeanDefinitionException + "bean of type" |
 | 2.2 | NoUniqueBeanDefinitionException | Caused by: NoUniqueBeanDefinitionException + "required a single bean, but" |
 | 2.3 | UnsatisfiedDependencyException | Caused by: UnsatisfiedDependencyException |
 | 2.7 | Circular dependency | "The dependencies of some of the beans in the application context form a cycle" |
+| 2.13 | Missing bean (failure-analysis banner) | Banner Description: "required a bean of type" (stack suppressed) |
 
 ### Section 3 — Configuration and properties (3 rules)
 

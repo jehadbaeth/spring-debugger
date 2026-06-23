@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.5.0  
+**Version:** 0.6.0  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -45,7 +45,7 @@ After restarting, you will see a **Spring Debugger** panel at the bottom of the 
 Open the panel. It shows:
 
 ```
-● Monitoring  ·  55 rules
+● Monitoring  ·  56 rules
 ```
 
 The green dot means the plugin is active and watching. No further setup is needed for offline mode.
@@ -98,6 +98,19 @@ If you run your app or build from the integrated **Terminal** (for example `./gr
 3. Pick the terminal tab you want to watch. To stop, open the same menu and choose **Stop monitoring**.
 
 While monitoring, the plugin polls that terminal's output and surfaces a diagnosis card when a Spring Boot error appears, exactly like the Run and Test taps. Only one terminal is watched at a time. The terminal has no streaming API, so detection is poll-based and may lag a second or two behind the output, and the **Terminal** plugin must be enabled.
+
+---
+
+## Noisy integration runs (many errors at once)
+
+When you run an integration suite (for example Robot Framework) against a running app, the app log can throw many server-side errors. The plugin handles this:
+
+- It splits the log into individual error blocks and diagnoses each, so **every distinct** error surfaces, not just the last one.
+- Repeats of the same error collapse into **one history row with a count** (e.g. a broken endpoint hit seven times shows `×7`), so the panel does not flood.
+- Only the **first** error of a burst pops a balloon; the rest update the history quietly, so suites that intentionally trigger errors (negative tests) do not turn the plugin into noise.
+- For a delegated `bootRun` from the Gradle/Maven panel, analysis now runs **while the app is still running**, not only when it stops.
+
+Browse the grouped history to dig through what happened; double-click any row to bring its full diagnosis into the card.
 
 ---
 
@@ -179,7 +192,7 @@ By default, LOW confidence diagnoses are not shown. Adjust **Minimum confidence 
 
 ## What errors does it detect?
 
-The plugin currently recognises 55 error patterns:
+The plugin currently recognises 56 error patterns:
 
 **Application context / startup (10 rules)**  
 `ApplicationContextException`, `BeanDefinitionStoreException`, `BeanCreationException`, `BeanInstantiationException`, `BeanDefinitionOverrideException`, port already in use, no active profile, failed to load ApplicationContext (tests), missing auto-configuration, `BeanCurrentlyInCreationException`.
