@@ -45,7 +45,7 @@ After restarting, you will see a **Spring Debugger** panel at the bottom of the 
 Open the panel. It shows:
 
 ```
-● Monitoring  ·  41 rules
+● Monitoring  ·  43 rules
 ```
 
 The green dot means the plugin is active and watching. No further setup is needed for offline mode.
@@ -145,7 +145,7 @@ By default, LOW confidence diagnoses are not shown. Adjust **Minimum confidence 
 
 ## What errors does it detect?
 
-The plugin currently recognises 41 error patterns:
+The plugin currently recognises 43 error patterns:
 
 **Application context / startup (10 rules)**  
 `ApplicationContextException`, `BeanDefinitionStoreException`, `BeanCreationException`, `BeanInstantiationException`, `BeanDefinitionOverrideException`, port already in use, no active profile, failed to load ApplicationContext (tests), missing auto-configuration, `BeanCurrentlyInCreationException`.
@@ -156,8 +156,8 @@ The plugin currently recognises 41 error patterns:
 **Configuration and properties (3 rules)**  
 Unresolved `@Value` placeholder, property type conversion failure, YAML syntax error.
 
-**JPA / data access (6 rules)**  
-No embedded database driver, failed to configure DataSource, HikariCP connection pool exhausted, entity not a managed JPA type, `LazyInitializationException`, `DataIntegrityViolationException`.
+**JPA / data access (7 rules)**  
+No embedded database driver, failed to configure DataSource, HikariCP connection pool exhausted, entity not a managed JPA type, `LazyInitializationException`, `DataIntegrityViolationException`, missing `RedisConnectionFactory`.
 
 **Web / MVC (3 rules)**  
 `NoHandlerFoundException` (404), `MethodArgumentNotValidException` (validation), ambiguous handler mapping.
@@ -169,7 +169,7 @@ Default generated security password warning, `WebSecurityConfigurerAdapter` remo
 Infinite recursion on bidirectional JPA relationship, cannot construct instance (no default constructor).
 
 **Testing (2 rules)**  
-Failed to load ApplicationContext in tests, `UnnecessaryStubbingException`.
+`UnnecessaryStubbingException`, Testcontainers Docker environment not available. (A generic "failed to load ApplicationContext" catch-all also fires for any other unrecognised test context failure.)
 
 **Build / packaging (3 rules)**  
 `NoSuchMethodError` / version conflict, Lombok not generating code, Java version mismatch.

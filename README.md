@@ -9,7 +9,7 @@ No reading cascading stack traces. No Googling the exception class name.
 ## Features
 
 - **Real-time detection** — attaches to IntelliJ's run, test, and build streams; no polling, no file watching
-- **41 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
+- **43 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
 - **Three-layer signal extraction** — reads `Caused by:` chains, failure analysis banners, and build error lines
 - **Diagnosis history** — every diagnosis is stored per session; double-click any entry to re-inspect it
 - **Copy Fix / Copy Diagnosis** — one-click clipboard for both sentences
@@ -26,7 +26,7 @@ No reading cascading stack traces. No Googling the exception class name.
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  Spring Debugger                                            ⚙           │
-│  ● Monitoring  ·  41 rules                                              │
+│  ● Monitoring  ·  43 rules                                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  [2.1]  STARTUP  ●HIGH                                                  │
 │                                                                         │
@@ -117,6 +117,7 @@ LLM Fallback (coming in a future release)
 | 4.6 | Entity not a managed type | Caused by: IllegalArgumentException + "Not a managed type" |
 | 4.8 | LazyInitializationException | Caused by: LazyInitializationException + "could not initialize proxy - no Session" |
 | 4.13 | DataIntegrityViolationException | Caused by: DataIntegrityViolationException |
+| 4.14 | RedisConnectionFactory not configured | Caused by: IllegalStateException + "RedisConnectionFactory is required" |
 
 ### Section 5 — Web, REST, and MVC (3 rules)
 
@@ -141,17 +142,18 @@ LLM Fallback (coming in a future release)
 | 7.2 | Infinite recursion on bidirectional JPA | Caused by: StackOverflowError + "Infinite recursion" |
 | 7.4 | Cannot construct instance | Caused by: InvalidDefinitionException + "no Creators, like default constructor" |
 
-### Section 9 — Testing (1 rule active)
+### Section 9 — Testing (2 rules)
 
 | Rule | Error | Signal |
 |---|---|---|
 | 9.2 | UnnecessaryStubbingException | Caused by: UnnecessaryStubbingException |
+| 9.6 | Testcontainers Docker not available | "Could not find a valid Docker environment" |
 
 ### Section 10 — Build, packaging, classpath (3 rules)
 
 | Rule | Error | Signal |
 |---|---|---|
-| 10.1 | NoSuchMethodError / version conflict | Caused by: NoSuchMethodError |
+| 10.1 | NoSuchMethodError / version conflict | Caused by: NoSuchMethodError (fires in STARTUP, RUNTIME, and TEST) |
 | 10.5 | Lombok not generating code | Build line: "cannot find symbol" |
 | 10.6 | Java version mismatch | Caused by: UnsupportedClassVersionError |
 
@@ -257,7 +259,8 @@ CompileTask (build)   ──────►  BuildOutputTap           │
                                                RuleBasedClassifier
                                                (first-match-wins,
                                                 phase-filtered,
-                                                41 YAML rules)
+                                                DONE rules only,
+                                                43 YAML rules)
                                                          │
                                                          ▼
                                                   DiagnosisCard
@@ -299,9 +302,9 @@ A rule is DONE only when a fixture log file exists and `ClassifierFixtureTest` p
 
 Real-world testing against 15 logs sourced from GitHub Issues and developer blogs:
 
-- **12 of 12** expected matches were correct (100%)
-- **0 false positives** (after v0.1.1 bug fixes)
-- **3 acknowledged gaps** documented in [ACCURACY-ANALYSIS-v0.1.0.md](ACCURACY-ANALYSIS-v0.1.0.md)
+- **13 of 13** expected matches were correct (100%)
+- **0 false positives** (after the v0.1.1–v0.1.3 bug fixes)
+- **2 acknowledged gaps** documented in [ACCURACY-ANALYSIS-v0.1.0.md](ACCURACY-ANALYSIS-v0.1.0.md)
 
 See the full analysis document for per-rule results, root cause analysis of the two bugs found during testing, and the planned v0.2.0 improvements.
 
@@ -320,8 +323,10 @@ Issues: https://github.com/jehadbaeth/spring-debugger/issues
 
 ## Roadmap
 
-- **v0.2.0** — expand real-world test corpus to 25+ logs; add Redis startup failure rule; extend rule 10.1 to TEST phase; resolve rule 9.1 and 13.8
-- **Future** — PSI enrichment (verify @Component annotation is present before firing); Actuator enrichment (query /actuator/health); Ollama LLM fallback for unrecognised errors (setting already present, not yet wired)
+- **v0.2.0** — expand real-world test corpus to 25+ logs; source logs for Jackson recursion and DataIntegrityViolation
+- **M6 proper** — register the build-output tap via a non-deprecated `CompileTask` API instead of the current rawExcerpt fallback (the one remaining correctness debt)
+- **M8 / rule 13.8** — PSI enrichment to verify structural claims; this also unblocks rule 13.8 (MapStruct null-mapping), which stays TODO until the null-value-strategy claim can be verified rather than guessed
+- **Future** — Actuator enrichment (query /actuator/health); Ollama LLM fallback for unrecognised errors (setting already present, not yet wired)
 
 ---
 

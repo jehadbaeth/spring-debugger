@@ -415,12 +415,12 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M4 | Classifier (sections 1 and 2) | ✅ DONE | Rules implemented and passing fixtures |
 | M5 | TEST_CONSOLE tap | ✅ DONE | SMTRunnerEventsListener attached, section 9 rules passing |
 | M6 | BUILD_OUTPUT tap (partial) | 🔄 IN PROGRESS | Compile-phase rules match via rawExcerpt fallback; proper CompileTask registration deferred (see open decisions) |
-| M7 | Full rule catalog | ✅ DONE | 41 of 43 rules DONE with passing fixtures; 9.1 (duplicate) and 13.8 (LOW confidence) deferred |
+| M7 | Full rule catalog | ✅ DONE | 43 of 44 rules DONE with passing fixtures; only 13.8 (MapStruct null-mapping) deferred to M8/PSI. Rule 9.1 removed (dead duplicate of 1.10); rules 4.14 (Redis) and 9.6 (Testcontainers) added |
 | M8 | PSI enrichment layer | ⏳ PENDING | Optional enrichment for MEDIUM-confidence rules |
 | M9 | Actuator enrichment layer | ⏳ PENDING | Queries /actuator/health and /actuator/env when app is running |
 | M10 | UI card polish | ✅ DONE | Full tool window with status bar, current card view, scrollable history, settings panel in Preferences |
 | M11 | Settings persistence | ✅ DONE | PersistentStateComponent + DiagnosisHistoryService with listener pattern |
-| M12 | Real-life testing | ✅ DONE | 5 real-world logs from GitHub Issues and blog tutorials tested; 3 correct matches, 2 acknowledged gaps; ACCURACY-ANALYSIS-v0.1.0.md published; 2 bugs found and fixed (phase filter, rule 13.4 signal) |
+| M12 | Real-life testing | ✅ DONE | 15 real-world logs from GitHub Issues and blog tutorials tested; 13/13 expected matches correct, 2 acknowledged format gaps, 0 false positives; ACCURACY-ANALYSIS-v0.1.0.md (living doc); several bugs and gaps found and fixed (phase filter, rule 13.4 signal, catch-all ordering, 10.1 TEST phase, Redis rule, DONE-only runtime) |
 | M13 | LLM integration (Ollama) | ⏳ PENDING | Config switch enables the LLM fallback path |
 | M14 | How-to-use guide | ✅ DONE | HOW-TO-USE.md published covering installation, UI, settings, rule catalog, and contributing guide |
 
@@ -428,12 +428,19 @@ M0–M7, M10–M12, and M14 are complete. Plugin is functional, documented, and 
 
 ### Open items before v1.0
 
-- M6 proper: register BuildOutputTap via a non-deprecated extension point or `CompilerManager` API that works in 2025.2
-- 9.1: differentiate signals from 1.10 so it can independently pass the fixture test
-- 13.8: raise confidence from LOW to MEDIUM or adjust fixture test contract
-- Expand real-life testing corpus (Stack Overflow / GitHub Issues) to 20+ logs for v0.2.0
+- M6 proper: register BuildOutputTap via a non-deprecated extension point or `CompilerManager` API that works in 2025.2. This is the one remaining correctness debt — build rules currently match via the rawExcerpt fallback rather than a real compiler hook.
+- 13.8 (MapStruct null-mapping): stays TODO on purpose. Its diagnosis claims a specific cause (null-value property mapping strategy) that an NPE-through-MapperImpl signal cannot prove. Promoting it to MEDIUM just to clear the test would mislabel the confidence. Resolve it with M8 (PSI) so the structural claim can be verified, or only after the signal is tightened.
+- Expand real-life testing corpus to 25+ logs for v0.2.0
 - M8 PSI enrichment and M9 Actuator enrichment for higher-confidence MEDIUM rules
 - M13 Ollama LLM fallback
+
+### Resolved since v0.1.0
+
+- 9.1: removed as a dead duplicate of 1.10 (its `causedByClass: IllegalStateException` signal could never match the deepest Caused by). Replaced with rule 9.6 (Testcontainers Docker not available).
+- 10.1: extended to the TEST phase so NoSuchMethodError during test context load gets the version-conflict diagnosis.
+- 1.10: moved to the end of the catalog as a true last-resort catch-all so specific rules win first.
+- 4.14 (Redis connection factory missing): added to close the SOL-003 real-world gap.
+- Classifier now only fires DONE rules; TODO rules are inactive at runtime.
 
 ---
 
