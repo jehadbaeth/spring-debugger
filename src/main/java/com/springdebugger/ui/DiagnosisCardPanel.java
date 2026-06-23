@@ -2,14 +2,13 @@ package com.springdebugger.ui;
 
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.service.DiagnosisHistoryService;
 import com.springdebugger.settings.SpringDebuggerSettings;
-
-import javax.swing.*;
 
 /**
  * Entry point for surfacing a DiagnosisCard to the user.
@@ -26,23 +25,31 @@ public final class DiagnosisCardPanel {
     private DiagnosisCardPanel() {}
 
     public static void show(Project project, DiagnosisCard card) {
-        DiagnosisHistoryService.getInstance(project).addDiagnosis(card);
+        // The taps call this from process-listener and test-event threads, never the EDT.
+        // The history store is thread-safe, but the notification balloon and tool window
+        // must be touched on the EDT, so marshal the whole surfacing there. Without this the
+        // UI work silently fails (or throws) off-thread, which is why nothing appeared.
+        ApplicationManager.getApplication().invokeLater(() -> {
+            if (project.isDisposed()) return;
 
-        SpringDebuggerSettings settings = SpringDebuggerSettings.getInstance();
+            DiagnosisHistoryService.getInstance(project).addDiagnosis(card);
 
-        if (settings.isShowNotificationBalloon()) {
-            String content = "<b>" + escapeHtml(card.getDiagnosisSentence()) + "</b><br>"
-                + escapeHtml(card.getFixSentence());
-            NotificationGroupManager.getInstance()
-                .getNotificationGroup(NOTIFICATION_GROUP)
-                .createNotification("Spring Boot Error Detected", content, NotificationType.WARNING)
-                .notify(project);
-        }
+            SpringDebuggerSettings settings = SpringDebuggerSettings.getInstance();
 
-        if (settings.isFocusToolWindowOnError()) {
-            ToolWindow tw = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
-            if (tw != null) tw.activate(null);
-        }
+            if (settings.isShowNotificationBalloon()) {
+                String content = "<b>" + escapeHtml(card.getDiagnosisSentence()) + "</b><br>"
+                    + escapeHtml(card.getFixSentence());
+                NotificationGroupManager.getInstance()
+                    .getNotificationGroup(NOTIFICATION_GROUP)
+                    .createNotification("Spring Boot Error Detected", content, NotificationType.WARNING)
+                    .notify(project);
+            }
+
+            if (settings.isFocusToolWindowOnError()) {
+                ToolWindow tw = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
+                if (tw != null) tw.activate(null);
+            }
+        });
     }
 
     private static String escapeHtml(String text) {

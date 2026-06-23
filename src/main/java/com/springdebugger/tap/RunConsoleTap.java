@@ -42,6 +42,7 @@ public final class RunConsoleTap implements ProcessListener {
     private final DiagnosisPipeline pipeline;
     private final StringBuilder buffer = new StringBuilder();
     private boolean startupFailureDetected = false;
+    private boolean cardShown = false;
     private Phase currentPhase = Phase.STARTUP;
     private int appPort = -1;
 
@@ -84,15 +85,21 @@ public final class RunConsoleTap implements ProcessListener {
 
     @Override
     public void processTerminated(@NotNull ProcessEvent event) {
-        if (event.getExitCode() != 0 || startupFailureDetected) {
-            analyseBuffer();
-        }
+        // Analyse at termination with the full buffer (any exit code). Spring streams the
+        // banner and the Caused-by chain in separate chunks, so analysing mid-stream risks
+        // acting on a partial trace; waiting for the end gives the complete failure. The
+        // classifier returns nothing for a clean run, so no narrow exit-code gate is needed.
+        analyseBuffer();
     }
 
     private void analyseBuffer() {
+        if (cardShown) return;
         RawSignal signal = extractor.extract(buffer.toString(), currentPhase);
         Optional<DiagnosisCard> card = pipeline.run(signal, new IdeEnrichmentContext(project, appPort));
-        card.ifPresent(c -> DiagnosisCardPanel.show(project, c));
+        card.ifPresent(c -> {
+            cardShown = true;
+            DiagnosisCardPanel.show(project, c);
+        });
     }
 
     @Override public void startNotified(@NotNull ProcessEvent event) {}

@@ -107,13 +107,34 @@ rules:
   # Section 2: Dependency Injection Errors
   # ─────────────────────────────────────
 
+  # Specific mapper case must be evaluated before the generic NoSuchBean rule (2.1):
+  # both key on NoSuchBeanDefinitionException, but a mapper type ending in "Mapper"
+  # gets the precise MapStruct diagnosis. PSI enrichment can later upgrade it to HIGH.
+  - id: "13.4"
+    name: "MapStruct mapper not a Spring bean"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "NoSuchBeanDefinitionException"
+      causedByMessage: "Mapper"
+    diagnosis: "A MapStruct mapper interface is not in the Spring context because componentModel = \"spring\" is missing from its @Mapper annotation."
+    fix: "Add componentModel = \"spring\" to the @Mapper annotation, then inject the mapper with @Autowired or constructor injection like any other Spring bean."
+    confidence: MEDIUM
+    fixture: "fixtures/13.4-mapper-not-spring-bean.log"
+    status: DONE
+
   - id: "2.1"
     name: "NoSuchBeanDefinitionException"
     phases: [STARTUP, TEST]
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
+      # "bean of type" is the substring common to all real phrasings: the failure-analysis
+      # banner ("required a bean of type"), the autowire message ("No qualifying bean of
+      # type ... expected at least 1 bean"), and the bracketed legacy form. Keyed broadly so
+      # a missing @Component in a @SpringBootTest gets this precise diagnosis instead of the
+      # 1.10 umbrella. The mapper sub-case is handled by 13.4 just above.
       causedByClass: "NoSuchBeanDefinitionException"
-      messageContains: "required a bean of type"
+      messageContains: "bean of type"
     diagnosis: "Spring cannot find a bean of the required type because no class with that type is registered in the application context."
     fix: "Annotate the class with @Service, @Component, or @Repository, or declare it as an @Bean; confirm it lives inside the package tree rooted at your @SpringBootApplication class."
     confidence: HIGH
@@ -520,18 +541,6 @@ rules:
     fixture: "fixtures/13.3-mapperimpl-missing.log"
     status: DONE
 
-  - id: "13.4"
-    name: "MapStruct mapper not a Spring bean"
-    phases: [STARTUP, TEST]
-    taps: [RUN_CONSOLE, TEST_CONSOLE]
-    signals:
-      causedByClass: "NoSuchBeanDefinitionException"
-      causedByMessage: "Mapper"
-    diagnosis: "A MapStruct mapper interface is not in the Spring context because componentModel = \"spring\" is missing from its @Mapper annotation."
-    fix: "Add componentModel = \"spring\" to the @Mapper annotation, then inject the mapper with @Autowired or constructor injection like any other Spring bean."
-    confidence: MEDIUM
-    fixture: "fixtures/13.4-mapper-not-spring-bean.log"
-    status: DONE
 
   - id: "13.5"
     name: "MapStruct cannot implement abstract method"

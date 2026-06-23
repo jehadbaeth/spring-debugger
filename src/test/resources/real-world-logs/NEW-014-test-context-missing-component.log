@@ -1,0 +1,10 @@
+java.lang.IllegalStateException: Failed to load ApplicationContext for [WebMergedContextConfiguration@5b3f3a4c testClass = com.example.fg.FgIdentificationServiceApplicationTest, locations = [], classes = [com.example.fg.FgIdentificationServiceApplication]]
+	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:180)
+	at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:124)
+	at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:191)
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'fgIdentificationService' defined in file [/build/classes/java/main/com/example/fg/FgIdentificationService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'fgRepository': Unsatisfied dependency expressed through constructor parameter 0
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:798)
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:229)
+Caused by: org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'com.example.fg.FgClassifier' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.raiseNoMatchingBeanFound(DefaultListableBeanFactory.java:1798)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1356)

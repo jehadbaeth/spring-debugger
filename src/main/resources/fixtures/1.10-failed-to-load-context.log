@@ -1,10 +1,10 @@
 2024-01-15 10:23:45.001  INFO 12345 --- [           main] c.e.DemoApplicationTests                 : Starting DemoApplicationTests
 
-java.lang.IllegalStateException: Failed to load ApplicationContext for [WebMergedContextConfiguration@...]
+java.lang.IllegalStateException: Failed to load ApplicationContext for [WebMergedContextConfiguration@1a2b3c4d testClass = com.example.DemoApplicationTests, locations = [], classes = [com.example.DemoApplication]]
 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:143)
 	at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:127)
 	at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:191)
-Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'orderController': Unsatisfied dependency expressed through constructor parameter 0; nested exception is org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'com.example.OrderService' available
-	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:800)
-Caused by: org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'com.example.OrderService' available: expected at least 1 bean which qualifies as autowire candidate.
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.raiseNoMatchingBeanFound(DefaultListableBeanFactory.java:1799)
+Caused by: java.lang.RuntimeException: Could not initialise the message broker connection pool during context startup
+	at com.example.config.MessageBrokerConfig.initialise(MessageBrokerConfig.java:42)
+	at com.example.config.MessageBrokerConfig.afterPropertiesSet(MessageBrokerConfig.java:31)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1863)

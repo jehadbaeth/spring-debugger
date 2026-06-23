@@ -72,17 +72,17 @@ class RealWorldAccuracyTest {
             "RW-004",
             "real-world-logs/RW-004-nosuchbeandef-legacy-format.log",
             Phase.STARTUP,
-            null,
-            "NO_MATCH",
-            "GitHub spring-projects/spring-boot#4519 — Spring Boot 1.3, legacy 'nested exception is' format without Caused by lines and without failure analysis banner"
+            "2.1",
+            "MATCH",
+            "GitHub spring-projects/spring-boot#4519 — Spring Boot 1.3, legacy 'nested exception is' format without Caused by lines. Now resolves to 2.1: the extractor parses the inline nested NoSuchBeanDefinitionException and rule 2.1 keys on the 'bean of type' substring common to all phrasings"
         ),
         new TestCase(
             "RW-005",
             "real-world-logs/RW-005-nosuchbeandef-modern-partial.log",
             Phase.STARTUP,
-            null,
-            "NO_MATCH",
-            "GitHub apache/shardingsphere#7933 — Spring Boot 2.3.1, partial log (exception only, no failure analysis banner; Caused by message uses 'expected at least 1 bean' not 'required a bean of type')"
+            "2.1",
+            "MATCH",
+            "GitHub apache/shardingsphere#7933 — Spring Boot 2.3.1, NoSuchBeanDefinitionException with 'expected at least 1 bean' phrasing. Now resolves to 2.1 after the rule was broadened from 'required a bean of type' to the common 'bean of type' substring"
         ),
         // ── SOLogFetcher collection (GitHub Issues, blog sources) ─────────────────
         new TestCase(
@@ -229,7 +229,14 @@ class RealWorldAccuracyTest {
         new TestCase(
             "NEW-013", "real-world-logs/NEW-013-mapstruct-no-such-bean.log",
             Phase.STARTUP, "13.4", "MATCH",
-            "groups.google.com/g/mapstruct-users — NoSuchBeanDefinitionException for a @Mapper that lacks componentModel = \"spring\""
+            "groups.google.com/g/mapstruct-users — NoSuchBeanDefinitionException for a @Mapper that lacks componentModel = \"spring\"; 13.4 must win over the generic 2.1 (it is ordered before it)"
+        ),
+        // Regression guard for the reported umbrella bug: a @SpringBootTest with a missing
+        // @Component must give the specific missing-bean diagnosis (2.1), not the 1.10 catch-all.
+        new TestCase(
+            "NEW-014", "real-world-logs/NEW-014-test-context-missing-component.log",
+            Phase.TEST, "2.1", "MATCH",
+            "Reported by user — @SpringBootTest context fails to load because a @Component is missing; the full test stacktrace (collected by walking the test tree) carries the deepest NoSuchBeanDefinitionException, so 2.1 fires instead of the 1.10 umbrella"
         )
     );
 
