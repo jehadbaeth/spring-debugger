@@ -31,6 +31,15 @@
         <postStartupActivity
             implementation="com.springdebugger.SpringDebuggerStartupActivity"/>
 
+        <!-- M6: build taps. Internal JPS compiler runs BuildOutputTap after compilation;
+             delegated Gradle/Maven builds stream through ExternalBuildOutputTap. -->
+        <compiler.task
+            execute="AFTER"
+            implementation="com.springdebugger.tap.BuildOutputTap"/>
+
+        <externalSystemTaskNotificationListener
+            implementation="com.springdebugger.tap.ExternalBuildOutputTap"/>
+
         <toolWindow
             id="Spring Debugger"
             anchor="bottom"
