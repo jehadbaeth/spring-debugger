@@ -422,7 +422,7 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M3 | YAML rule loader | ✅ DONE | Rules loaded from `spring-boot-rules.yaml` at plugin startup |
 | M4 | Classifier (sections 1 and 2) | ✅ DONE | Rules implemented and passing fixtures |
 | M5 | TEST_CONSOLE tap | ✅ DONE | SMTRunnerEventsListener attached, section 9 rules passing |
-| M6 | BUILD_OUTPUT tap | 🔄 WIRED, LIVE CHECK PENDING | BuildOutputTap registered via `compiler.task` (internal JPS); ExternalBuildOutputTap via the external-system listener (delegated Gradle/Maven). Shared BuildOutputAnalyzer unit-tested; classification fixture-verified; the external tap's buffering/filtering unit-tested (ExternalBuildOutputTapTest). Only the live IDE event delivery to the registered listener remains a manual sandbox check |
+| M6 | BUILD_OUTPUT tap | ✅ DONE | BuildOutputTap registered via `compiler.task` (internal JPS); ExternalBuildOutputTap via the external-system listener (delegated Gradle/Maven). Shared BuildOutputAnalyzer unit-tested; classification fixture-verified; buffering/filtering unit-tested; event delivery through the platform notification manager to the registered tap verified in-process (ExternalBuildTapDispatchIntegrationTest). The only thing outside our code is Gradle itself producing the text |
 | M7 | Full rule catalog | ✅ DONE | 43 rules, all DONE with passing fixtures, zero TODO. Rule 9.1 removed (dead duplicate of 1.10); 4.14 (Redis) and 9.6 (Testcontainers) added; 13.8 (MapStruct null-mapping) removed as not log-detectable (static-analysis concern) |
 | M8 | PSI enrichment layer | ✅ DONE | PsiEnricher confirms structural claims for non-HIGH matches: MapStruct @Mapper confirmation (13.3/13.4 upgrade to HIGH), DI missing-stereotype and outside-scan-tree detection (2.x). IdeEnrichmentContext is the thin PSI adapter; logic unit-tested with stubbed ClassFacts. Wired into run and test taps |
 | M9 | Actuator enrichment layer | ✅ DONE (narrow surface) | ActuatorReader parses /actuator/health and /actuator/env; ActuatorEnricher confirms non-HIGH RUNTIME cards against live health and upgrades to HIGH. RunConsoleTap detects the bound port. Parsing/logic unit-tested; fires only when the app stays alive and exposes Actuator |
@@ -459,18 +459,24 @@ shipped in v0.2.0–v0.3.0.
 - RunConsoleTap: RESOLVED in v0.3.3. Analyses on a debounce once an error signature appears
   (rescheduling per chunk via the app scheduled executor), so a runtime exception in a
   still-running app is diagnosed after the stack settles, plus a termination backstop.
-- Headless integration coverage (v0.3.4): the previously GUI-only paths are now exercised
-  in-process by platform tests:
+- Headless integration coverage (v0.3.4–v0.3.5): the previously GUI-only paths are now
+  exercised in-process by platform tests:
   - PsiEnrichmentIntegrationTest drives IdeEnrichmentContext against a REAL PSI index
     (class resolution, annotation reading, @SpringBootApplication scan-root discovery).
   - TestTapToHistoryIntegrationTest runs a real SM test tree through TestConsoleTap ->
     pipeline -> DiagnosisCardPanel.show -> DiagnosisHistoryService and asserts a missing
-    @Component yields rule 2.1 in the history model the tool window binds to (and a clean
-    run yields nothing). This covers the EDT marshalling and the card-data path.
-- Genuinely GUI/host-only, not verifiable headlessly (the remaining manual checks):
-  (a) the external build tap firing when the IDE actually runs a delegated Gradle build,
-  (b) the literal Swing rendering of the card (its data path is verified),
-  (c) a live Ollama round-trip with an installed model (the HTTP path is verified by stub).
+    @Component yields rule 2.1 in the history model (and a clean run yields nothing).
+  - SpringDebuggerPanelRenderingTest builds the real tool-window panel and asserts the
+    card's diagnosis and fix text are rendered into actual JTextArea components.
+  - ExternalBuildTapDispatchIntegrationTest dispatches build output THROUGH the platform's
+    external-system notification manager to the registered ExternalBuildOutputTap and
+    asserts a card (6.4) reaches history — the delegated-build event delivery, end to end.
+  - OllamaLiveIntegrationTest does a genuine round-trip against a local Ollama with a real
+    model (qwen2:0.5b), auto-skipped when Ollama is not reachable.
+- Genuinely out of our control (not a plugin code path): an actual Gradle/Maven process
+  producing the build text is the build tool's job; our event-delivery wiring above is
+  verified. The literal on-screen pixels of Swing components are the toolkit's job; our
+  component tree and text are verified.
 - Stretch: grow the real-world corpus further and add Kotlin support (currently out of scope).
 
 ### Resolved since v0.1.0
