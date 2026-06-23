@@ -9,12 +9,16 @@ import com.springdebugger.enricher.IdeEnrichmentContext;
 import com.springdebugger.enricher.PropertyPrecedenceEnricher;
 import com.springdebugger.enricher.PsiEnricher;
 import com.springdebugger.extractor.LogExtractor;
+import com.springdebugger.extractor.StackTraceSegmenter;
 import com.springdebugger.llm.LlmFallback;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.Phase;
 import com.springdebugger.rule.RuleCatalog;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -33,6 +37,25 @@ public final class ConsoleDiagnoser {
 
     public ConsoleDiagnoser(RuleCatalog catalog) {
         this.catalog = catalog;
+    }
+
+    /**
+     * Diagnoses every distinct error in a noisy buffer: splits it into per-error blocks,
+     * diagnoses each, and de-duplicates by rule + diagnosis so an endpoint hit ten times does
+     * not produce ten cards. Order is preserved (first occurrence wins). This is what an
+     * integration run against a long-lived app needs, where many server-side errors interleave.
+     */
+    public List<DiagnosisCard> diagnoseAll(String output, Project project) {
+        Map<String, DiagnosisCard> byKey = new LinkedHashMap<>();
+        for (String block : StackTraceSegmenter.segment(output)) {
+            diagnose(block, project).ifPresent(card -> byKey.putIfAbsent(key(card), card));
+        }
+        return new ArrayList<>(byKey.values());
+    }
+
+    /** Stable identity of a diagnosis for de-duplication and history grouping. */
+    public static String key(DiagnosisCard card) {
+        return card.getRuleId() + "|" + card.getDiagnosisSentence();
     }
 
     public Optional<DiagnosisCard> diagnose(String output, Project project) {
