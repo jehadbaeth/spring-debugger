@@ -44,6 +44,14 @@ Each phase surfaces errors through a different IntelliJ API. A rule can apply to
 
 **IntelliJ Ultimate note:** The Spring plugin in Ultimate exposes a bean graph and context model through `SpringModel` and `SpringBeanService`. If Ultimate is detected at runtime the enrichment layer can query this for much richer context. The fallback (for Community) is PSI-only. This is an optional enrichment that must not break the Community build.
 
+**On "LSP or IDE information" (from the project goal):** The non-log information source is
+PSI (`JavaPsiFacade`), implemented in M8. PSI *is* the IDE-information source: it is
+IntelliJ's native semantic model and the direct equivalent of what the Language Server
+Protocol provides in editors that use LSP. IntelliJ does not consume LSP for Java analysis
+(it has its own richer model), so building a literal LSP client inside this plugin would be
+the wrong architecture and pure dead weight. The decision, on the facts, is: use PSI as the
+IDE/semantic source; a standalone LSP client is intentionally out of scope.
+
 ### Phase labels used in the catalog
 
 - `STARTUP` means the RUN_CONSOLE tap during application context refresh (before the app accepts requests)
@@ -414,7 +422,7 @@ The fastest way to collect fixtures is to run a small sample project with each e
 | M3 | YAML rule loader | ✅ DONE | Rules loaded from `spring-boot-rules.yaml` at plugin startup |
 | M4 | Classifier (sections 1 and 2) | ✅ DONE | Rules implemented and passing fixtures |
 | M5 | TEST_CONSOLE tap | ✅ DONE | SMTRunnerEventsListener attached, section 9 rules passing |
-| M6 | BUILD_OUTPUT tap | 🔄 WIRED, LIVE CHECK PENDING | BuildOutputTap registered via the `compiler.task` extension (internal JPS builds); ExternalBuildOutputTap added for delegated Gradle/Maven builds. Shared BuildOutputAnalyzer is unit-tested; classification is fixture-verified. Not yet confirmed firing in a running IDE sandbox |
+| M6 | BUILD_OUTPUT tap | 🔄 WIRED, LIVE CHECK PENDING | BuildOutputTap registered via `compiler.task` (internal JPS); ExternalBuildOutputTap via the external-system listener (delegated Gradle/Maven). Shared BuildOutputAnalyzer unit-tested; classification fixture-verified; the external tap's buffering/filtering unit-tested (ExternalBuildOutputTapTest). Only the live IDE event delivery to the registered listener remains a manual sandbox check |
 | M7 | Full rule catalog | ✅ DONE | 43 of 44 rules DONE with passing fixtures; only 13.8 (MapStruct null-mapping) deferred to M8/PSI. Rule 9.1 removed (dead duplicate of 1.10); rules 4.14 (Redis) and 9.6 (Testcontainers) added |
 | M8 | PSI enrichment layer | ✅ DONE | PsiEnricher confirms structural claims for non-HIGH matches: MapStruct @Mapper confirmation (13.3/13.4 upgrade to HIGH), DI missing-stereotype and outside-scan-tree detection (2.x). IdeEnrichmentContext is the thin PSI adapter; logic unit-tested with stubbed ClassFacts. Wired into run and test taps |
 | M9 | Actuator enrichment layer | ✅ DONE (narrow surface) | ActuatorReader parses /actuator/health and /actuator/env; ActuatorEnricher confirms non-HIGH RUNTIME cards against live health and upgrades to HIGH. RunConsoleTap detects the bound port. Parsing/logic unit-tested; fires only when the app stays alive and exposes Actuator |
@@ -430,19 +438,23 @@ shipped in v0.2.0–v0.3.0.
 
 ### Open items before v1.0
 
-- M6 live verification: the build taps are registered (internal `compiler.task` plus
-  external-system listener for delegated Gradle/Maven) and the parsing core is unit-tested,
-  but firing has not been confirmed in a running IDE sandbox. This is the one remaining
-  manual check before M6 is fully DONE — run the IntelliJ Community sandbox with a Gradle
-  Spring project that has a MapStruct/WebSecurityConfigurerAdapter compile error (build
-  delegated to Gradle, the default) and confirm ExternalBuildOutputTap surfaces the card.
-- LLM live round-trip: the M13 safety contract and protocol are unit-tested, but a live
-  call to a running Ollama instance is not exercised in CI (no model available).
+- M6 live verification: registration is validated by plugin-structure verification, the
+  analysis core and the external tap's buffering/filtering are unit-tested. The only piece
+  not exercisable without a GUI is the IDE actually delivering build events to the registered
+  listener. To confirm: run the IntelliJ Community sandbox with a Gradle Spring project that
+  has a MapStruct/WebSecurityConfigurerAdapter compile error (build delegated to Gradle, the
+  default) and confirm ExternalBuildOutputTap surfaces the card. This is a manual GUI check,
+  not a code gap.
+- LLM live round-trip: now exercised over real HTTP against a local stub that imitates
+  Ollama's /api/generate (OllamaRoundTripIntegrationTest) — request, envelope parse, card
+  production, and fail-closed on an unreachable port are all verified. Only a real model's
+  content is unexercised (outside our control); a check with an installed model is a manual
+  nicety, not a code gap.
 - 13.8 (MapStruct null-mapping): stays TODO on purpose. Its diagnosis claims a specific
   cause (null-value property mapping strategy) that neither the signal nor PSI can prove.
-  Promoting it to MEDIUM just to clear the test would mislabel the confidence.
-- `ActuatorReader.effectivePropertySource` is implemented and tested but has no enricher
-  consumer yet; it is scaffolding for a future property-precedence enricher.
+  This is a permanent design decision, not unfinished work.
+- `ActuatorReader.effectivePropertySource` is now consumed by PropertyPrecedenceEnricher
+  (wired into RunConsoleTap), so the Actuator layer is end-to-end. RESOLVED.
 - Stretch: grow the real-world corpus further and add Kotlin support (currently out of scope).
 
 ### Resolved since v0.1.0
