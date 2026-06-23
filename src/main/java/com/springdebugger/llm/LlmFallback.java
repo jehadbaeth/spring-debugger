@@ -1,5 +1,6 @@
 package com.springdebugger.llm;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.springdebugger.engine.DiagnosisEngine;
 import com.springdebugger.settings.SpringDebuggerSettings;
 
@@ -18,6 +19,9 @@ public final class LlmFallback {
     private LlmFallback() {}
 
     public static DiagnosisEngine fromSettings() {
+        // No application means we are outside a running IDE (e.g. a unit test); there is no
+        // LLM fallback to build, so stay on the offline path.
+        if (ApplicationManager.getApplication() == null) return null;
         SpringDebuggerSettings settings = SpringDebuggerSettings.getInstance();
         if (!settings.isLlmEnabled()) return null;
         OllamaClient client = new OllamaHttpClient(
