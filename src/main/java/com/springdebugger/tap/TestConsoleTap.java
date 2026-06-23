@@ -45,8 +45,12 @@ public final class TestConsoleTap extends SMTRunnerEventsAdapter {
 
     @Override
     public void onTestingFinished(SMTestProxy.SMRootTestProxy testsRoot) {
-        if (testsRoot == null || !testsRoot.isDefect()) return;
+        if (testsRoot == null) return;
 
+        // Do NOT gate on testsRoot.isDefect(): a context-load failure is recorded on the
+        // class-level suite node, and the root proxy can report isDefect() == false in that
+        // case (verified against the SM test model). Walk the whole tree instead and act on
+        // whatever failure text we actually find.
         String output = collectFailureText(testsRoot);
         if (output.isBlank() || !isSpringContextFailure(output)) return;
 
@@ -55,8 +59,12 @@ public final class TestConsoleTap extends SMTRunnerEventsAdapter {
         card.ifPresent(c -> DiagnosisCardPanel.show(project, c));
     }
 
-    /** Gathers stacktrace and error-message fragments from every defective node in the tree. */
-    private String collectFailureText(SMTestProxy.SMRootTestProxy testsRoot) {
+    /**
+     * Gathers stacktrace and error-message fragments from every defective node in the tree.
+     * getAllTests() returns the root, intermediate suites, and leaves, so the stacktrace is
+     * collected wherever the framework recorded it. Package-visible for testing.
+     */
+    static String collectFailureText(SMTestProxy.SMRootTestProxy testsRoot) {
         List<String> fragments = new ArrayList<>();
         fragments.add(testsRoot.getErrorMessage());
         fragments.add(testsRoot.getStacktrace());
