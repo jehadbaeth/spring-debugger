@@ -12,6 +12,7 @@ import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBPanel;
+import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.springdebugger.SpringDebuggerService;
@@ -175,17 +176,22 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
         private final JBLabel ruleIdLabel = new JBLabel();
         private final JBLabel phaseLabel = new JBLabel();
         private final JBLabel confidenceLabel = new JBLabel();
-        private final JTextArea diagnosisArea = buildTextArea(13f);
-        private final JTextArea fixArea = buildTextArea(12f);
+        private final JTextArea diagnosisArea = buildTextArea();
+        private final JTextArea fixArea = buildTextArea();
         private final JButton copyFixBtn = new JButton("Copy Fix");
         private final JButton copyDiagBtn = new JButton("Copy Diagnosis");
         private final JPanel emptyState;
-        private final JPanel cardState;
+        private final JComponent cardState;
         private DiagnosisCard current;
 
         CurrentCardView() {
             super(new CardLayout());
-            setBorder(JBUI.Borders.empty(6));
+            setBorder(JBUI.Borders.empty());
+
+            diagnosisArea.setForeground(UIUtil.getLabelForeground());
+            fixArea.setForeground(new JBColor(0x1A7F37, 0x7FD18B));
+            styleChip(phaseLabel);
+            styleChip(confidenceLabel);
 
             emptyState = buildEmptyState();
             cardState = buildCardState();
@@ -206,53 +212,68 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
             return p;
         }
 
-        private JPanel buildCardState() {
-            JPanel p = new JPanel(new BorderLayout(0, 6));
-            p.setBorder(new CompoundBorder(
-                BorderFactory.createLineBorder(UIManager.getColor("Borders.color"), 1, true),
-                JBUI.Borders.empty(10)
-            ));
+        private JComponent buildCardState() {
+            // Content panel: a vertical stack that hugs the top, so a short card does not
+            // float in the middle of a tall pane (the "area too big" feel).
+            JPanel content = new JPanel(new GridBagLayout());
+            content.setBorder(JBUI.Borders.empty(12, 14));
+            GridBagConstraints c = new GridBagConstraints();
+            c.gridx = 0; c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
+            c.anchor = GridBagConstraints.NORTHWEST;
 
-            // header row
+            // header chips
             JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-            ruleIdLabel.setFont(ruleIdLabel.getFont().deriveFont(Font.BOLD));
+            header.setOpaque(false);
+            ruleIdLabel.setFont(ruleIdLabel.getFont().deriveFont(Font.BOLD).deriveFont(JBUIScale.scale(14f)));
             header.add(ruleIdLabel);
             header.add(phaseLabel);
             header.add(confidenceLabel);
-            p.add(header, BorderLayout.NORTH);
+            c.gridy = 0; c.insets = JBUI.insets(0, 0, 10, 0);
+            content.add(header, c);
 
-            // text body
-            JPanel body = new JPanel(new GridBagLayout());
-            GridBagConstraints c = new GridBagConstraints();
-            c.fill = GridBagConstraints.HORIZONTAL; c.weightx = 1.0;
-            c.gridx = 0; c.insets = JBUI.insets(0, 0, 6, 0);
+            c.gridy = 1; c.insets = JBUI.insets(0, 0, 2, 0);
+            content.add(sectionLabel("DIAGNOSIS"), c);
+            c.gridy = 2; c.insets = JBUI.insets(0, 0, 12, 0);
+            content.add(diagnosisArea, c);
 
-            c.gridy = 0;
-            body.add(labeledArea("Diagnosis:", diagnosisArea, new JBColor(0x333333, 0xCCCCCC)), c);
-            c.gridy = 1;
-            body.add(labeledArea("Fix:", fixArea, new JBColor(0x005C00, 0x80D080)), c);
-            p.add(body, BorderLayout.CENTER);
+            c.gridy = 3; c.insets = JBUI.insets(0, 0, 2, 0);
+            content.add(sectionLabel("FIX"), c);
+            c.gridy = 4; c.insets = JBUI.insets(0, 0, 12, 0);
+            content.add(fixArea, c);
 
-            // action buttons
-            JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+            JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+            actions.setOpaque(false);
             copyDiagBtn.addActionListener(e -> copyToClipboard(current == null ? "" : current.getDiagnosisSentence()));
             copyFixBtn.addActionListener(e -> copyToClipboard(current == null ? "" : current.getFixSentence()));
             actions.add(copyDiagBtn);
             actions.add(copyFixBtn);
-            p.add(actions, BorderLayout.SOUTH);
+            c.gridy = 5; c.insets = JBUI.insets(0);
+            content.add(actions, c);
 
-            return p;
+            // filler so the stack stays top-aligned
+            c.gridy = 6; c.weighty = 1.0; c.fill = GridBagConstraints.BOTH;
+            JPanel filler = new JPanel();
+            filler.setOpaque(false);
+            content.add(filler, c);
+
+            JScrollPane scroll = ScrollPaneFactory.createScrollPane(content, true);
+            scroll.setBorder(JBUI.Borders.empty());
+            scroll.getVerticalScrollBar().setUnitIncrement(16);
+            return scroll;
         }
 
-        private JPanel labeledArea(String labelText, JTextArea area, Color textColor) {
-            JPanel p = new JPanel(new BorderLayout(0, 2));
-            JBLabel lbl = new JBLabel(labelText);
-            lbl.setFont(lbl.getFont().deriveFont(Font.BOLD).deriveFont(11f));
+        private void styleChip(JBLabel label) {
+            label.setOpaque(true);
+            label.setBackground(new JBColor(0xEDEFF2, 0x3C3F41));
+            label.setBorder(JBUI.Borders.empty(1, 7));
+            label.setFont(label.getFont().deriveFont(Font.BOLD).deriveFont(JBUIScale.scale(10.5f)));
+        }
+
+        private JBLabel sectionLabel(String text) {
+            JBLabel lbl = new JBLabel(text);
+            lbl.setFont(lbl.getFont().deriveFont(Font.BOLD).deriveFont(JBUIScale.scale(10.5f)));
             lbl.setForeground(UIUtil.getContextHelpForeground());
-            p.add(lbl, BorderLayout.NORTH);
-            area.setForeground(textColor);
-            p.add(area, BorderLayout.CENTER);
-            return p;
+            return lbl;
         }
 
         void show(DiagnosisCard card) {
@@ -274,13 +295,14 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
             ((CardLayout) getLayout()).show(this, "empty");
         }
 
-        private JTextArea buildTextArea(float size) {
+        private JTextArea buildTextArea() {
             JTextArea area = new JTextArea();
             area.setLineWrap(true);
             area.setWrapStyleWord(true);
             area.setEditable(false);
             area.setOpaque(false);
-            area.setFont(area.getFont().deriveFont(size));
+            // Scaled so it respects HiDPI and the user's UI font instead of a tiny fixed size.
+            area.setFont(UIUtil.getLabelFont().deriveFont(JBUIScale.scale(13.5f)));
             area.setBorder(JBUI.Borders.empty());
             return area;
         }

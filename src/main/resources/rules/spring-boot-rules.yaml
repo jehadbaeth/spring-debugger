@@ -61,8 +61,8 @@ rules:
     signals:
       bannerDescriptionContains: "Port"
       messageContains: "already in use"
-    diagnosis: "Another process is already listening on the configured port, so the embedded server cannot bind."
-    fix: "Run 'lsof -i :8080' (or the relevant port) to find and kill the other process, or change the port with server.port=8081 in application.properties."
+    diagnosis: "Another process is already listening on port {{port}}, so the embedded web server cannot bind to it."
+    fix: "Find the process holding port {{port}} with 'lsof -i :{{port}}' (macOS/Linux) or 'netstat -ano | findstr {{port}}' (Windows) and stop it, or run this app on a different port via server.port=<port> in application.properties or the SERVER_PORT environment variable."
     confidence: HIGH
     fixture: "fixtures/1.8-port-in-use.log"
     status: DONE
@@ -189,8 +189,8 @@ rules:
     signals:
       causedByClass: "IllegalArgumentException"
       messageContains: "Could not resolve placeholder"
-    diagnosis: "A @Value annotation references a property that is not defined in any active property source."
-    fix: "Define the property in application.properties, or add a default value in the annotation using @Value(\"${property.key:defaultValue}\")."
+    diagnosis: "A @Value annotation references the property '{{property}}', which is not defined in any active property source (application.properties/yml, profile files, environment variables, or command-line arguments)."
+    fix: "Define {{property}} in application.properties or the active profile file, supply it as an environment variable or a -D JVM argument, or give the annotation a default with @Value(\"${{{property}}:defaultValue}\"); run with --debug to print which property sources are active."
     confidence: HIGH
     fixture: "fixtures/3.1-unresolved-placeholder.log"
     status: DONE

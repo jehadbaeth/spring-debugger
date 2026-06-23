@@ -98,15 +98,41 @@ public final class RuleBasedClassifier implements DiagnosisEngine {
         return true;
     }
 
+    private static final java.util.regex.Pattern PORT =
+            java.util.regex.Pattern.compile("[Pp]ort[\\s:]+(\\d{2,5})");
+    private static final java.util.regex.Pattern PLACEHOLDER =
+            java.util.regex.Pattern.compile("Could not resolve placeholder ['\"]?([\\w.\\-]+)");
+
     private String fillTemplate(String template, RawSignal signal, Rule rule) {
         if (template == null) return "";
         String result = template;
-        result = result.replace("{{beanType}}", signal.getDeepestCausedByMessage() != null
-                ? extractTypeName(signal.getDeepestCausedByMessage()) : "unknown type");
-        result = result.replace("{{beanName}}", signal.getFailingBeanName() != null
-                ? signal.getFailingBeanName() : "unknown bean");
+        if (result.contains("{{beanType}}")) {
+            result = result.replace("{{beanType}}", signal.getDeepestCausedByMessage() != null
+                    ? extractTypeName(signal.getDeepestCausedByMessage()) : "the required type");
+        }
+        if (result.contains("{{beanName}}")) {
+            result = result.replace("{{beanName}}", signal.getFailingBeanName() != null
+                    ? signal.getFailingBeanName() : "the failing bean");
+        }
+        if (result.contains("{{port}}")) {
+            result = result.replace("{{port}}", firstMatch(PORT, signal, "the configured port"));
+        }
+        if (result.contains("{{property}}")) {
+            result = result.replace("{{property}}", firstMatch(PLACEHOLDER, signal, "the property"));
+        }
         result = result.replace("{{ruleId}}", rule.getId());
         return result;
+    }
+
+    /** First capture group of the pattern across the deepest message, banner, then excerpt. */
+    private String firstMatch(java.util.regex.Pattern pattern, RawSignal signal, String fallback) {
+        for (String text : new String[]{signal.getDeepestCausedByMessage(),
+                signal.getBannerDescription(), signal.getRawExcerpt()}) {
+            if (text == null) continue;
+            java.util.regex.Matcher m = pattern.matcher(text);
+            if (m.find()) return m.group(1);
+        }
+        return fallback;
     }
 
     private static final java.util.regex.Pattern QUOTED_TYPE =
