@@ -2,9 +2,12 @@ package com.springdebugger.enricher;
 
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectFileIndex;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
@@ -124,7 +127,19 @@ public final class IdeEnrichmentContext implements EnrichmentContext {
             }
         }
 
-        return new ClassFacts(qn, pkg, psiClass.isInterface(), annotations, hasNoArgCtor(psiClass));
+        boolean inProjectSource = false;
+        String fileName = null;
+        PsiFile file = psiClass.getContainingFile();
+        if (file != null) {
+            VirtualFile vFile = file.getVirtualFile();
+            if (vFile != null) {
+                fileName = vFile.getName();
+                inProjectSource = ProjectFileIndex.getInstance(project).isInSourceContent(vFile);
+            }
+        }
+
+        return new ClassFacts(qn, pkg, psiClass.isInterface(), annotations,
+                hasNoArgCtor(psiClass), inProjectSource, fileName);
     }
 
     private boolean hasNoArgCtor(PsiClass psiClass) {

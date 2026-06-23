@@ -3,7 +3,6 @@ package com.springdebugger.engine;
 import com.springdebugger.classifier.RuleBasedClassifier;
 import com.springdebugger.enricher.Enricher;
 import com.springdebugger.enricher.EnrichmentContext;
-import com.springdebugger.model.Confidence;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.model.RawSignal;
 import com.springdebugger.rule.RuleCatalog;
@@ -53,8 +52,11 @@ public final class DiagnosisPipeline {
 
         if (ruleResult.isPresent()) {
             DiagnosisCard card = ruleResult.get();
-            // Enrichment only earns its cost on uncertain matches; a HIGH rule is trusted as-is.
-            if (context != null && card.getConfidence() != Confidence.HIGH) {
+            // Run enrichers whenever a context is available. They are additive: they sharpen
+            // the message with project specifics (which bean, where, which annotation) and
+            // return the card unchanged when they cannot help. This applies even to HIGH
+            // matches like 2.1, where the value is specificity, not raising confidence.
+            if (context != null) {
                 for (Enricher enricher : enrichers) {
                     card = enricher.enrich(card, signal, context);
                 }

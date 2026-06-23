@@ -135,8 +135,8 @@ rules:
       # 1.10 umbrella. The mapper sub-case is handled by 13.4 just above.
       causedByClass: "NoSuchBeanDefinitionException"
       messageContains: "bean of type"
-    diagnosis: "Spring cannot find a bean of the required type because no class with that type is registered in the application context."
-    fix: "Annotate the class with @Service, @Component, or @Repository, or declare it as an @Bean; confirm it lives inside the package tree rooted at your @SpringBootApplication class."
+    diagnosis: "Spring cannot find a bean of type {{beanType}}; no class of that type is registered in the application context."
+    fix: "Annotate the {{beanType}} class with @Component (or @Service / @Repository to match its role), or declare it as an @Bean in a @Configuration class, and confirm it lives inside the package tree scanned by your @SpringBootApplication class."
     confidence: HIGH
     fixture: "fixtures/2.1-no-such-bean.log"
     status: DONE

@@ -109,13 +109,32 @@ public final class RuleBasedClassifier implements DiagnosisEngine {
         return result;
     }
 
+    private static final java.util.regex.Pattern QUOTED_TYPE =
+            java.util.regex.Pattern.compile("'([\\w.$]+)'");
+    private static final java.util.regex.Pattern OF_TYPE =
+            java.util.regex.Pattern.compile("of type \\[?([\\w.$]+)");
+
+    /**
+     * Extracts the bean type name from an exception message, e.g. from
+     * "No qualifying bean of type 'com.example.FgClassifier' available" returns "FgClassifier".
+     * Prefers a quoted fully-qualified name, then an "of type X" form.
+     */
     private String extractTypeName(String message) {
-        int lastDot = message.lastIndexOf('.');
-        if (lastDot >= 0 && lastDot < message.length() - 1) {
-            String candidate = message.substring(lastDot + 1).split("[^a-zA-Z0-9$_]")[0];
-            if (!candidate.isEmpty()) return candidate;
+        java.util.regex.Matcher q = QUOTED_TYPE.matcher(message);
+        while (q.find()) {
+            String candidate = q.group(1);
+            if (candidate.contains(".") || (!candidate.isEmpty() && Character.isUpperCase(candidate.charAt(0)))) {
+                return simpleName(candidate);
+            }
         }
-        return message.length() > 80 ? message.substring(0, 80) + "..." : message;
+        java.util.regex.Matcher o = OF_TYPE.matcher(message);
+        if (o.find()) return simpleName(o.group(1));
+        return "the required type";
+    }
+
+    private String simpleName(String fqn) {
+        int dot = fqn.lastIndexOf('.');
+        return dot >= 0 ? fqn.substring(dot + 1) : fqn;
     }
 
     private boolean containsIgnoreCase(String text, String substring) {
