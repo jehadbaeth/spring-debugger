@@ -65,6 +65,46 @@ class LogExtractorTest {
     }
 
     @Test
+    void fallsBackToDeepestNestedExceptionWhenNoCausedBy() {
+        // Single-line inline chain (no "Caused by:" lines): the DEEPEST nested wins.
+        String log = "org.springframework.beans.factory.UnsatisfiedDependencyException: "
+                + "Error creating bean with name 'department'; nested exception is "
+                + "org.springframework.beans.factory.UnsatisfiedDependencyException: tiger; nested exception is "
+                + "org.springframework.beans.factory.BeanCurrentlyInCreationException: "
+                + "Requested bean is currently in creation";
+
+        RawSignal signal = extractor.extract(log, Phase.STARTUP);
+
+        assertThat(signal.getDeepestCausedByClass()).contains("BeanCurrentlyInCreationException");
+    }
+
+    @Test
+    void causedByWinsOverNestedException() {
+        // When both styles are present, the canonical "Caused by:" chain is authoritative.
+        String log = """
+                org.example.Wrapper: failed; nested exception is org.example.InlineCause: inline
+                \tCaused by: org.example.RealRootException: the real root
+                """;
+
+        RawSignal signal = extractor.extract(log, Phase.RUNTIME);
+
+        assertThat(signal.getDeepestCausedByClass()).contains("RealRootException");
+    }
+
+    @Test
+    void fallsBackToTopLevelExceptionLine() {
+        // No "Caused by:" and no "nested exception is": use the top-level exception line.
+        String log = """
+                org.yaml.snakeyaml.scanner.ScannerException: while scanning for the next token
+                \tat org.yaml.snakeyaml.scanner.ScannerImpl.fetchMoreTokens(ScannerImpl.java:420)
+                """;
+
+        RawSignal signal = extractor.extract(log, Phase.STARTUP);
+
+        assertThat(signal.getDeepestCausedByClass()).isEqualTo("org.yaml.snakeyaml.scanner.ScannerException");
+    }
+
+    @Test
     void anyLineContainsIsCaseInsensitive() {
         String log = "Error creating bean with name 'userService'";
         RawSignal signal = extractor.extract(log, Phase.STARTUP);

@@ -1,0 +1,9 @@
+> Task :compileJava FAILED
+/home/dev/project/src/main/java/com/example/mapper/ArtifactMapper.java:15: error: Unmapped target property: "dependantBuildRecord".
+ArtifactDto toDto(Artifact artifact);
+            ^
+1 error
+
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':compileJava'.

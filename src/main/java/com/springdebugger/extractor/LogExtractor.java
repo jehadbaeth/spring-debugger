@@ -17,6 +17,24 @@ public final class LogExtractor {
     private static final Pattern CAUSED_BY = Pattern.compile(
             "^\\s*Caused by:\\s*([\\w.$]+):\\s*(.*)$", Pattern.MULTILINE);
 
+    /**
+     * Spring's older inline chain style: "...; nested exception is org.x.Y: message".
+     * Used only as a fallback when a log has no "Caused by:" lines at all, which is common
+     * in real-world logs captured from Spring Boot 1.x / 2.x and from partial paste-ups.
+     */
+    private static final Pattern NESTED_EXCEPTION = Pattern.compile(
+            "nested exception is\\s+([\\w.$]+):\\s*(.*?)(?=;\\s*nested exception is|\\R|$)");
+
+    /**
+     * Last-resort: a top-level exception printed at column zero, e.g.
+     * "org.yaml.snakeyaml.scanner.ScannerException: while scanning...". Many real runtime
+     * errors (404, YAML parse, validation) surface this way with no "Caused by:" chain.
+     * Anchored at line start so it never picks up "\tat ..." stack frames; the first such
+     * line is the originating exception.
+     */
+    private static final Pattern TOP_LEVEL_EXCEPTION = Pattern.compile(
+            "(?m)^([\\w.$]+(?:Exception|Error)):\\s+(.+)$");
+
     private static final Pattern BEAN_CREATION_ERROR = Pattern.compile(
             "Error creating bean with name '([^']+)'");
 
@@ -50,6 +68,25 @@ public final class LogExtractor {
         while (causedByMatcher.find()) {
             deepestCausedByClass = causedByMatcher.group(1).trim();
             deepestCausedByMessage = causedByMatcher.group(2).trim();
+        }
+
+        // Fallback for logs that use the inline "nested exception is" style with no
+        // "Caused by:" lines. The canonical "Caused by:" chain always wins when present.
+        if (deepestCausedByClass == null) {
+            Matcher nestedMatcher = NESTED_EXCEPTION.matcher(rawText);
+            while (nestedMatcher.find()) {
+                deepestCausedByClass = nestedMatcher.group(1).trim();
+                deepestCausedByMessage = nestedMatcher.group(2).trim();
+            }
+        }
+
+        // Last resort: a bare top-level exception line with no cause chain at all.
+        if (deepestCausedByClass == null) {
+            Matcher topMatcher = TOP_LEVEL_EXCEPTION.matcher(rawText);
+            if (topMatcher.find()) {
+                deepestCausedByClass = topMatcher.group(1).trim();
+                deepestCausedByMessage = topMatcher.group(2).trim();
+            }
         }
 
         Matcher beanMatcher = BEAN_CREATION_ERROR.matcher(rawText);

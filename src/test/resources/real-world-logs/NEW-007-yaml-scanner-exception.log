@@ -1,0 +1,8 @@
+org.yaml.snakeyaml.scanner.ScannerException: while scanning for the next token
+found character '@' that cannot start any token. (Do not use @ for indentation)
+ in 'reader', line 4, column 21:
+        revision:       @buildNumber@
+                        ^
+	at org.yaml.snakeyaml.scanner.ScannerImpl.fetchMoreTokens(ScannerImpl.java:420)
+	at org.yaml.snakeyaml.scanner.ScannerImpl.checkToken(ScannerImpl.java:226)
+	at org.springframework.boot.env.YamlPropertySourceLoader.load(YamlPropertySourceLoader.java:58)

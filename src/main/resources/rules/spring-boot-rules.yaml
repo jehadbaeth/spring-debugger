@@ -28,19 +28,6 @@ rules:
     fixture: "fixtures/1.2-bean-definition-store.log"
     status: DONE
 
-  - id: "1.3"
-    name: "BeanCreationException"
-    phases: [STARTUP, TEST]
-    taps: [RUN_CONSOLE, TEST_CONSOLE]
-    signals:
-      causedByClass: "BeanCreationException"
-      messageContains: "Error creating bean with name"
-    diagnosis: "Spring found the bean but failed during instantiation or wiring for the reason shown in the nested exception."
-    fix: "Read the nested Caused by to find whether the failure is an unresolved dependency, a @Value placeholder, or a constructor exception, then fix that root cause."
-    confidence: MEDIUM
-    fixture: "fixtures/1.3-bean-creation.log"
-    status: DONE
-
   - id: "1.4"
     name: "BeanInstantiationException"
     phases: [STARTUP, TEST]
@@ -283,7 +270,10 @@ rules:
     phases: [RUNTIME]
     taps: [RUN_CONSOLE]
     signals:
-      causedByClass: "DataIntegrityViolationException"
+      # Keyed on the wrapper text, not the deepest cause: in real logs the
+      # deepest Caused by is the JDBC driver's constraint exception, while the
+      # Spring DataIntegrityViolationException is the outer wrapper (NEW-003).
+      messageContains: "DataIntegrityViolationException"
     diagnosis: "A database write violated a constraint (unique, not-null, foreign key, or check)."
     fix: "Read the deepest Caused by for the exact constraint name and fix the data before persisting; map this exception to a meaningful API error in your @RestControllerAdvice."
     confidence: HIGH
@@ -324,7 +314,10 @@ rules:
     phases: [RUNTIME]
     taps: [RUN_CONSOLE]
     signals:
-      causedByClass: "MethodArgumentNotValidException"
+      # Keyed on the wrapper text: validation failures are logged as
+      # "Resolved [...MethodArgumentNotValidException: ...]" with no Caused by
+      # chain, so the class name appears in the body, not as a deepest cause.
+      messageContains: "MethodArgumentNotValidException"
     diagnosis: "Bean Validation rejected the request body because one or more field constraints were violated."
     fix: "This is validation working correctly; handle it with @ExceptionHandler(MethodArgumentNotValidException.class) in a @RestControllerAdvice to return a clean 400 error response."
     confidence: HIGH
@@ -581,6 +574,28 @@ rules:
     confidence: LOW
     fixture: "fixtures/13.8-null-mapping.log"
     status: TODO
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Generic wrapper rule, kept near the end on purpose. BeanCreationException
+  # wraps almost every startup failure ("Error creating bean with name ...").
+  # If it sat in section 1 it would preempt specific banner rules such as 4.1
+  # (cannot determine embedded database driver), which a real-world log
+  # (NEW-008) showed happening. Specific rules must win first; this fires only
+  # when nothing more precise matched.
+  # ──────────────────────────────────────────────────────────────────────
+
+  - id: "1.3"
+    name: "BeanCreationException"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "BeanCreationException"
+      messageContains: "Error creating bean with name"
+    diagnosis: "Spring found the bean but failed during instantiation or wiring for the reason shown in the nested exception."
+    fix: "Read the nested Caused by to find whether the failure is an unresolved dependency, a @Value placeholder, or a constructor exception, then fix that root cause."
+    confidence: MEDIUM
+    fixture: "fixtures/1.3-bean-creation.log"
+    status: DONE
 
   # ──────────────────────────────────────────────────────────────────────
   # Last-resort catch-all. Must stay at the very END of the catalog so that

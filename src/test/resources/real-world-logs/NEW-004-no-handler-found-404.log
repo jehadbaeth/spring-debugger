@@ -1,0 +1,6 @@
+2023-08-15 10:23:45.123  WARN 12345 --- [nio-8080-exec-1] o.s.web.servlet.PageNotFound             : No mapping found for HTTP request with URI [/api/unknown] in DispatcherServlet with name 'dispatcherServlet'
+org.springframework.web.servlet.NoHandlerFoundException: No handler found for GET /api/unknown, headers={}
+	at org.springframework.web.servlet.DispatcherServlet.noHandlerFound(DispatcherServlet.java:826)
+	at org.springframework.web.servlet.DispatcherServlet.getHandler(DispatcherServlet.java:1175)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1007)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1006)

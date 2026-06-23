@@ -1,0 +1,4 @@
+org.springframework.http.converter.HttpMessageConversionException: Type definition error: [simple type, class org.springframework.data.domain.PageImpl]; nested exception is com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Cannot construct instance of `org.springframework.data.domain.PageImpl` (no Creators, like default constructor, exist): cannot deserialize from Object value (no delegate- or property-based Creator)
+	at [Source: (PushbackInputStream); line: 1, column: 2]
+	at org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter.readJavaType(AbstractJackson2HttpMessageConverter.java:241)
+	at org.springframework.web.client.HttpMessageConverterExtractor.extractData(HttpMessageConverterExtractor.java:101)

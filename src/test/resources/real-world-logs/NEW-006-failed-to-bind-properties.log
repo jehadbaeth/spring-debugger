@@ -1,0 +1,16 @@
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Failed to bind properties under 'server.port' to java.lang.Integer:
+
+    Property: server.port
+    Value: 8888 // comments
+    Origin: class path resource [application.properties]:1:15
+    Reason: failed to convert java.lang.String to java.lang.Integer
+
+Action:
+
+Update your application's configuration

@@ -1,0 +1,9 @@
+org.springframework.dao.DataIntegrityViolationException: could not execute statement; SQL [n/a]; constraint ["PUBLIC.UK_C5HPK0II0AH4H4EAAGM8HQUO0_INDEX_C ON PUBLIC.PUBLICATIONS(TITLE) VALUES 2"]; SQL statement:
+insert into publications (id, title, type, year) values (null, ?, ?, ?) [23505-199]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.convertHibernateAccessException(HibernateJpaDialect.java:296)
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.translateExceptionIfPossible(HibernateJpaDialect.java:253)
+	at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.translateExceptionIfPossible(AbstractEntityManagerFactoryBean.java:527)
+Caused by: org.hibernate.exception.ConstraintViolationException: could not execute statement
+	at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:115)
+Caused by: org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException: Unique index or primary key violation: "PUBLIC.UK_C5HPK0II0AH4H4EAAGM8HQUO0_INDEX_C ON PUBLIC.PUBLICATIONS(TITLE) VALUES 2"; SQL statement:
+insert into publications (id, title, type, year) values (null, ?, ?, ?) [23505-199]

@@ -48,9 +48,9 @@ class RealWorldAccuracyTest {
             "RW-001",
             "real-world-logs/RW-001-circular-dependency.log",
             Phase.STARTUP,
-            "2.7",
+            "1.13",
             "MATCH",
-            "yawintutor.com — Spring Boot 2.3, constructor-injection circular dependency"
+            "yawintutor.com — Spring Boot 2.3, constructor-injection circular dependency. Resolves to 1.13 (BeanCurrentlyInCreationException, the deepest nested cause) once the extractor parses inline 'nested exception is' chains; same correct circular-dependency diagnosis as SOL-008"
         ),
         new TestCase(
             "RW-002",
@@ -164,6 +164,72 @@ class RealWorldAccuracyTest {
             "10.1",
             "MATCH",
             "GitHub spring-projects/spring-boot#38617 — Spring Boot 3.2.0 upgrade, NoSuchMethodError in test context; rule 10.1 now covers TEST phase and wins over the 1.10 catch-all (moved to end of catalog)"
+        ),
+        // ── v0.3.0 corpus expansion: 13 logs from public sources ──────────────────
+        new TestCase(
+            "NEW-001", "real-world-logs/NEW-001-jackson-infinite-recursion.log",
+            Phase.RUNTIME, "7.2", "MATCH",
+            "keenformatics.com — Jackson Infinite recursion (StackOverflowError) on a bidirectional JPA relationship"
+        ),
+        new TestCase(
+            "NEW-002", "real-world-logs/NEW-002-jackson-no-default-constructor.log",
+            Phase.RUNTIME, "7.4", "MATCH",
+            "medium.com/@ranjani.harish12 — Jackson InvalidDefinitionException, cannot construct PageImpl (no default constructor); inline 'nested exception is' format, matched via the extractor's nested-cause fallback"
+        ),
+        new TestCase(
+            "NEW-003", "real-world-logs/NEW-003-data-integrity-violation.log",
+            Phase.RUNTIME, "4.13", "MATCH",
+            "facingissuesonit.com — H2 unique constraint DataIntegrityViolationException; deepest cause is the JDBC driver exception, so rule 4.13 now keys on the wrapper text rather than the deepest class"
+        ),
+        new TestCase(
+            "NEW-004", "real-world-logs/NEW-004-no-handler-found-404.log",
+            Phase.RUNTIME, "5.1", "MATCH",
+            "coderanch.com / Baeldung — NoHandlerFoundException (404); top-level exception with no Caused by, matched via the extractor's top-level fallback. (404 stack pattern reconstructed from multiple sources; see analysis doc)"
+        ),
+        new TestCase(
+            "NEW-005", "real-world-logs/NEW-005-method-argument-not-valid.log",
+            Phase.RUNTIME, "5.5", "MATCH",
+            "salithachathuranga94.medium.com — MethodArgumentNotValidException bean validation, logged inside 'Resolved [...]'; rule 5.5 now keys on the wrapper text"
+        ),
+        new TestCase(
+            "NEW-006", "real-world-logs/NEW-006-failed-to-bind-properties.log",
+            Phase.STARTUP, "3.4", "MATCH",
+            "onecompiler.com — Failed to bind server.port to Integer; failure analysis banner match"
+        ),
+        new TestCase(
+            "NEW-007", "real-world-logs/NEW-007-yaml-scanner-exception.log",
+            Phase.STARTUP, "3.5", "MATCH",
+            "GitHub spring-projects/spring-boot#8438 — SnakeYAML ScannerException from an unresolved @placeholder@ in application.yml; top-level exception fallback"
+        ),
+        new TestCase(
+            "NEW-008", "real-world-logs/NEW-008-no-embedded-db-driver.log",
+            Phase.STARTUP, "4.1", "MATCH",
+            "digitalocean.com — Cannot determine embedded database driver class for database type NONE; now wins over the generic 1.3 wrapper after 1.3 was moved late in the catalog"
+        ),
+        new TestCase(
+            "NEW-009", "real-world-logs/NEW-009-hikaricp-pool-exhausted.log",
+            Phase.RUNTIME, "4.4", "MATCH",
+            "GitHub brettwooldridge/HikariCP#1798 — SQLTransientConnectionException, HikariPool connection not available, request timed out"
+        ),
+        new TestCase(
+            "NEW-010", "real-world-logs/NEW-010-port-already-in-use.log",
+            Phase.STARTUP, "1.8", "MATCH",
+            "javaguides.net — PortInUseException, port 8080 already in use; failure analysis banner match"
+        ),
+        new TestCase(
+            "NEW-011", "real-world-logs/NEW-011-generated-security-password.log",
+            Phase.STARTUP, "6.2", "MATCH",
+            "yawintutor.com — Spring Security 'Using generated security password' default configuration warning"
+        ),
+        new TestCase(
+            "NEW-012", "real-world-logs/NEW-012-mapstruct-unmapped-target.log",
+            Phase.COMPILE, "13.1", "MATCH",
+            "GitHub mapstruct/mapstruct#2301 — MapStruct 'Unmapped target property' compile error"
+        ),
+        new TestCase(
+            "NEW-013", "real-world-logs/NEW-013-mapstruct-no-such-bean.log",
+            Phase.STARTUP, "13.4", "MATCH",
+            "groups.google.com/g/mapstruct-users — NoSuchBeanDefinitionException for a @Mapper that lacks componentModel = \"spring\""
         )
     );
 
