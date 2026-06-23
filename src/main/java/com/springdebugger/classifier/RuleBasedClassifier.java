@@ -107,8 +107,11 @@ public final class RuleBasedClassifier implements DiagnosisEngine {
         if (template == null) return "";
         String result = template;
         if (result.contains("{{beanType}}")) {
-            result = result.replace("{{beanType}}", signal.getDeepestCausedByMessage() != null
-                    ? extractTypeName(signal.getDeepestCausedByMessage()) : "the required type");
+            String source = signal.getDeepestCausedByMessage() != null
+                    ? signal.getDeepestCausedByMessage()
+                    : signal.getBannerDescription();
+            result = result.replace("{{beanType}}",
+                    source != null ? extractTypeName(source) : "the required type");
         }
         if (result.contains("{{beanName}}")) {
             result = result.replace("{{beanName}}", signal.getFailingBeanName() != null

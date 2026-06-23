@@ -141,6 +141,22 @@ rules:
     fixture: "fixtures/2.1-no-such-bean.log"
     status: DONE
 
+  # Found by running a real Spring Boot 3.2 app with a missing constructor-injected bean:
+  # the failure analyzer prints this banner and SUPPRESSES the stack, so there is no
+  # "Caused by: NoSuchBeanDefinitionException" for 2.1 to match. This banner-only rule catches
+  # that very common startup case. Keyed on the Description text rather than a cause class.
+  - id: "2.13"
+    name: "Missing bean (failure-analysis banner)"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      bannerDescriptionContains: "required a bean of type"
+    diagnosis: "Spring's failure analyzer reports that a required bean of type {{beanType}} could not be found, so an @Autowired constructor or field has no candidate and the context fails to start (the full stack is suppressed in favour of this banner)."
+    fix: "Declare {{beanType}} as a bean: annotate its class with @Component/@Service/@Repository, or add an @Bean method in a @Configuration class, and ensure it sits inside the package tree scanned by your @SpringBootApplication class. The banner's Action line names the exact type to define."
+    confidence: HIGH
+    fixture: "fixtures/2.13-missing-bean-banner.log"
+    status: DONE
+
   - id: "2.2"
     name: "NoUniqueBeanDefinitionException"
     phases: [STARTUP, TEST]
