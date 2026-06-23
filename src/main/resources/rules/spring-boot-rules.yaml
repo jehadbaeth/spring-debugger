@@ -302,6 +302,19 @@ rules:
     fixture: "fixtures/4.13-constraint-violation.log"
     status: DONE
 
+  - id: "4.14"
+    name: "RedisConnectionFactory not configured"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      causedByClass: "IllegalStateException"
+      causedByMessage: "RedisConnectionFactory is required"
+    diagnosis: "A RedisTemplate or RedisConnectionFactory bean is being created but no connection factory is configured, so Spring Data Redis cannot connect."
+    fix: "Add spring-boot-starter-data-redis to the classpath and configure spring.data.redis.host and spring.data.redis.port, or define a LettuceConnectionFactory @Bean explicitly."
+    confidence: HIGH
+    fixture: "fixtures/4.14-redis-connection-factory.log"
+    status: DONE
+
   # ──────────────────────────────────────────
   # Section 5: Web, REST, and MVC Errors
   # ──────────────────────────────────────────

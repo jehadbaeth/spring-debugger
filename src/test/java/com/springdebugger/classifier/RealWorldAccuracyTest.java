@@ -105,9 +105,9 @@ class RealWorldAccuracyTest {
             "SOL-003",
             "real-world-logs/SOL-003-redis-chain-no-match.log",
             Phase.STARTUP,
-            null,
-            "NO_MATCH",
-            "GitHub spring-projects/spring-boot#34394 — Spring Boot 3.0.2, Redis connection factory missing; deepest Caused by is IllegalStateException with technology-specific message not covered by any rule"
+            "4.14",
+            "MATCH",
+            "GitHub spring-projects/spring-boot#34394 — Spring Boot 3.0.2, Redis connection factory missing; now covered by rule 4.14 added after this gap was found"
         ),
         new TestCase(
             "SOL-004",
