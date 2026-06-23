@@ -456,16 +456,21 @@ shipped in v0.2.0–v0.3.0.
   zero TODO rules.
 - `ActuatorReader.effectivePropertySource` is now consumed by PropertyPrecedenceEnricher
   (wired into RunConsoleTap), so the Actuator layer is end-to-end. RESOLVED.
-- RunConsoleTap analyses at process termination (any exit code), which covers startup
-  failures (they terminate). A runtime exception in a still-running web app is NOT yet
-  analysed: mid-stream analysis was rejected because Spring streams the banner and the
-  Caused-by chain in separate chunks, so a partial buffer would misdiagnose. Covering
-  living-process runtime errors safely (e.g. debounced end-of-stack detection) is open.
-- Live IDE confirmation (v0.3.2): the integration bugs found in user testing are fixed and
-  now covered by headless tests (real SM-tree traversal, EDT marshalling, broadened 2.1),
-  but a human still needs to confirm in a running IDE that (a) a @SpringBootTest missing a
-  @Component shows rule 2.1, (b) the card actually renders in the tool window, and (c) a
-  failing main() run-config surfaces a card.
+- RunConsoleTap: RESOLVED in v0.3.3. Analyses on a debounce once an error signature appears
+  (rescheduling per chunk via the app scheduled executor), so a runtime exception in a
+  still-running app is diagnosed after the stack settles, plus a termination backstop.
+- Headless integration coverage (v0.3.4): the previously GUI-only paths are now exercised
+  in-process by platform tests:
+  - PsiEnrichmentIntegrationTest drives IdeEnrichmentContext against a REAL PSI index
+    (class resolution, annotation reading, @SpringBootApplication scan-root discovery).
+  - TestTapToHistoryIntegrationTest runs a real SM test tree through TestConsoleTap ->
+    pipeline -> DiagnosisCardPanel.show -> DiagnosisHistoryService and asserts a missing
+    @Component yields rule 2.1 in the history model the tool window binds to (and a clean
+    run yields nothing). This covers the EDT marshalling and the card-data path.
+- Genuinely GUI/host-only, not verifiable headlessly (the remaining manual checks):
+  (a) the external build tap firing when the IDE actually runs a delegated Gradle build,
+  (b) the literal Swing rendering of the card (its data path is verified),
+  (c) a live Ollama round-trip with an installed model (the HTTP path is verified by stub).
 - Stretch: grow the real-world corpus further and add Kotlin support (currently out of scope).
 
 ### Resolved since v0.1.0
