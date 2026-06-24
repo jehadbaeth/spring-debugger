@@ -26,6 +26,9 @@
         <projectService
             serviceImplementation="com.springdebugger.terminal.TerminalMonitorService"/>
 
+        <projectService
+            serviceImplementation="com.springdebugger.service.TestResultsWatchService"/>
+
         <applicationConfigurable
             parentId="tools"
             id="com.springdebugger.settings"

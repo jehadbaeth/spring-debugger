@@ -8,6 +8,7 @@ import com.intellij.execution.testframework.sm.runner.SMTRunnerEventsListener;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
 import com.springdebugger.rule.RuleCatalog;
+import com.springdebugger.settings.SpringDebuggerSettings;
 import com.springdebugger.tap.RunConsoleTap;
 import com.springdebugger.tap.TestConsoleTap;
 import org.jetbrains.annotations.NotNull;
@@ -41,5 +42,11 @@ public final class SpringDebuggerStartupActivity implements StartupActivity.Dumb
         project.getMessageBus()
                 .connect()
                 .subscribe(SMTRunnerEventsListener.TEST_STATUS, new TestConsoleTap(project, catalog));
+
+        // Terminal-agnostic capture: watch JUnit result files so `./gradlew test` (or `mvn test`)
+        // run in any terminal, classic or new, is diagnosed without hooking the terminal at all.
+        if (SpringDebuggerSettings.getInstance().isWatchTestResults()) {
+            com.springdebugger.service.TestResultsWatchService.getInstance(project).start();
+        }
     }
 }

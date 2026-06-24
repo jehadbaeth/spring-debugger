@@ -25,6 +25,7 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
         public String ollamaModel = "llama3.2";
         public boolean showNotificationBalloon = true;
         public boolean focusToolWindowOnError = true;
+        public boolean watchTestResults = true;
     }
 
     private State state = new State();
@@ -69,4 +70,7 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
 
     public boolean isFocusToolWindowOnError() { return state.focusToolWindowOnError; }
     public void setFocusToolWindowOnError(boolean focus) { state.focusToolWindowOnError = focus; }
+
+    public boolean isWatchTestResults() { return state.watchTestResults; }
+    public void setWatchTestResults(boolean watch) { state.watchTestResults = watch; }
 }
