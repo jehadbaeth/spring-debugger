@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.7.2  
+**Version:** 0.8.0  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -85,7 +85,19 @@ Run tests with **Shift+F10** or through the test runner. If the test application
 
 ## Running from the Gradle or Maven tool window
 
-When you launch a task from the Gradle or Maven panel (for example `bootRun` or `spring-boot:run`), or use delegated builds, the output streams through IntelliJ's external-system bus. Spring Boot Debugger taps that stream, so a compile failure, a startup failure, or a runtime/Kafka exception from a delegated run is diagnosed the same as a normal Run launch. No setup is needed.
+When you launch a task from the Gradle or Maven panel (for example `bootRun` or `spring-boot:run`), or use delegated builds, the output streams through IntelliJ's external-system bus. Spring Boot Debugger taps that stream, so a compile failure, a startup failure, or a runtime/Kafka exception from a delegated run is diagnosed the same as a normal Run launch.
+
+Note: depending on your IntelliJ and Gradle setup (notably with the Gradle **configuration cache** enabled and parallel multi-module `bootRun` tasks), IntelliJ does not always deliver the task console to this listener, so automatic capture can come up empty. If that happens, use **Diagnose pasted output** below, which never depends on capture. The plugin logs `ExternalBuildOutputTap receiving …` / `RunConsoleTap receiving …` lines to **Help > Show Log in Finder/Explorer** (idea.log) so you can confirm whether a run reached the plugin at all.
+
+---
+
+## Diagnose pasted output (always works)
+
+This is the reliable path when automatic capture does not see your run. It bypasses all of IntelliJ's run/build plumbing:
+
+1. Select the output in the Run, Gradle, or Maven console (Ctrl/Cmd+A) and copy it (Ctrl/Cmd+C).
+2. Open the **Spring Debugger** tool window and click the **paste** button in the panel toolbar (its tooltip is "Diagnose pasted log output"). The dialog is pre-filled with the clipboard.
+3. Confirm. Every distinct error in the pasted log is diagnosed, de-duplicated, and added to history, exactly like the live taps.
 
 ---
 
@@ -97,7 +109,7 @@ If you run your app or build from the integrated **Terminal** (for example `./gr
 2. Click the **▶ Monitor terminal** button in the panel toolbar.
 3. Pick the terminal tab you want to watch. To stop, open the same menu and choose **Stop monitoring**.
 
-While monitoring, the plugin polls that terminal's output and surfaces a diagnosis card when a Spring Boot error appears, exactly like the Run and Test taps. Only one terminal is watched at a time. Detection is poll-based (it reads the tab's scrollback, so you can attach after output has started) and may lag a second or two. The **Terminal** plugin must be enabled, and the **new (Gen2) Terminal** is not supported yet — if the chooser says no terminals are found, either turn the new Terminal off in **Settings > Tools > Terminal**, or simply run via the **Gradle/Maven tool window**, which is detected automatically with no attaching.
+While monitoring, the plugin polls that terminal's output and surfaces a diagnosis card when a Spring Boot error appears, exactly like the Run and Test taps. Only one terminal is watched at a time. Detection is poll-based (it reads the tab's scrollback, so you can attach after output has started) and may lag a second or two. The **Terminal** plugin must be enabled, and the **new (Gen2) Terminal** is not supported yet — if the chooser says no terminals are found, either turn the new Terminal off in **Settings > Tools > Terminal**, or use **Diagnose pasted output** (above), which always works regardless of how the app was launched.
 
 ---
 

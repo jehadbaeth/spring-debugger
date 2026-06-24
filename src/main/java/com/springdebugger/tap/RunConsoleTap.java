@@ -40,11 +40,15 @@ public final class RunConsoleTap implements ProcessListener {
     private static final Pattern PORT_LINE = Pattern.compile(
             "(?:Tomcat|Netty|Jetty|Undertow)[^\\n]*?started on port[\\s(]*s?[)\\s:]*?(\\d{2,5})");
 
+    private static final com.intellij.openapi.diagnostic.Logger LOG =
+            com.intellij.openapi.diagnostic.Logger.getInstance(RunConsoleTap.class);
+
     private final Project project;
     private final ConsoleDiagnoser diagnoser;
     private final StringBuilder buffer = new StringBuilder();
     private final Set<String> shownKeys = new HashSet<>();
     private volatile int appPort = -1;
+    private volatile boolean sawOutput = false;
     private volatile ScheduledFuture<?> pending;
 
     public RunConsoleTap(Project project, RuleCatalog catalog) {
@@ -55,9 +59,17 @@ public final class RunConsoleTap implements ProcessListener {
     @Override
     public void onTextAvailable(@NotNull ProcessEvent event, @NotNull Key outputType) {
         String text = event.getText();
+        if (!sawOutput) {
+            sawOutput = true;
+            LOG.info("RunConsoleTap receiving process output (first chunk " + text.length() + " chars)");
+        }
         synchronized (buffer) {
-            if (buffer.length() < BUFFER_MAX_CHARS) {
-                buffer.append(text);
+            // Keep the tail rather than dropping everything past the cap: in a long bootRun the
+            // error (Kafka down, a late exception) arrives after a large successful-startup log, so
+            // a cap-and-stop buffer would discard exactly what we need.
+            buffer.append(text);
+            if (buffer.length() > BUFFER_MAX_CHARS) {
+                buffer.delete(0, buffer.length() - BUFFER_MAX_CHARS);
             }
         }
 
@@ -99,6 +111,7 @@ public final class RunConsoleTap implements ProcessListener {
             snapshot = buffer.toString();
         }
         List<DiagnosisCard> cards = diagnoser.diagnoseAllWith(snapshot, new IdeEnrichmentContext(project, appPort));
+        LOG.info("RunConsoleTap analysed " + snapshot.length() + " chars, produced " + cards.size() + " card(s)");
         boolean firstOfBurst = true;
         for (DiagnosisCard card : cards) {
             if (!shownKeys.add(card.groupingKey())) continue; // already surfaced this run

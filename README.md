@@ -11,6 +11,7 @@ No reading cascading stack traces. No Googling the exception class name.
 - **Real-time detection** — attaches to IntelliJ's run, test, and build streams
 - **Gradle/Maven tool window** — diagnoses compile, startup, and runtime/Kafka failures from tasks run in the Gradle or Maven panel (delegated runs), not just the Run button
 - **Terminal monitoring** — pick an open terminal tab and have the plugin watch its output for Spring Boot errors (for apps started with `./gradlew bootRun`, `mvn spring-boot:run`, etc.)
+- **Diagnose pasted output** — a toolbar button that diagnoses any pasted Run/Gradle/Maven console; the reliable path when IntelliJ does not hand the plugin a delegated run's output (e.g. with the Gradle configuration cache)
 - **Multi-error extraction** — pulls every distinct server-side error out of a noisy, long-running log (e.g. an integration suite hitting a live app), de-duplicated into a grouped history with counts, instead of collapsing to one
 - **Try it** — [`samples/testbed/`](samples/testbed) is a deliberately-broken Spring Boot app; run its tests with the plugin installed to watch 8 rules fire across one run
 - **58 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases

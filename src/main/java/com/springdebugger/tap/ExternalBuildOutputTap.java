@@ -38,17 +38,32 @@ public final class ExternalBuildOutputTap extends ExternalSystemTaskNotification
     private static final int BUFFER_MAX_CHARS = 300_000;
     private static final long DEBOUNCE_MS = 1500;
 
+    private static final com.intellij.openapi.diagnostic.Logger LOG =
+            com.intellij.openapi.diagnostic.Logger.getInstance(ExternalBuildOutputTap.class);
+
     private final Map<ExternalSystemTaskId, StringBuilder> buffers = new ConcurrentHashMap<>();
     private final Map<ExternalSystemTaskId, Set<String>> shownKeys = new ConcurrentHashMap<>();
     private final Map<ExternalSystemTaskId, ScheduledFuture<?>> pending = new ConcurrentHashMap<>();
+    private final Set<ExternalSystemTaskId> announced = ConcurrentHashMap.newKeySet();
 
     @Override
     public void onTaskOutput(@NotNull ExternalSystemTaskId id, @NotNull String text, boolean stdOut) {
-        if (id.getType() != ExternalSystemTaskType.EXECUTE_TASK) return;
+        if (id.getType() != ExternalSystemTaskType.EXECUTE_TASK) {
+            if (announced.add(id)) {
+                LOG.info("ExternalBuildOutputTap saw non-EXECUTE_TASK output: " + id.getType());
+            }
+            return;
+        }
+        if (announced.add(id)) {
+            LOG.info("ExternalBuildOutputTap receiving EXECUTE_TASK output (first chunk " + text.length() + " chars)");
+        }
         StringBuilder buffer = buffers.computeIfAbsent(id, k -> new StringBuilder());
         synchronized (buffer) {
-            if (buffer.length() < BUFFER_MAX_CHARS) {
-                buffer.append(text);
+            // Keep the tail rather than dropping past the cap (see RunConsoleTap): a bootRun's late
+            // errors arrive after a large startup log and must survive.
+            buffer.append(text);
+            if (buffer.length() > BUFFER_MAX_CHARS) {
+                buffer.delete(0, buffer.length() - BUFFER_MAX_CHARS);
             }
         }
         if (RunConsoleTap.containsErrorSignature(text)) {
@@ -63,6 +78,7 @@ public final class ExternalBuildOutputTap extends ExternalSystemTaskNotification
         analyseTask(id);
         buffers.remove(id);
         shownKeys.remove(id);
+        announced.remove(id);
     }
 
     private void scheduleAnalysis(ExternalSystemTaskId id) {
@@ -85,6 +101,7 @@ public final class ExternalBuildOutputTap extends ExternalSystemTaskNotification
         Set<String> seen = shownKeys.computeIfAbsent(id, k -> ConcurrentHashMap.newKeySet());
         List<DiagnosisCard> cards = new ConsoleDiagnoser(
                 SpringDebuggerService.getInstance().getCatalog()).diagnoseAll(snapshot, project);
+        LOG.info("ExternalBuildOutputTap analysed " + snapshot.length() + " chars, produced " + cards.size() + " card(s)");
         boolean firstOfBurst = true;
         for (DiagnosisCard card : cards) {
             if (!seen.add(card.groupingKey())) continue;

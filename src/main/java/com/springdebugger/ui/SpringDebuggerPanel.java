@@ -3,6 +3,7 @@ package com.springdebugger.ui;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.terminal.JBTerminalWidget;
@@ -84,6 +85,14 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
         JPanel east = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         east.setOpaque(false);
 
+        JButton diagnoseBtn = new JButton(AllIcons.Actions.Menu_paste);
+        diagnoseBtn.setToolTipText("Diagnose pasted log output (paste a Run/Gradle/Maven console)");
+        diagnoseBtn.setBorderPainted(false);
+        diagnoseBtn.setContentAreaFilled(false);
+        diagnoseBtn.setFocusPainted(false);
+        diagnoseBtn.addActionListener(e -> diagnosePastedOutput(diagnoseBtn));
+        east.add(diagnoseBtn);
+
         JButton terminalBtn = new JButton(AllIcons.Actions.Execute);
         terminalBtn.setToolTipText("Monitor an open terminal for Spring Boot errors");
         terminalBtn.setBorderPainted(false);
@@ -103,6 +112,51 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
 
         bar.add(east, BorderLayout.EAST);
         return bar;
+    }
+
+    /**
+     * Diagnoses a pasted block of log output. This is the reliable path that does not depend on the
+     * plugin capturing a run/build console: the user selects the Run, Gradle, or Maven output, copies
+     * it, and pastes it here. The same engine, dedup, and history used by the live taps run on it.
+     */
+    private void diagnosePastedOutput(java.awt.Component anchor) {
+        String clipboard = readClipboard();
+        String input = Messages.showMultilineInputDialog(
+                project,
+                "Paste a Run, Gradle, or Maven console (or any Spring Boot log). Every distinct error is diagnosed.",
+                "Diagnose Pasted Output",
+                clipboard,
+                AllIcons.Actions.Menu_paste,
+                null);
+        if (input == null || input.isBlank()) return;
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            List<DiagnosisCard> cards = new com.springdebugger.tap.ConsoleDiagnoser(
+                    SpringDebuggerService.getInstance().getCatalog()).diagnoseAll(input, project);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (cards.isEmpty()) {
+                    JBPopupFactory.getInstance()
+                            .createMessage("No recognised Spring Boot error in the pasted text.")
+                            .showUnderneathOf(anchor);
+                    return;
+                }
+                boolean firstOfBurst = true;
+                for (DiagnosisCard card : cards) {
+                    DiagnosisCardPanel.show(project, card, !firstOfBurst);
+                    firstOfBurst = false;
+                }
+            });
+        });
+    }
+
+    private String readClipboard() {
+        try {
+            Object data = Toolkit.getDefaultToolkit().getSystemClipboard()
+                    .getData(java.awt.datatransfer.DataFlavor.stringFlavor);
+            return data instanceof String ? (String) data : "";
+        } catch (Throwable ignored) {
+            return "";
+        }
     }
 
     /**
