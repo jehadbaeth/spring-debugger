@@ -14,21 +14,25 @@ import com.springdebugger.ui.DiagnosisCardPanel;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Tails a Spring Boot log file and diagnoses errors as they are appended. This is the
+ * Tails Spring Boot log files and diagnoses errors as they are appended. This is the
  * terminal-agnostic capture path for {@code bootRun} (and any java process) started in a terminal:
  * the app's own log file is read directly, so no hook into the terminal is needed.
  *
- * <p>The file path comes from settings ({@code logFilePath}) or, when blank, is auto-discovered from
- * {@code logging.file.name} in the project's {@code application*.properties/yml}. If the app logs to
- * the console only, the user sets either one. The reader follows appends by byte offset and resets
- * on truncation/rotation; the in-memory buffer keeps a tail so a late error survives.
+ * <p>Watches <b>every</b> log file declared via {@code logging.file.name} across the project (one
+ * per service in a multi-module build), or a single explicit {@code logFilePath} when set. Each
+ * file is followed by byte offset and reset on truncation/rotation; per-file tail buffers keep the
+ * end so a late error survives. Polls because the files live under {@code build/}, which IntelliJ
+ * excludes from VFS.
  */
 @Service(Service.Level.PROJECT)
 public final class LogFileTailService {
@@ -39,10 +43,10 @@ public final class LogFileTailService {
             com.intellij.openapi.diagnostic.Logger.getInstance(LogFileTailService.class);
 
     private final Project project;
-    private final StringBuilder buffer = new StringBuilder();
+    private final Map<String, Long> offsets = new ConcurrentHashMap<>();
+    private final Map<String, StringBuilder> buffers = new ConcurrentHashMap<>();
     private final Set<String> shownKeys = new HashSet<>();
-    private volatile File file;
-    private volatile long offset;
+    private volatile List<File> files = List.of();
     private volatile ScheduledFuture<?> task;
 
     public LogFileTailService(Project project) {
@@ -53,30 +57,34 @@ public final class LogFileTailService {
         return project.getService(LogFileTailService.class);
     }
 
-    /** Resolves the configured or auto-discovered log file, relative to the project base, or null. */
-    public File resolveLogFile() {
+    /**
+     * Resolves the log files to watch: a single explicit {@code logFilePath} if set, otherwise every
+     * {@code logging.file.name} discovered across the project's application configs.
+     */
+    public List<File> resolveLogFiles() {
         String base = project.getBasePath();
         String configured = SpringDebuggerSettings.getInstance().getLogFilePath();
         if (configured != null && !configured.isBlank()) {
             File f = new File(configured);
-            return f.isAbsolute() || base == null ? f : new File(base, configured);
+            return List.of(f.isAbsolute() || base == null ? f : new File(base, configured));
         }
-        String discovered = base == null ? null : LogFilePropertyFinder.discover(new File(base));
-        if (discovered == null) return null;
-        File f = new File(discovered);
-        return f.isAbsolute() || base == null ? f : new File(base, discovered);
+        return base == null ? List.of() : LogFilePropertyFinder.discoverAll(new File(base));
     }
 
-    public synchronized void start(File target) {
+    public synchronized void start(List<File> targets) {
         stop();
-        if (target == null) return;
-        this.file = target;
-        this.offset = target.length(); // start at the end: only diagnose new output from now on
-        this.buffer.setLength(0);
+        if (targets == null || targets.isEmpty()) return;
+        this.files = List.copyOf(targets);
+        offsets.clear();
+        buffers.clear();
         synchronized (shownKeys) { shownKeys.clear(); }
+        for (File f : files) {
+            // Start at the current end so only output written from now on is diagnosed.
+            offsets.put(f.getPath(), f.exists() ? f.length() : 0L);
+        }
         this.task = AppExecutorUtil.getAppScheduledExecutorService()
                 .scheduleWithFixedDelay(this::poll, POLL_MS, POLL_MS, TimeUnit.MILLISECONDS);
-        LOG.info("LogFileTailService tailing " + target.getPath());
+        LOG.info("LogFileTailService tailing " + files.size() + " file(s): " + files);
     }
 
     public synchronized void stop() {
@@ -84,52 +92,60 @@ public final class LogFileTailService {
             task.cancel(false);
             task = null;
         }
-        file = null;
+        files = List.of();
     }
 
     public boolean isTailing() {
-        return task != null && file != null;
+        return task != null && !files.isEmpty();
     }
 
-    public File tailedFile() {
-        return file;
+    public List<File> tailedFiles() {
+        return files;
     }
 
     private void poll() {
-        File current = file;
-        if (current == null || project.isDisposed()) return;
-        if (!SpringDebuggerSettings.getInstance().isWatchLogFile()) return;
-        try {
-            long length = current.length();
-            if (length < offset) {
-                // Truncated or rotated: restart from the beginning of the new file.
-                offset = 0;
-                buffer.setLength(0);
+        if (project.isDisposed() || !SpringDebuggerSettings.getInstance().isWatchLogFile()) return;
+        for (File f : files) {
+            try {
+                tailOne(f);
+            } catch (Throwable t) {
+                LOG.warn("LogFileTailService poll failed for " + f, t);
             }
-            if (length == offset) return;
+        }
+    }
 
-            String delta = readFrom(current, offset, length);
-            offset = length;
-            if (delta.isEmpty()) return;
+    private void tailOne(File current) throws Exception {
+        if (!current.exists()) return;
+        String key = current.getPath();
+        long previous = offsets.getOrDefault(key, 0L);
+        long length = current.length();
+        if (length < previous) {
+            // Truncated or rotated: restart from the beginning of the new file.
+            previous = 0;
+            buffers.remove(key);
+        }
+        if (length == previous) return;
 
-            buffer.append(delta);
-            if (buffer.length() > BUFFER_MAX_CHARS) {
-                buffer.delete(0, buffer.length() - BUFFER_MAX_CHARS);
+        String delta = readFrom(current, previous, length);
+        offsets.put(key, length);
+        if (delta.isEmpty()) return;
+
+        StringBuilder buffer = buffers.computeIfAbsent(key, k -> new StringBuilder());
+        buffer.append(delta);
+        if (buffer.length() > BUFFER_MAX_CHARS) {
+            buffer.delete(0, buffer.length() - BUFFER_MAX_CHARS);
+        }
+        if (!RunConsoleTap.containsErrorSignature(delta)) return;
+
+        List<DiagnosisCard> cards = new ConsoleDiagnoser(SpringDebuggerService.getInstance().getCatalog())
+                .diagnoseAll(buffer.toString(), project);
+        boolean firstOfBurst = true;
+        for (DiagnosisCard card : cards) {
+            synchronized (shownKeys) {
+                if (!shownKeys.add(card.groupingKey())) continue;
             }
-            if (!RunConsoleTap.containsErrorSignature(delta)) return;
-
-            List<DiagnosisCard> cards = new ConsoleDiagnoser(SpringDebuggerService.getInstance().getCatalog())
-                    .diagnoseAll(buffer.toString(), project);
-            boolean firstOfBurst = true;
-            for (DiagnosisCard card : cards) {
-                synchronized (shownKeys) {
-                    if (!shownKeys.add(card.groupingKey())) continue;
-                }
-                DiagnosisCardPanel.show(project, card, !firstOfBurst);
-                firstOfBurst = false;
-            }
-        } catch (Throwable t) {
-            LOG.warn("LogFileTailService poll failed", t);
+            DiagnosisCardPanel.show(project, card, !firstOfBurst);
+            firstOfBurst = false;
         }
     }
 
@@ -137,7 +153,6 @@ public final class LogFileTailService {
         long len = to - from;
         if (len <= 0) return "";
         if (len > BUFFER_MAX_CHARS) {
-            // A huge burst since last poll: keep only the tail of it.
             from = to - BUFFER_MAX_CHARS;
             len = BUFFER_MAX_CHARS;
         }

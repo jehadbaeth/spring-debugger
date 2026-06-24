@@ -26,7 +26,7 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
         public boolean showNotificationBalloon = true;
         public boolean focusToolWindowOnError = true;
         public boolean watchTestResults = true;
-        public boolean watchLogFile = false;
+        public boolean watchLogFile = true;
         public String logFilePath = "";
         public boolean experimentalNewTerminal = false;
     }

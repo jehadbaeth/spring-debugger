@@ -83,6 +83,65 @@ public final class LogFilePropertyFinder {
         return null;
     }
 
+    /**
+     * Finds every {@code application*.properties/yml} under the tree that declares a log file and
+     * returns the resolved log {@link File} for each, de-duplicated. Relative paths are resolved
+     * against the owning module (the directory above {@code src/.../resources}), because that is the
+     * working directory Spring Boot uses, so a multi-module project with one
+     * {@code logging.file.name} per service yields one log file per service.
+     */
+    public static java.util.List<File> discoverAll(File base) {
+        java.util.LinkedHashSet<File> out = new java.util.LinkedHashSet<>();
+        if (base == null || !base.isDirectory()) return new java.util.ArrayList<>(out);
+        java.util.List<File> configs = new java.util.ArrayList<>();
+        collectConfigs(base, 0, configs);
+        for (File cfg : configs) {
+            String content = read(cfg);
+            String declared = cfg.getName().endsWith(".properties")
+                    ? fromProperties(content) : fromYaml(content);
+            if (declared == null) continue;
+            out.add(resolveAgainstModule(cfg, declared));
+        }
+        return new java.util.ArrayList<>(out);
+    }
+
+    private static void collectConfigs(File dir, int depth, java.util.List<File> out) {
+        if (depth > 10) return;
+        File[] children = dir.listFiles();
+        if (children == null) return;
+        for (File c : children) {
+            if (c.isFile()) {
+                String n = c.getName();
+                boolean isConfig = (n.startsWith("application") )
+                        && (n.endsWith(".properties") || n.endsWith(".yml") || n.endsWith(".yaml"));
+                if (isConfig) out.add(c);
+            } else if (c.isDirectory()) {
+                String n = c.getName();
+                // Config lives under src/main/resources, so do NOT prune src here; only skip caches.
+                if (n.equals(".git") || n.equals(".gradle") || n.equals(".idea")
+                        || n.equals("node_modules") || n.equals("build") || n.equals("target")
+                        || n.equals(".m2")) continue;
+                collectConfigs(c, depth + 1, out);
+            }
+        }
+    }
+
+    /** Resolves a declared log path against the module owning a config file. */
+    static File resolveAgainstModule(File configFile, String declaredPath) {
+        File f = new File(declaredPath);
+        if (f.isAbsolute()) return f;
+        String path = configFile.getPath().replace(File.separatorChar, '/');
+        int srcIdx = path.indexOf("/src/");
+        File moduleRoot;
+        if (srcIdx > 0) {
+            moduleRoot = new File(path.substring(0, srcIdx));
+        } else {
+            // Not under a standard src layout; fall back to the config file's directory.
+            moduleRoot = configFile.getParentFile();
+        }
+        return new File(moduleRoot, declaredPath);
+    }
+
     private static File findFirst(File dir, String fileName, int depth) {
         if (depth > 8) return null;
         File[] children = dir.listFiles();

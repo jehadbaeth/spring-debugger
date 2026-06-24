@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.9.0  
+**Version:** 0.9.1  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -96,11 +96,11 @@ Note: depending on your IntelliJ and Gradle setup (notably with the Gradle **con
 Most teams run `./gradlew test` and `./gradlew bootRun` in the integrated terminal. The new (Gen2) terminal cannot be read through any stable IntelliJ API, so the plugin captures the **output**, not the terminal. Three options, configurable under **Settings → Tools → Spring Boot Debugger → Terminal capture**:
 
 1. **Tests — watch result files (on by default, zero setup).** Running `./gradlew test` or `mvn test` in any terminal writes `build/test-results` (Gradle) or `target/surefire-reports` (Maven). The plugin polls those and diagnoses new failures automatically. Nothing to configure.
-2. **bootRun — tail the app log file.** Enable "Tail the application log file" and either leave the path blank to auto-detect `logging.file.name`, or set a path. If your app logs to the console only (the common default), give it a file first, e.g. in `application-local.properties`:
+2. **bootRun — tail the app log file (on by default).** The plugin auto-discovers every `logging.file.name` declared across the project (one per service in a multi-module build) and tails them all, so a terminal `bootRun` is diagnosed as the log grows, late Kafka/DB errors included. If your apps log to the console only (the common default), commit a log file in each service's `application.properties`:
    ```
    logging.file.name=build/app.log
    ```
-   Then a terminal `bootRun` is diagnosed as the log grows, including late Kafka/DB errors.
+   Relative paths resolve against each service's module, so per-service logs work out of the box. To pin a single explicit file instead of auto-discovery, set a path in settings; leave it blank to auto-discover.
 3. **Experimental — monitor the new terminal directly.** Enable "Experimental: monitor the new (Gen2) terminal", then use the Monitor terminal button and pick "Monitor active tab". This reads the editor backing the terminal; it is best-effort and unverified across IDE versions, so treat it as a convenience, not a guarantee.
 
 If none of these fit a particular run, **Diagnose pasted output** below always works.
