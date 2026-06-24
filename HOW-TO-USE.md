@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.8.0  
+**Version:** 0.9.0  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -88,6 +88,22 @@ Run tests with **Shift+F10** or through the test runner. If the test application
 When you launch a task from the Gradle or Maven panel (for example `bootRun` or `spring-boot:run`), or use delegated builds, the output streams through IntelliJ's external-system bus. Spring Boot Debugger taps that stream, so a compile failure, a startup failure, or a runtime/Kafka exception from a delegated run is diagnosed the same as a normal Run launch.
 
 Note: depending on your IntelliJ and Gradle setup (notably with the Gradle **configuration cache** enabled and parallel multi-module `bootRun` tasks), IntelliJ does not always deliver the task console to this listener, so automatic capture can come up empty. If that happens, use **Diagnose pasted output** below, which never depends on capture. The plugin logs `ExternalBuildOutputTap receiving …` / `RunConsoleTap receiving …` lines to **Help > Show Log in Finder/Explorer** (idea.log) so you can confirm whether a run reached the plugin at all.
+
+---
+
+## Running tests and bootRun in a terminal
+
+Most teams run `./gradlew test` and `./gradlew bootRun` in the integrated terminal. The new (Gen2) terminal cannot be read through any stable IntelliJ API, so the plugin captures the **output**, not the terminal. Three options, configurable under **Settings → Tools → Spring Boot Debugger → Terminal capture**:
+
+1. **Tests — watch result files (on by default, zero setup).** Running `./gradlew test` or `mvn test` in any terminal writes `build/test-results` (Gradle) or `target/surefire-reports` (Maven). The plugin polls those and diagnoses new failures automatically. Nothing to configure.
+2. **bootRun — tail the app log file.** Enable "Tail the application log file" and either leave the path blank to auto-detect `logging.file.name`, or set a path. If your app logs to the console only (the common default), give it a file first, e.g. in `application-local.properties`:
+   ```
+   logging.file.name=build/app.log
+   ```
+   Then a terminal `bootRun` is diagnosed as the log grows, including late Kafka/DB errors.
+3. **Experimental — monitor the new terminal directly.** Enable "Experimental: monitor the new (Gen2) terminal", then use the Monitor terminal button and pick "Monitor active tab". This reads the editor backing the terminal; it is best-effort and unverified across IDE versions, so treat it as a convenience, not a guarantee.
+
+If none of these fit a particular run, **Diagnose pasted output** below always works.
 
 ---
 
