@@ -1,0 +1,14 @@
+2026-06-24T10:58:40.426+02:00  INFO 1 --- [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-24T10:58:42.654+02:00  WARN 1 --- [  restartedMain] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 08001
+2026-06-24T10:58:42.654+02:00 ERROR 1 --- [  restartedMain] o.h.engine.jdbc.spi.SqlExceptionHelper   : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+2026-06-24T10:58:42.655+02:00  WARN 1 --- [  restartedMain] o.h.e.j.e.i.JdbcEnvironmentInitiator     : HHH000342: Could not obtain connection to query metadata
+
+org.hibernate.exception.JDBCConnectionException: unable to obtain isolated JDBC connection [Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.] [n/a]
+	at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:100) ~[hibernate-core-6.6.5.Final.jar:6.6.5.Final]
+	at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentUsingJdbcMetadata(JdbcEnvironmentInitiator.java:320) ~[hibernate-core-6.6.5.Final.jar:6.6.5.Final]
+Caused by: org.postgresql.util.PSQLException: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:352) ~[postgresql-42.7.5.jar:42.7.5]
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:550) ~[HikariCP-5.1.0.jar:na]
+Caused by: java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[na:na]
+	at org.postgresql.core.PGStream.createSocket(PGStream.java:260) ~[postgresql-42.7.5.jar:42.7.5]

@@ -331,6 +331,23 @@ rules:
     fixture: "fixtures/4.14-redis-connection-factory.log"
     status: DONE
 
+  - id: "4.15"
+    name: "Database connection refused"
+    phases: [STARTUP, RUNTIME, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      # The JDBC driver reports a refused TCP connection at startup. PostgreSQL's exact phrasing is
+      # "Connection to <host:port> refused. Check that the hostname and port are correct ..."; this
+      # phrase is specific enough to avoid the conditions-report noise in a real bootRun. The app
+      # may continue with a degraded context (Hibernate logs it and retries), so this is not always
+      # a hard APPLICATION FAILED TO START.
+      messageContains: "refused. Check that the hostname and port"
+    diagnosis: "The application cannot open a TCP connection to its database: the JDBC driver reports the connection was refused, which means nothing is listening on that host and port. This is almost always a database that is not running, a wrong host/port, or a firewall rather than an application bug, and Hibernate keeps retrying so the message repeats."
+    fix: "Start the database (for local development this is usually the docker-compose stack) and confirm spring.datasource.url points at the right host:port; test it with 'nc -zv <host> <port>' or 'pg_isready -h <host> -p <port>'. In Docker/Kubernetes use the service name the app can actually resolve, not localhost, and open the port in any firewall or security group."
+    confidence: HIGH
+    fixture: "fixtures/4.15-db-connection-refused.log"
+    status: DONE
+
   # ──────────────────────────────────────────
   # Section 5: Web, REST, and MVC Errors
   # ──────────────────────────────────────────

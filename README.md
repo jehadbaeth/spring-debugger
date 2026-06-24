@@ -13,7 +13,7 @@ No reading cascading stack traces. No Googling the exception class name.
 - **Terminal monitoring** — pick an open terminal tab and have the plugin watch its output for Spring Boot errors (for apps started with `./gradlew bootRun`, `mvn spring-boot:run`, etc.)
 - **Multi-error extraction** — pulls every distinct server-side error out of a noisy, long-running log (e.g. an integration suite hitting a live app), de-duplicated into a grouped history with counts, instead of collapsing to one
 - **Try it** — [`samples/testbed/`](samples/testbed) is a deliberately-broken Spring Boot app; run its tests with the plugin installed to watch 8 rules fire across one run
-- **57 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
+- **58 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
 - **Three-layer signal extraction** — reads `Caused by:` chains, failure analysis banners, and build error lines
 - **Build-aware** — taps both IntelliJ internal builds and delegated Gradle/Maven builds for compile-phase rules
 - **PSI enrichment** — confirms structural claims against your source (a missing bean has no stereotype, a type is a `@Mapper`, a class is outside the scan tree) and upgrades uncertain matches to HIGH
@@ -33,7 +33,7 @@ No reading cascading stack traces. No Googling the exception class name.
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  Spring Debugger                                            ⚙           │
-│  ● Monitoring  ·  57 rules                                              │
+│  ● Monitoring  ·  58 rules                                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  [2.1]  STARTUP  ●HIGH                                                  │
 │                                                                         │
@@ -115,7 +115,7 @@ LLM Fallback (local Ollama)
 | 3.4 | Property type conversion failure | "Failed to bind properties" |
 | 3.5 | YAML syntax error | Caused by: ScannerException |
 
-### Section 4 — JPA / data access (6 rules)
+### Section 4 — JPA / data access (7 rules)
 
 | Rule | Error | Signal |
 |---|---|---|
@@ -126,6 +126,7 @@ LLM Fallback (local Ollama)
 | 4.8 | LazyInitializationException | Caused by: LazyInitializationException + "could not initialize proxy - no Session" |
 | 4.13 | DataIntegrityViolationException | Caused by: DataIntegrityViolationException |
 | 4.14 | RedisConnectionFactory not configured | Caused by: IllegalStateException + "RedisConnectionFactory is required" |
+| 4.15 | Database connection refused | "refused. Check that the hostname and port" (PostgreSQL JDBC) |
 
 ### Section 5 — Web, REST, and MVC (4 rules)
 

@@ -45,7 +45,7 @@ After restarting, you will see a **Spring Debugger** panel at the bottom of the 
 Open the panel. It shows:
 
 ```
-● Monitoring  ·  57 rules
+● Monitoring  ·  58 rules
 ```
 
 The green dot means the plugin is active and watching. No further setup is needed for offline mode.

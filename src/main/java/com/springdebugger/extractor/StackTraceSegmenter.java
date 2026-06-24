@@ -50,6 +50,11 @@ public final class StackTraceSegmenter {
     private static boolean isBoundary(String line) {
         if (TOP_LEVEL.matcher(line).find()) return true;
         // One-line MVC errors the dispatcher logs without a stack trace.
-        return line.contains("Resolved [") || line.contains("No endpoint ");
+        if (line.contains("Resolved [") || line.contains("No endpoint ")) return true;
+        // Connection-failure WARN spam (Kafka broker down, etc.) carries no exception or stack, so
+        // it never starts its own block and gets swallowed when it co-occurs with a real failure.
+        // Treat its marker as a boundary so it is diagnosed in its own right (dedup collapses the
+        // repeats to one card downstream).
+        return line.contains("could not be established");
     }
 }

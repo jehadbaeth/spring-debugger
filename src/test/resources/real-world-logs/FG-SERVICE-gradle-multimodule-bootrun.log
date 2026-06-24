@@ -1,0 +1,107 @@
+2026-06-24T10:58:38.967+02:00  INFO 129265 --- [  restartedMain] g.f.a.FgAnalysisServiceApplication       : Starting FgAnalysisServiceApplication using Java 21.0.2 with PID 129265
+2026-06-24T10:58:38.968+02:00  INFO 129265 --- [  restartedMain] g.f.a.FgAnalysisServiceApplication       : The following 1 profile is active: "local"
+2026-06-24T10:58:40.426+02:00  INFO 129265 --- [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-24T10:58:42.654+02:00  WARN 129265 --- [  restartedMain] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 08001
+2026-06-24T10:58:42.654+02:00 ERROR 129265 --- [  restartedMain] o.h.engine.jdbc.spi.SqlExceptionHelper   : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+2026-06-24T10:58:42.655+02:00  WARN 129265 --- [  restartedMain] o.h.e.j.e.i.JdbcEnvironmentInitiator     : HHH000342: Could not obtain connection to query metadata
+
+org.hibernate.exception.JDBCConnectionException: unable to obtain isolated JDBC connection [Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.] [n/a]
+	at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:100) ~[hibernate-core-6.6.5.Final.jar:6.6.5.Final]
+	at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator.getJdbcEnvironmentUsingJdbcMetadata(JdbcEnvironmentInitiator.java:320) ~[hibernate-core-6.6.5.Final.jar:6.6.5.Final]
+	at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.afterPropertiesSet(AbstractEntityManagerFactoryBean.java:400) ~[spring-orm-6.2.2.jar:6.2.2]
+	at gms.fg.analysis.FgAnalysisServiceApplication.main(FgAnalysisServiceApplication.java:10) ~[main/:na]
+Caused by: org.postgresql.util.PSQLException: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:352) ~[postgresql-42.7.5.jar:42.7.5]
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:550) ~[HikariCP-5.1.0.jar:na]
+	at org.hibernate.engine.jdbc.connections.internal.DatasourceConnectionProviderImpl.getConnection(DatasourceConnectionProviderImpl.java:126) ~[hibernate-core-6.6.5.Final.jar:6.6.5.Final]
+	... 38 common frames omitted
+Caused by: java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[na:na]
+	at org.postgresql.core.PGStream.createSocket(PGStream.java:260) ~[postgresql-42.7.5.jar:42.7.5]
+	... 52 common frames omitted
+
+2026-06-24T10:58:43.141+02:00  INFO 129265 --- [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+
+============================
+CONDITIONS EVALUATION REPORT
+============================
+
+Negative matches:
+-----------------
+
+   ActiveMQAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'jakarta.jms.ConnectionFactory' (OnClassCondition)
+
+   BraveAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'brave.Tracer' (OnClassCondition)
+
+   CassandraAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.datastax.oss.driver.api.core.CqlSession' (OnClassCondition)
+
+   MongoAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient' (OnClassCondition)
+
+   RedisAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.redis.core.RedisOperations' (OnClassCondition)
+
+   ManagementWebSecurityAutoConfiguration:
+      Did not match:
+         - AllNestedConditions 1 matched 1 did not; NestedCondition on DefaultWebSecurityCondition.Beans @ConditionalOnMissingBean (types: org.springframework.security.web.SecurityFilterChain; SearchStrategy: all) did not find any beans; NestedCondition on DefaultWebSecurityCondition.Classes @ConditionalOnClass did not find required classes 'org.springframework.security.web.SecurityFilterChain', 'org.springframework.security.config.annotation.web.builders.HttpSecurity' (DefaultWebSecurityCondition)
+
+2026-06-24T10:58:45.310+02:00  INFO 129265 --- [  restartedMain] g.f.a.FgAnalysisServiceApplication       : Started FgAnalysisServiceApplication in 6.578 seconds (process running for 6.896)
+
+2026-06-24T10:58:38.966+02:00  INFO 129264 --- [  restartedMain] g.f.i.FgIdentificationServiceApplication : Starting FgIdentificationServiceApplication using Java 21.0.2 with PID 129264
+2026-06-24T10:58:38.967+02:00  INFO 129264 --- [  restartedMain] g.f.i.FgIdentificationServiceApplication : The following 1 profile is active: "local"
+2026-06-24T10:58:43.432+02:00  WARN 129264 --- [  restartedMain] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'identificationApiController' defined in file [/home/llama/GMS/fg-service/app/fg-identification/build/classes/java/main/gms/fg/identification/api/gen/IdentificationApiController.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'fgIdentificationService' defined in file [.../FgIdentificationService.class]: Unsatisfied dependency expressed through constructor parameter 5: No qualifying bean of type 'gms.fg.identification.tools.CloseApproach' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+
+2026-06-24T10:58:43.472+02:00 DEBUG 129264 --- [  restartedMain] o.s.b.d.LoggingFailureAnalysisReporter   : Application failed to start due to an exception
+
+org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type 'gms.fg.identification.tools.CloseApproach' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.raiseNoMatchingBeanFound(DefaultListableBeanFactory.java:2144) ~[spring-beans-6.2.2.jar:6.2.2]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1594) ~[spring-beans-6.2.2.jar:6.2.2]
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240) ~[spring-beans-6.2.2.jar:6.2.2]
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627) ~[spring-context-6.2.2.jar:6.2.2]
+	at gms.fg.identification.FgIdentificationServiceApplication.main(FgIdentificationServiceApplication.java:10) ~[main/:na]
+
+2026-06-24T10:58:43.472+02:00 ERROR 129264 --- [  restartedMain] o.s.b.d.LoggingFailureAnalysisReporter   :
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 5 of constructor in gms.fg.identification.service.FgIdentificationService required a bean of type 'gms.fg.identification.tools.CloseApproach' that could not be found.
+
+The injection point has the following annotations:
+	- @org.springframework.beans.factory.annotation.Autowired(required=false)
+
+
+Action:
+
+Consider defining a bean of type 'gms.fg.identification.tools.CloseApproach' in your configuration.
+
+
+2026-06-24T10:58:45.310+02:00  INFO 129265 --- [  restartedMain] g.f.a.FgAnalysisServiceApplication       : Started FgAnalysisServiceApplication in 6.578 seconds (process running for 6.896)
+2026-06-24T10:58:45.407+02:00  INFO 129265 --- [ntainer#3-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-2, groupId=fg-service] Node -1 disconnected.
+2026-06-24T10:58:45.407+02:00  INFO 129265 --- [ntainer#1-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-4, groupId=fg-service] Node -1 disconnected.
+2026-06-24T10:58:45.408+02:00  WARN 129265 --- [ntainer#1-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-4, groupId=fg-service] Connection to node -1 (localhost/127.0.0.1:29092) could not be established. Node may not be available.
+2026-06-24T10:58:45.408+02:00  WARN 129265 --- [ntainer#2-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-1, groupId=fg-service] Connection to node -1 (localhost/127.0.0.1:29092) could not be established. Node may not be available.
+2026-06-24T10:58:45.408+02:00  WARN 129265 --- [ntainer#0-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-3, groupId=fg-service] Connection to node -1 (localhost/127.0.0.1:29092) could not be established. Node may not be available.
+2026-06-24T10:58:45.408+02:00  WARN 129265 --- [ntainer#3-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-2, groupId=fg-service] Connection to node -1 (localhost/127.0.0.1:29092) could not be established. Node may not be available.
+2026-06-24T10:58:45.408+02:00  WARN 129265 --- [ntainer#2-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-1, groupId=fg-service] Bootstrap broker localhost:29092 (id: -1 rack: null) disconnected
+2026-06-24T10:58:45.408+02:00  WARN 129265 --- [ntainer#0-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-3, groupId=fg-service] Bootstrap broker localhost:29092 (id: -1 rack: null) disconnected
+2026-06-24T10:58:45.497+02:00  WARN 129265 --- [ntainer#0-0-C-1] org.apache.kafka.clients.NetworkClient   : [Consumer clientId=consumer-fg-service-3, groupId=fg-service] Connection to node -1 (localhost/127.0.0.1:29092) could not be established. Node may not be available.
+
+> Task :app:fg-analysis:bootRun FAILED
+
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':app:fg-analysis:bootRun'.
+> Build cancelled while executing task ':app:fg-analysis:bootRun'
+BUILD FAILED in 1m 12s
