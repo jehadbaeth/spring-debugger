@@ -58,6 +58,9 @@ public final class RuleBasedClassifier implements DiagnosisEngine {
 
     private boolean matches(SignalCriteria criteria, RawSignal signal) {
         if (criteria == null) return false;
+        // A rule with no active signal must never match (it would match everything). This guards
+        // against a mis-loaded or empty signals block.
+        if (!hasAnySignal(criteria)) return false;
 
         if (criteria.getCausedByClass() != null) {
             if (signal.getDeepestCausedByClass() == null) return false;
@@ -73,6 +76,17 @@ public final class RuleBasedClassifier implements DiagnosisEngine {
             boolean inLines = signal.anyLineContains(criteria.getMessageContains());
             boolean inExcerpt = containsIgnoreCase(signal.getRawExcerpt(), criteria.getMessageContains());
             if (!inLines && !inExcerpt) return false;
+        }
+
+        if (criteria.getMessageContainsAny() != null && !criteria.getMessageContainsAny().isEmpty()) {
+            boolean anyMatch = false;
+            for (String alt : criteria.getMessageContainsAny()) {
+                if (signal.anyLineContains(alt) || containsIgnoreCase(signal.getRawExcerpt(), alt)) {
+                    anyMatch = true;
+                    break;
+                }
+            }
+            if (!anyMatch) return false;
         }
 
         if (criteria.getBannerDescriptionContains() != null) {
@@ -164,6 +178,18 @@ public final class RuleBasedClassifier implements DiagnosisEngine {
     private String simpleName(String fqn) {
         int dot = fqn.lastIndexOf('.');
         return dot >= 0 ? fqn.substring(dot + 1) : fqn;
+    }
+
+    private boolean hasAnySignal(SignalCriteria c) {
+        return c.getCausedByClass() != null
+                || c.getCausedByMessage() != null
+                || c.getMessageContains() != null
+                || (c.getMessageContainsAny() != null && !c.getMessageContainsAny().isEmpty())
+                || c.getBannerDescriptionContains() != null
+                || c.getBannerActionContains() != null
+                || c.getBuildLineContains() != null
+                || c.getExceptionClass() != null
+                || c.getHttpStatus() > 0;
     }
 
     private boolean containsIgnoreCase(String text, String substring) {

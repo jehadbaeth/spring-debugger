@@ -70,11 +70,16 @@ public final class RuleCatalog {
         return rule;
     }
 
+    @SuppressWarnings("unchecked")
     private static SignalCriteria mapToSignals(Map<String, Object> m) {
         SignalCriteria s = new SignalCriteria();
         s.setCausedByClass(str(m, "causedByClass"));
         s.setCausedByMessage(str(m, "causedByMessage"));
         s.setMessageContains(str(m, "messageContains"));
+        Object any = m.get("messageContainsAny");
+        if (any instanceof List) {
+            s.setMessageContainsAny((List<String>) any);
+        }
         s.setBannerDescriptionContains(str(m, "bannerDescriptionContains"));
         s.setBannerActionContains(str(m, "bannerActionContains"));
         s.setBuildLineContains(str(m, "buildLineContains"));

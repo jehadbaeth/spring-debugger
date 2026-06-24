@@ -181,7 +181,7 @@ LLM Fallback (local Ollama)
 
 | Rule | Error | Signal |
 |---|---|---|
-| 14.1 | Broker not reachable | "Failed to update metadata after" |
+| 14.1 | Broker not reachable | "could not be established" / "Failed to update metadata after" |
 | 14.2 | bootstrap-servers not configured | Caused by: ConfigException + "bootstrap.servers" |
 | 14.3 | Consumer group.id invalid/missing | "InvalidGroupIdException" |
 | 14.4 | JsonDeserializer trusted packages | "is not in the trusted packages" |

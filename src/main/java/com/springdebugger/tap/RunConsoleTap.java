@@ -113,7 +113,13 @@ public final class RunConsoleTap implements ProcessListener {
         return text.contains(STARTUP_FAILURE_MARKER)
                 || text.contains(RUNTIME_EXCEPTION_MARKER)
                 || text.contains("Caused by:")
-                || (text.contains("ERROR") && text.contains("Exception"));
+                || (text.contains("ERROR") && text.contains("Exception"))
+                // Connection failures (e.g. Kafka, datasource) are logged at WARN with no
+                // exception, but are exactly what we diagnose, so recognise their markers too.
+                || text.contains("could not be established")
+                || text.contains("Failed to update metadata")
+                || text.contains("No endpoint ")
+                || text.contains("Resolved [");
     }
 
     @Override public void startNotified(@NotNull ProcessEvent event) {}

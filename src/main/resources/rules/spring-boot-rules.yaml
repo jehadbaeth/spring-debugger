@@ -626,8 +626,13 @@ rules:
     phases: [STARTUP, RUNTIME, TEST]
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
-      messageContains: "Failed to update metadata after"
-    diagnosis: "The Kafka client cannot reach any broker: it repeatedly fails to connect to the bootstrap broker (node -1) and times out fetching cluster metadata, so no producer or consumer can start. This is almost always a wrong address, a broker that is down, or a network/firewall block rather than an application bug."
+      # Two real signatures: the consumer/producer WARN spam ("Connection to node -1 (...) could
+      # not be established. Node may not be available.") and the producer metadata timeout. Match
+      # either.
+      messageContainsAny:
+        - "could not be established"
+        - "Failed to update metadata after"
+    diagnosis: "The Kafka client cannot reach any broker: it repeatedly logs that the connection to the bootstrap broker (node -1) could not be established, so no consumer or producer can work. This is almost always a wrong address, a broker that is down, or a network/firewall block rather than an application bug."
     fix: "Confirm spring.kafka.bootstrap-servers points at a reachable host:port (e.g. broker:9092) and test it with 'nc -zv <host> <port>'. In Docker/Kubernetes/cloud, set the broker's advertised.listeners to an address the client can actually resolve (not an internal container name) and open the port in any firewall or security group; the client reconnects automatically once the broker is reachable."
     confidence: HIGH
     fixture: "fixtures/14.1-kafka-broker-unreachable.log"

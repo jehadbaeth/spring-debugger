@@ -1,5 +1,7 @@
 package com.springdebugger.rule;
 
+import java.util.List;
+
 /**
  * Mirrors the signals block in spring-boot-rules.yaml.
  * All fields are optional; a rule fires when every non-null field matches.
@@ -14,6 +16,9 @@ public final class SignalCriteria {
 
     /** Substring match against any relevant line in the signal. */
     private String messageContains;
+
+    /** Matches when ANY of these substrings is present; for rules with phrasing variants. */
+    private List<String> messageContainsAny;
 
     /** Substring match against the FailureAnalyzer banner Description field. */
     private String bannerDescriptionContains;
@@ -38,6 +43,9 @@ public final class SignalCriteria {
 
     public String getMessageContains() { return messageContains; }
     public void setMessageContains(String messageContains) { this.messageContains = messageContains; }
+
+    public List<String> getMessageContainsAny() { return messageContainsAny; }
+    public void setMessageContainsAny(List<String> v) { this.messageContainsAny = v; }
 
     public String getBannerDescriptionContains() { return bannerDescriptionContains; }
     public void setBannerDescriptionContains(String v) { this.bannerDescriptionContains = v; }
