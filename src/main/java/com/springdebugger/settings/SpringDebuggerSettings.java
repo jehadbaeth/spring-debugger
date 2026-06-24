@@ -26,6 +26,8 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
         public boolean showNotificationBalloon = true;
         public boolean focusToolWindowOnError = true;
         public boolean watchTestResults = true;
+        public boolean watchLogFile = false;
+        public String logFilePath = "";
     }
 
     private State state = new State();
@@ -73,4 +75,10 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
 
     public boolean isWatchTestResults() { return state.watchTestResults; }
     public void setWatchTestResults(boolean watch) { state.watchTestResults = watch; }
+
+    public boolean isWatchLogFile() { return state.watchLogFile; }
+    public void setWatchLogFile(boolean watch) { state.watchLogFile = watch; }
+
+    public String getLogFilePath() { return state.logFilePath; }
+    public void setLogFilePath(String path) { state.logFilePath = path == null ? "" : path; }
 }

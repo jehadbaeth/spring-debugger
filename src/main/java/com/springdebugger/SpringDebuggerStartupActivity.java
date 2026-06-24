@@ -48,5 +48,15 @@ public final class SpringDebuggerStartupActivity implements StartupActivity.Dumb
         if (SpringDebuggerSettings.getInstance().isWatchTestResults()) {
             com.springdebugger.service.TestResultsWatchService.getInstance(project).start();
         }
+
+        // Tail the app's log file for terminal bootRun, when enabled and a file can be resolved.
+        if (SpringDebuggerSettings.getInstance().isWatchLogFile()) {
+            com.springdebugger.service.LogFileTailService svc =
+                    com.springdebugger.service.LogFileTailService.getInstance(project);
+            java.io.File logFile = svc.resolveLogFile();
+            if (logFile != null) {
+                svc.start(logFile);
+            }
+        }
     }
 }

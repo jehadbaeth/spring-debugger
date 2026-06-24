@@ -29,6 +29,9 @@
         <projectService
             serviceImplementation="com.springdebugger.service.TestResultsWatchService"/>
 
+        <projectService
+            serviceImplementation="com.springdebugger.service.LogFileTailService"/>
+
         <applicationConfigurable
             parentId="tools"
             id="com.springdebugger.settings"
