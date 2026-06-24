@@ -15,7 +15,7 @@ No reading cascading stack traces. No Googling the exception class name.
 - **Diagnose pasted output** — a toolbar button that diagnoses any pasted Run/Gradle/Maven console; the reliable path when IntelliJ does not hand the plugin a delegated run's output (e.g. with the Gradle configuration cache)
 - **Multi-error extraction** — pulls every distinct server-side error out of a noisy, long-running log (e.g. an integration suite hitting a live app), de-duplicated into a grouped history with counts, instead of collapsing to one
 - **Try it** — [`samples/testbed/`](samples/testbed) is a deliberately-broken Spring Boot app; run its tests with the plugin installed to watch 8 rules fire across one run
-- **58 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
+- **60 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
 - **Three-layer signal extraction** — reads `Caused by:` chains, failure analysis banners, and build error lines
 - **Build-aware** — taps both IntelliJ internal builds and delegated Gradle/Maven builds for compile-phase rules
 - **PSI enrichment** — confirms structural claims against your source (a missing bean has no stereotype, a type is a `@Mapper`, a class is outside the scan tree) and upgrades uncertain matches to HIGH
@@ -35,7 +35,7 @@ No reading cascading stack traces. No Googling the exception class name.
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  Spring Debugger                                            ⚙           │
-│  ● Monitoring  ·  58 rules                                              │
+│  ● Monitoring  ·  60 rules                                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  [2.1]  STARTUP  ●HIGH                                                  │
 │                                                                         │
@@ -117,7 +117,7 @@ LLM Fallback (local Ollama)
 | 3.4 | Property type conversion failure | "Failed to bind properties" |
 | 3.5 | YAML syntax error | Caused by: ScannerException |
 
-### Section 4 — JPA / data access (7 rules)
+### Section 4 — JPA / data access (10 rules)
 
 | Rule | Error | Signal |
 |---|---|---|
@@ -129,6 +129,8 @@ LLM Fallback (local Ollama)
 | 4.13 | DataIntegrityViolationException | Caused by: DataIntegrityViolationException |
 | 4.14 | RedisConnectionFactory not configured | Caused by: IllegalStateException + "RedisConnectionFactory is required" |
 | 4.15 | Database connection refused | "refused. Check that the hostname and port" (PostgreSQL JDBC) |
+| 4.16 | Schema validation failed (entity/DB out of sync) | "Schema-validation:" (Hibernate ddl-auto=validate) |
+| 4.17 | Column or table not found at runtime | SQLGrammarException / "Unknown column" / "Invalid column name" / "ERROR: column" |
 
 ### Section 5 — Web, REST, and MVC (4 rules)
 

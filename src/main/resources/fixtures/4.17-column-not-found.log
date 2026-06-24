@@ -1,0 +1,16 @@
+2026-06-24T11:35:12.880+02:00 ERROR 5210 --- [omcat-handler-3] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] threw exception
+
+org.springframework.dao.InvalidDataAccessResourceUsageException: JDBC exception executing SQL [select o1_0.id,o1_0.created_at,o1_0.total from orders o1_0] [ERROR: column o1_0.created_at does not exist
+  Position: 13]; SQL [n/a]
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.convertHibernateAccessException(HibernateJpaDialect.java:265) ~[spring-orm-6.2.2.jar:6.2.2]
+	at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.translateExceptionIfPossible(AbstractEntityManagerFactoryBean.java:570) ~[spring-orm-6.2.2.jar:6.2.2]
+	at com.example.orders.OrderService.findAll(OrderService.java:31) ~[main/:na]
+Caused by: org.hibernate.exception.SQLGrammarException: JDBC exception executing SQL [select o1_0.id,o1_0.created_at,o1_0.total from orders o1_0]
+	at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:97) ~[hibernate-core-6.6.5.Final.jar:6.6.5.Final]
+	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108) ~[hibernate-core-6.6.5.Final.jar:6.6.5.Final]
+	... 92 common frames omitted
+Caused by: org.postgresql.util.PSQLException: ERROR: column o1_0.created_at does not exist
+  Position: 13
+	at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2725) ~[postgresql-42.7.5.jar:42.7.5]
+	at org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:2412) ~[postgresql-42.7.5.jar:42.7.5]
+	... 110 common frames omitted

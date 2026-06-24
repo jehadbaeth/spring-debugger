@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.9.3  
+**Version:** 0.10.0  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -45,7 +45,7 @@ After restarting, you will see a **Spring Debugger** panel at the bottom of the 
 Open the panel. It shows:
 
 ```
-● Monitoring  ·  58 rules
+● Monitoring  ·  60 rules
 ```
 
 The green dot means the plugin is active and watching. No further setup is needed for offline mode.

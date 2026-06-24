@@ -348,6 +348,41 @@ rules:
     fixture: "fixtures/4.15-db-connection-refused.log"
     status: DONE
 
+  - id: "4.16"
+    name: "Schema validation failed (entity/DB out of sync)"
+    phases: [STARTUP, TEST]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      # Hibernate ddl-auto=validate compares the entities to the live schema at startup and aborts
+      # with "Schema-validation: missing column [..] in table [..]" (or missing table / wrong type).
+      # Matched on that phrase, not the deepest cause, since it is wrapped in BeanCreationException.
+      messageContains: "Schema-validation:"
+    diagnosis: "Hibernate validated your @Entity mappings against the database at startup and found a mismatch (a missing or renamed column, a missing table, or a changed type), so it aborted. This almost always means an entity was changed but the matching schema migration was not added, so the database is behind the code; the message names the exact table and column."
+    fix: "Add the missing Liquibase changeset (or Flyway migration) that brings the schema in line with the entity change and run it so the column or table exists. If the database is meant to be authoritative, revert the entity change instead. As a temporary local unblock you can set spring.jpa.hibernate.ddl-auto=update, but commit a proper migration rather than relying on it."
+    confidence: HIGH
+    fixture: "fixtures/4.16-schema-validation.log"
+    status: DONE
+
+  - id: "4.17"
+    name: "Column or table not found at runtime"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE]
+    signals:
+      # A query referenced a column/table the DB does not have. DB-specific wording, so match any:
+      # Hibernate's wrapper plus the PostgreSQL/MySQL/SQL Server phrasings for unknown column/table.
+      messageContainsAny:
+        - "SQLGrammarException"
+        - "Unknown column"
+        - "Invalid column name"
+        - "Invalid object name"
+        - "ERROR: column"
+        - "ERROR: relation"
+    diagnosis: "A SQL statement referenced a column or table that the database does not have, so the driver rejected it. The most common cause is an @Entity or @Column that was changed without a matching schema migration, so the database is out of sync with the code; it can also be a typo in a hand-written @Query. The message names the exact column or table."
+    fix: "Compare the entity or query against the real table and add the missing Liquibase changeset (or Flyway migration) to create or rename the column/table, then run it. If the schema is correct, fix the @Column/@Table mapping or the query instead. Catching this at startup is easier: set spring.jpa.hibernate.ddl-auto=validate so a drift fails fast with a clear schema-validation message."
+    confidence: MEDIUM
+    fixture: "fixtures/4.17-column-not-found.log"
+    status: DONE
+
   # ──────────────────────────────────────────
   # Section 5: Web, REST, and MVC Errors
   # ──────────────────────────────────────────
