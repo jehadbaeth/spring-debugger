@@ -14,8 +14,6 @@ import com.springdebugger.ui.DiagnosisCardPanel;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,25 +26,32 @@ import java.util.concurrent.TimeUnit;
  * terminal-agnostic capture path for {@code bootRun} (and any java process) started in a terminal:
  * the app's own log file is read directly, so no hook into the terminal is needed.
  *
- * <p>Watches <b>every</b> log file declared via {@code logging.file.name} across the project (one
- * per service in a multi-module build), or a single explicit {@code logFilePath} when set. Each
- * file is followed by byte offset and reset on truncation/rotation; per-file tail buffers keep the
- * end so a late error survives. Polls because the files live under {@code build/}, which IntelliJ
- * excludes from VFS.
+ * <p>Watches <b>every</b> log file declared via {@code logging.file.name}/{@code logging.file}
+ * across the project (one per service in a multi-module build), or a single explicit
+ * {@code logFilePath} when set. The set is <b>re-discovered periodically</b>, not fixed at startup,
+ * so committing the property and running works without restarting the IDE, and log files that only
+ * appear when a service is first run are picked up automatically.
+ *
+ * <p>Each file is followed by byte offset and reset on truncation/rotation; per-file tail buffers
+ * keep the end so a late error survives. Polls because the files live under {@code build/}, which
+ * IntelliJ excludes from VFS.
  */
 @Service(Service.Level.PROJECT)
 public final class LogFileTailService {
 
     private static final long POLL_MS = 1500;
+    /** Re-resolve the watched-file set every this many polls (~9s) to catch newly added configs/logs. */
+    private static final int REDISCOVER_EVERY = 6;
     private static final int BUFFER_MAX_CHARS = 200_000;
     private static final com.intellij.openapi.diagnostic.Logger LOG =
             com.intellij.openapi.diagnostic.Logger.getInstance(LogFileTailService.class);
 
     private final Project project;
+    private final Map<String, File> watched = new ConcurrentHashMap<>();
     private final Map<String, Long> offsets = new ConcurrentHashMap<>();
     private final Map<String, StringBuilder> buffers = new ConcurrentHashMap<>();
-    private final Set<String> shownKeys = new HashSet<>();
-    private volatile List<File> files = List.of();
+    private final Set<String> shownKeys = ConcurrentHashMap.newKeySet();
+    private volatile int sinceDiscovery;
     private volatile ScheduledFuture<?> task;
 
     public LogFileTailService(Project project) {
@@ -71,20 +76,23 @@ public final class LogFileTailService {
         return base == null ? List.of() : LogFilePropertyFinder.discoverAll(new File(base));
     }
 
-    public synchronized void start(List<File> targets) {
-        stop();
-        if (targets == null || targets.isEmpty()) return;
-        this.files = List.copyOf(targets);
+    /** Starts watching. Safe to call when nothing is configured yet: it keeps re-discovering. */
+    public synchronized void start() {
+        if (task != null) return;
+        watched.clear();
         offsets.clear();
         buffers.clear();
-        synchronized (shownKeys) { shownKeys.clear(); }
-        for (File f : files) {
-            // Start at the current end so only output written from now on is diagnosed.
-            offsets.put(f.getPath(), f.exists() ? f.length() : 0L);
+        shownKeys.clear();
+        sinceDiscovery = 0;
+        // Initial set: baseline existing files at EOF so old log content is not replayed on open.
+        for (File f : resolveLogFiles()) {
+            String key = f.getPath();
+            watched.put(key, f);
+            offsets.put(key, f.exists() ? f.length() : 0L);
         }
+        LOG.info("LogFileTailService starting, initial files=" + watched.keySet());
         this.task = AppExecutorUtil.getAppScheduledExecutorService()
                 .scheduleWithFixedDelay(this::poll, POLL_MS, POLL_MS, TimeUnit.MILLISECONDS);
-        LOG.info("LogFileTailService tailing " + files.size() + " file(s): " + files);
     }
 
     public synchronized void stop() {
@@ -92,24 +100,39 @@ public final class LogFileTailService {
             task.cancel(false);
             task = null;
         }
-        files = List.of();
+        watched.clear();
     }
 
     public boolean isTailing() {
-        return task != null && !files.isEmpty();
+        return task != null;
     }
 
     public List<File> tailedFiles() {
-        return files;
+        return List.copyOf(watched.values());
     }
 
     private void poll() {
         if (project.isDisposed() || !SpringDebuggerSettings.getInstance().isWatchLogFile()) return;
-        for (File f : files) {
+        if (++sinceDiscovery >= REDISCOVER_EVERY) {
+            sinceDiscovery = 0;
+            rediscover();
+        }
+        for (File f : watched.values()) {
             try {
                 tailOne(f);
             } catch (Throwable t) {
                 LOG.warn("LogFileTailService poll failed for " + f, t);
+            }
+        }
+    }
+
+    /** Adds files declared since start. A newly-appearing file is read from the beginning (offset 0). */
+    private void rediscover() {
+        for (File f : resolveLogFiles()) {
+            String key = f.getPath();
+            if (watched.putIfAbsent(key, f) == null) {
+                offsets.put(key, 0L); // new to us: read it fully (it is a fresh run's log)
+                LOG.info("LogFileTailService now watching " + key);
             }
         }
     }
@@ -139,11 +162,10 @@ public final class LogFileTailService {
 
         List<DiagnosisCard> cards = new ConsoleDiagnoser(SpringDebuggerService.getInstance().getCatalog())
                 .diagnoseAll(buffer.toString(), project);
+        LOG.info("LogFileTailService diagnosed " + key + " -> " + cards.size() + " card(s)");
         boolean firstOfBurst = true;
         for (DiagnosisCard card : cards) {
-            synchronized (shownKeys) {
-                if (!shownKeys.add(card.groupingKey())) continue;
-            }
+            if (!shownKeys.add(card.groupingKey())) continue;
             DiagnosisCardPanel.show(project, card, !firstOfBurst);
             firstOfBurst = false;
         }

@@ -49,15 +49,11 @@ public final class SpringDebuggerStartupActivity implements StartupActivity.Dumb
             com.springdebugger.service.TestResultsWatchService.getInstance(project).start();
         }
 
-        // Tail the app's log file(s) for terminal bootRun, when enabled and any can be resolved.
-        // Auto-discovers every logging.file.name across the project (one per service).
+        // Tail the app's log file(s) for terminal bootRun. The service self-discovers every
+        // logging.file.name across the project and keeps re-discovering, so it works even if the
+        // property is committed (or a service first run) after the IDE is already open.
         if (SpringDebuggerSettings.getInstance().isWatchLogFile()) {
-            com.springdebugger.service.LogFileTailService svc =
-                    com.springdebugger.service.LogFileTailService.getInstance(project);
-            java.util.List<java.io.File> logFiles = svc.resolveLogFiles();
-            if (!logFiles.isEmpty()) {
-                svc.start(logFiles);
-            }
+            com.springdebugger.service.LogFileTailService.getInstance(project).start();
         }
     }
 }
