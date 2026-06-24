@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.7.1  
+**Version:** 0.7.2  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -97,7 +97,7 @@ If you run your app or build from the integrated **Terminal** (for example `./gr
 2. Click the **▶ Monitor terminal** button in the panel toolbar.
 3. Pick the terminal tab you want to watch. To stop, open the same menu and choose **Stop monitoring**.
 
-While monitoring, the plugin polls that terminal's output and surfaces a diagnosis card when a Spring Boot error appears, exactly like the Run and Test taps. Only one terminal is watched at a time. The terminal has no streaming API, so detection is poll-based and may lag a second or two behind the output, and the **Terminal** plugin must be enabled.
+While monitoring, the plugin polls that terminal's output and surfaces a diagnosis card when a Spring Boot error appears, exactly like the Run and Test taps. Only one terminal is watched at a time. Detection is poll-based (it reads the tab's scrollback, so you can attach after output has started) and may lag a second or two. The **Terminal** plugin must be enabled, and the **new (Gen2) Terminal** is not supported yet — if the chooser says no terminals are found, either turn the new Terminal off in **Settings > Tools > Terminal**, or simply run via the **Gradle/Maven tool window**, which is detected automatically with no attaching.
 
 ---
 

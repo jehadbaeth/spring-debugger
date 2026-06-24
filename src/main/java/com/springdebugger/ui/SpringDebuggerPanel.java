@@ -111,14 +111,17 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
      */
     private void chooseTerminal(java.awt.Component anchor) {
         TerminalMonitorService monitor = TerminalMonitorService.getInstance(project);
-        List<JBTerminalWidget> widgets = new java.util.ArrayList<>(TerminalView.getInstance(project).getWidgets());
+        List<JBTerminalWidget> widgets = collectTerminals();
 
         List<String> labels = new java.util.ArrayList<>();
         if (monitor.isMonitoring()) labels.add("■  Stop monitoring");
         for (JBTerminalWidget w : widgets) labels.add("▶  " + terminalLabel(w));
 
         if (labels.isEmpty()) {
-            JBPopupFactory.getInstance().createMessage("No open terminals to monitor").showUnderneathOf(anchor);
+            JBPopupFactory.getInstance().createMessage(
+                "No classic terminal found. The new Terminal engine is not supported yet — "
+                + "switch it off in Settings > Tools > Terminal, or just run via the Gradle/Maven "
+                + "tool window (that is detected automatically).").showUnderneathOf(anchor);
             return;
         }
 
@@ -136,6 +139,29 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
             })
             .createPopup()
             .showUnderneathOf(anchor);
+    }
+
+    /**
+     * Collects open classic terminal widgets from both the newer TerminalToolWindowManager and
+     * the older TerminalView, de-duplicated. Each API can miss tabs the other sees across IDE
+     * versions; the new (Gen2) terminal exposes neither, which is why it cannot be monitored.
+     */
+    private List<JBTerminalWidget> collectTerminals() {
+        java.util.LinkedHashSet<JBTerminalWidget> found = new java.util.LinkedHashSet<>();
+        try {
+            for (Object w : org.jetbrains.plugins.terminal.TerminalToolWindowManager
+                    .getInstance(project).getTerminalWidgets()) {
+                if (w instanceof JBTerminalWidget jb) found.add(jb);
+            }
+        } catch (Throwable ignored) {
+            // older/newer API shape; fall back below
+        }
+        try {
+            found.addAll(TerminalView.getInstance(project).getWidgets());
+        } catch (Throwable ignored) {
+            // ignore; we may already have results from the other source
+        }
+        return new java.util.ArrayList<>(found);
     }
 
     private String terminalLabel(JBTerminalWidget widget) {
