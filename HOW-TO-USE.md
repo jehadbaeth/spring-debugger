@@ -1,6 +1,6 @@
 # Spring Boot Debugger — How to Use
 
-**Version:** 0.9.2  
+**Version:** 0.9.3  
 **Compatible IDEs:** IntelliJ IDEA Community and Ultimate 2023.3+
 
 ---
@@ -101,6 +101,8 @@ Most teams run `./gradlew test` and `./gradlew bootRun` in the integrated termin
    logging.file.name=build/app.log
    ```
    Relative paths resolve against each service's module, so per-service logs work out of the box. To pin a single explicit file instead of auto-discovery, set a path in settings; leave it blank to auto-discover.
+
+   The log file appends across runs (Spring Boot does not truncate it), so you do **not** need `gradle clean` between runs: the plugin tracks each run by its `Starting … with PID` line, diagnoses only the most recent run, and re-shows an error when you re-run even if it is identical. Stale errors from earlier runs in the same file are ignored.
 3. **Experimental — monitor the new terminal directly.** Enable "Experimental: monitor the new (Gen2) terminal", then use the Monitor terminal button and pick "Monitor active tab". This reads the editor backing the terminal; it is best-effort and unverified across IDE versions, so treat it as a convenience, not a guarantee.
 
 If none of these fit a particular run, **Diagnose pasted output** below always works.

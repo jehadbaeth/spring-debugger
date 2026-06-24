@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.springdebugger.SpringDebuggerService;
 import com.springdebugger.extractor.LogFilePropertyFinder;
+import com.springdebugger.extractor.LogRunBoundary;
 import com.springdebugger.model.DiagnosisCard;
 import com.springdebugger.settings.SpringDebuggerSettings;
 import com.springdebugger.tap.ConsoleDiagnoser;
@@ -50,7 +51,9 @@ public final class LogFileTailService {
     private final Map<String, File> watched = new ConcurrentHashMap<>();
     private final Map<String, Long> offsets = new ConcurrentHashMap<>();
     private final Map<String, StringBuilder> buffers = new ConcurrentHashMap<>();
-    private final Set<String> shownKeys = ConcurrentHashMap.newKeySet();
+    // Dedup is per file and per run: cleared when a new run starts so an identical error re-surfaces
+    // on a re-run, but a steady error within one run is not re-shown every poll.
+    private final Map<String, Set<String>> seenByFile = new ConcurrentHashMap<>();
     private volatile int sinceDiscovery;
     private volatile ScheduledFuture<?> task;
 
@@ -82,7 +85,7 @@ public final class LogFileTailService {
         watched.clear();
         offsets.clear();
         buffers.clear();
-        shownKeys.clear();
+        seenByFile.clear();
         sinceDiscovery = 0;
         // Initial set: baseline existing files at EOF so old log content is not replayed on open.
         for (File f : resolveLogFiles()) {
@@ -158,14 +161,24 @@ public final class LogFileTailService {
         if (buffer.length() > BUFFER_MAX_CHARS) {
             buffer.delete(0, buffer.length() - BUFFER_MAX_CHARS);
         }
+
+        Set<String> seen = seenByFile.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet());
+        // A new run started in this chunk: forget what the previous run showed so the same error
+        // can re-surface, and so we never blend two runs' errors.
+        if (LogRunBoundary.containsRunStart(delta)) {
+            seen.clear();
+        }
         if (!RunConsoleTap.containsErrorSignature(delta)) return;
 
+        // Diagnose only the most recent run's slice so stale errors from earlier runs in this
+        // appending file are never surfaced (Spring Boot does not truncate the log between runs).
+        String currentRun = LogRunBoundary.lastRunSlice(buffer.toString());
         List<DiagnosisCard> cards = new ConsoleDiagnoser(SpringDebuggerService.getInstance().getCatalog())
-                .diagnoseAll(buffer.toString(), project);
+                .diagnoseAll(currentRun, project);
         LOG.info("LogFileTailService diagnosed " + key + " -> " + cards.size() + " card(s)");
         boolean firstOfBurst = true;
         for (DiagnosisCard card : cards) {
-            if (!shownKeys.add(card.groupingKey())) continue;
+            if (!seen.add(card.groupingKey())) continue;
             DiagnosisCardPanel.show(project, card, !firstOfBurst);
             firstOfBurst = false;
         }
