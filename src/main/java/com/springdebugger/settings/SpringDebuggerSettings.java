@@ -28,6 +28,7 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
         public boolean watchTestResults = true;
         public boolean watchLogFile = false;
         public String logFilePath = "";
+        public boolean experimentalNewTerminal = false;
     }
 
     private State state = new State();
@@ -81,4 +82,7 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
 
     public String getLogFilePath() { return state.logFilePath; }
     public void setLogFilePath(String path) { state.logFilePath = path == null ? "" : path; }
+
+    public boolean isExperimentalNewTerminal() { return state.experimentalNewTerminal; }
+    public void setExperimentalNewTerminal(boolean on) { state.experimentalNewTerminal = on; }
 }

@@ -167,15 +167,19 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
         TerminalMonitorService monitor = TerminalMonitorService.getInstance(project);
         List<JBTerminalWidget> widgets = collectTerminals();
 
+        boolean experimental = SpringDebuggerSettings.getInstance().isExperimentalNewTerminal();
+        String EXPERIMENTAL_LABEL = "▶  Monitor active tab (experimental new terminal)";
+
         List<String> labels = new java.util.ArrayList<>();
         if (monitor.isMonitoring()) labels.add("■  Stop monitoring");
         for (JBTerminalWidget w : widgets) labels.add("▶  " + terminalLabel(w));
+        if (experimental) labels.add(EXPERIMENTAL_LABEL);
 
         if (labels.isEmpty()) {
             JBPopupFactory.getInstance().createMessage(
-                "No classic terminal found. The new Terminal engine is not supported yet — "
-                + "switch it off in Settings > Tools > Terminal, or just run via the Gradle/Maven "
-                + "tool window (that is detected automatically).").showUnderneathOf(anchor);
+                "No classic terminal found. The new Terminal engine cannot be read through a stable "
+                + "API. Enable 'experimental new-terminal monitoring' in Settings > Tools > Spring Boot "
+                + "Debugger to try it, or use Diagnose pasted output, which always works.").showUnderneathOf(anchor);
             return;
         }
 
@@ -186,7 +190,12 @@ public final class SpringDebuggerPanel extends SimpleToolWindowPanel {
                     monitor.stop();
                     return;
                 }
-                int index = labels.indexOf(choice) - (monitor.isMonitoring() ? 1 : 0);
+                if (choice.equals(EXPERIMENTAL_LABEL)) {
+                    monitor.monitorSelectedEditor();
+                    return;
+                }
+                int offset = (monitor.isMonitoring() ? 1 : 0);
+                int index = labels.indexOf(choice) - offset;
                 if (index >= 0 && index < widgets.size()) {
                     monitor.monitor(widgets.get(index));
                 }

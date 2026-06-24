@@ -24,6 +24,10 @@ public final class SpringDebuggerSettingsPanel {
     private JBCheckBox llmEnabledBox;
     private JBTextField ollamaUrlField;
     private JBTextField ollamaModelField;
+    private JBCheckBox watchTestResultsBox;
+    private JBCheckBox watchLogFileBox;
+    private JBTextField logFilePathField;
+    private JBCheckBox experimentalTerminalBox;
 
     public SpringDebuggerSettingsPanel() {
         build();
@@ -50,6 +54,31 @@ public final class SpringDebuggerSettingsPanel {
 
         focusToolWindowBox = new JBCheckBox("Focus tool window when an error is detected");
         addRow(root, focusToolWindowBox, row++);
+
+        // ── Terminal capture section ─────────────────────────────────────────
+        addSectionHeader(root, "Terminal capture (for runs started in a terminal)", row++);
+
+        watchTestResultsBox = new JBCheckBox("Watch test result files (build/test-results, surefire-reports)");
+        addRow(root, watchTestResultsBox, row++);
+
+        watchLogFileBox = new JBCheckBox("Tail the application log file for bootRun");
+        addRow(root, watchLogFileBox, row++);
+
+        logFilePathField = new JBTextField();
+        addLabeledComponent(root, "Log file path (blank = auto-detect logging.file.name):", logFilePathField, row++);
+
+        experimentalTerminalBox = new JBCheckBox("Experimental: monitor the new (Gen2) terminal directly");
+        addRow(root, experimentalTerminalBox, row++);
+
+        JBLabel terminalNote = new JBLabel(
+            "<html><i>Test-result watching needs no setup. Log tailing needs a log file (set<br>" +
+            "logging.file.name) since console-only output has nothing to read. The new-terminal<br>" +
+            "option is best-effort and unverified across IDE versions; if in doubt, use<br>" +
+            "Diagnose pasted output, which always works.</i></html>");
+        terminalNote.setForeground(UIManager.getColor("Label.disabledForeground"));
+        addRow(root, terminalNote, row++);
+
+        watchLogFileBox.addActionListener(e -> updateLogFieldState());
 
         // ── Analysis section ─────────────────────────────────────────────────
         addSectionHeader(root, "Analysis", row++);
@@ -151,7 +180,11 @@ public final class SpringDebuggerSettingsPanel {
             || (int) maxHistorySpinner.getValue() != s.getMaxHistorySize()
             || llmEnabledBox.isSelected() != s.isLlmEnabled()
             || !ollamaUrlField.getText().equals(s.getOllamaBaseUrl())
-            || !ollamaModelField.getText().equals(s.getOllamaModel());
+            || !ollamaModelField.getText().equals(s.getOllamaModel())
+            || watchTestResultsBox.isSelected() != s.isWatchTestResults()
+            || watchLogFileBox.isSelected() != s.isWatchLogFile()
+            || !logFilePathField.getText().equals(s.getLogFilePath())
+            || experimentalTerminalBox.isSelected() != s.isExperimentalNewTerminal();
     }
 
     public void apply() {
@@ -164,6 +197,10 @@ public final class SpringDebuggerSettingsPanel {
         s.setLlmEnabled(llmEnabledBox.isSelected());
         s.setOllamaBaseUrl(ollamaUrlField.getText().trim());
         s.setOllamaModel(ollamaModelField.getText().trim());
+        s.setWatchTestResults(watchTestResultsBox.isSelected());
+        s.setWatchLogFile(watchLogFileBox.isSelected());
+        s.setLogFilePath(logFilePathField.getText().trim());
+        s.setExperimentalNewTerminal(experimentalTerminalBox.isSelected());
     }
 
     public void reset() {
@@ -176,12 +213,21 @@ public final class SpringDebuggerSettingsPanel {
         llmEnabledBox.setSelected(s.isLlmEnabled());
         ollamaUrlField.setText(s.getOllamaBaseUrl());
         ollamaModelField.setText(s.getOllamaModel());
+        watchTestResultsBox.setSelected(s.isWatchTestResults());
+        watchLogFileBox.setSelected(s.isWatchLogFile());
+        logFilePathField.setText(s.getLogFilePath());
+        experimentalTerminalBox.setSelected(s.isExperimentalNewTerminal());
         updateLlmFieldState();
+        updateLogFieldState();
     }
 
     private void updateLlmFieldState() {
         boolean on = llmEnabledBox.isSelected();
         ollamaUrlField.setEnabled(on);
         ollamaModelField.setEnabled(on);
+    }
+
+    private void updateLogFieldState() {
+        logFilePathField.setEnabled(watchLogFileBox.isSelected());
     }
 }

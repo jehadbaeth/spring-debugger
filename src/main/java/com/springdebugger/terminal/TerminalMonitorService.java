@@ -35,6 +35,7 @@ public final class TerminalMonitorService {
     private final TerminalTextDiffer differ = new TerminalTextDiffer();
     private final Set<String> shownKeys = new HashSet<>();
     private volatile JBTerminalWidget widget;
+    private volatile boolean editorMode;
     private volatile ScheduledFuture<?> task;
 
     public TerminalMonitorService(Project project) {
@@ -48,6 +49,22 @@ public final class TerminalMonitorService {
     public synchronized void monitor(JBTerminalWidget target) {
         stop();
         this.widget = target;
+        this.editorMode = false;
+        startTask();
+    }
+
+    /**
+     * Experimental: monitor the new (Gen2) terminal by reading the editor that backs the selected
+     * Terminal tab. Unverified across IDE versions; degrades to no output if nothing is readable.
+     */
+    public synchronized void monitorSelectedEditor() {
+        stop();
+        this.widget = null;
+        this.editorMode = true;
+        startTask();
+    }
+
+    private void startTask() {
         this.differ.reset();
         synchronized (shownKeys) {
             this.shownKeys.clear();
@@ -62,10 +79,11 @@ public final class TerminalMonitorService {
             task = null;
         }
         widget = null;
+        editorMode = false;
     }
 
     public boolean isMonitoring() {
-        return task != null && widget != null;
+        return task != null && (widget != null || editorMode);
     }
 
     public JBTerminalWidget monitoredWidget() {
@@ -73,16 +91,23 @@ public final class TerminalMonitorService {
     }
 
     private void poll() {
-        JBTerminalWidget current = widget;
-        if (current == null || project.isDisposed()) return;
+        if (project.isDisposed()) return;
 
         String full;
-        try {
-            full = TerminalReader.read(current);
-        } catch (Throwable t) {
-            // The terminal may have been closed mid-read; stop quietly.
-            stop();
-            return;
+        if (editorMode) {
+            // Experimental new-terminal path: read the editor backing the selected Terminal tab.
+            full = EditorTerminalReader.readSelectedTerminal(project);
+            if (full == null) return; // nothing readable this tick; keep trying
+        } else {
+            JBTerminalWidget current = widget;
+            if (current == null) return;
+            try {
+                full = TerminalReader.read(current);
+            } catch (Throwable t) {
+                // The terminal may have been closed mid-read; stop quietly.
+                stop();
+                return;
+            }
         }
 
         String delta = differ.newText(full);
