@@ -12,7 +12,8 @@ No reading cascading stack traces. No Googling the exception class name.
 - **Gradle/Maven tool window** — diagnoses compile, startup, and runtime/Kafka failures from tasks run in the Gradle or Maven panel (delegated runs), not just the Run button
 - **Terminal monitoring** — pick an open terminal tab and have the plugin watch its output for Spring Boot errors (for apps started with `./gradlew bootRun`, `mvn spring-boot:run`, etc.)
 - **Multi-error extraction** — pulls every distinct server-side error out of a noisy, long-running log (e.g. an integration suite hitting a live app), de-duplicated into a grouped history with counts, instead of collapsing to one
-- **56 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
+- **Try it** — [`samples/testbed/`](samples/testbed) is a deliberately-broken Spring Boot app; run its tests with the plugin installed to watch 8 rules fire across one run
+- **57 rules** covering the most common Spring Boot errors across startup, runtime, test, and compile phases
 - **Three-layer signal extraction** — reads `Caused by:` chains, failure analysis banners, and build error lines
 - **Build-aware** — taps both IntelliJ internal builds and delegated Gradle/Maven builds for compile-phase rules
 - **PSI enrichment** — confirms structural claims against your source (a missing bean has no stereotype, a type is a `@Mapper`, a class is outside the scan tree) and upgrades uncertain matches to HIGH
@@ -32,7 +33,7 @@ No reading cascading stack traces. No Googling the exception class name.
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  Spring Debugger                                            ⚙           │
-│  ● Monitoring  ·  56 rules                                              │
+│  ● Monitoring  ·  57 rules                                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  [2.1]  STARTUP  ●HIGH                                                  │
 │                                                                         │
@@ -101,7 +102,7 @@ LLM Fallback (local Ollama)
 | Rule | Error | Signal |
 |---|---|---|
 | 2.1 | NoSuchBeanDefinitionException | Caused by: NoSuchBeanDefinitionException + "bean of type" |
-| 2.2 | NoUniqueBeanDefinitionException | Caused by: NoUniqueBeanDefinitionException + "required a single bean, but" |
+| 2.2 | NoUniqueBeanDefinitionException | Caused by: NoUniqueBeanDefinitionException |
 | 2.3 | UnsatisfiedDependencyException | Caused by: UnsatisfiedDependencyException |
 | 2.7 | Circular dependency | "The dependencies of some of the beans in the application context form a cycle" |
 | 2.13 | Missing bean (failure-analysis banner) | Banner Description: "required a bean of type" (stack suppressed) |
@@ -126,12 +127,13 @@ LLM Fallback (local Ollama)
 | 4.13 | DataIntegrityViolationException | Caused by: DataIntegrityViolationException |
 | 4.14 | RedisConnectionFactory not configured | Caused by: IllegalStateException + "RedisConnectionFactory is required" |
 
-### Section 5 — Web, REST, and MVC (3 rules)
+### Section 5 — Web, REST, and MVC (4 rules)
 
 | Rule | Error | Signal |
 |---|---|---|
 | 5.1 | 404 No handler found | Caused by: NoHandlerFoundException |
-| 5.5 | Bean validation failure | Caused by: MethodArgumentNotValidException |
+| 5.13 | 404 No endpoint (Spring Boot 3.2+) | "No endpoint " (modern DispatcherServlet phrasing) |
+| 5.5 | Bean validation failure | "MethodArgumentNotValidException" |
 | 5.8 | Ambiguous handler mapping | "Ambiguous mapping. Cannot map" |
 
 ### Section 6 — Spring Security (3 rules)

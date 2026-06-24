@@ -1,0 +1,1 @@
+2026-06-24 10:15:03.412  WARN 4123 --- [nio-8080-exec-2] o.s.web.servlet.PageNotFound             : No endpoint GET /api/does-not-exist.

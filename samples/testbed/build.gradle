@@ -1,0 +1,16 @@
+plugins { id 'java' }
+repositories { mavenCentral() }
+java { sourceCompatibility = JavaVersion.VERSION_17 }
+dependencies {
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.2.5')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+test {
+    useJUnitPlatform()
+    // The point of this project is to FAIL loudly so the plugin diagnoses each error.
+    ignoreFailures = true
+    testLogging { showStandardStreams = true }
+}

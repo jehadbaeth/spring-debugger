@@ -162,8 +162,9 @@ rules:
     phases: [STARTUP, TEST]
     taps: [RUN_CONSOLE, TEST_CONSOLE]
     signals:
+      # Keyed on the class alone: the real exception message is "expected single matching bean
+      # but found N", while "required a single bean, but" is only the failure-analyzer banner.
       causedByClass: "NoUniqueBeanDefinitionException"
-      messageContains: "required a single bean, but"
     diagnosis: "More than one bean matches the injected type {{beanType}}, so Spring cannot decide which one to wire and fails; this typically happens when two implementations of the same interface are both registered as beans."
     fix: "Mark the intended implementation @Primary, or disambiguate at the injection point with @Qualifier(\"beanName\") (the bean name defaults to the decapitalised class name). The error message lists the candidate bean names to choose from."
     confidence: HIGH
@@ -346,6 +347,21 @@ rules:
     fixture: "fixtures/5.1-no-handler.log"
     status: DONE
 
+  # Spring 6 / Boot 3.2+ phrasing: DispatcherServlet logs "No endpoint GET /path." and the
+  # NoHandlerFoundException class name does not appear in the log, so 5.1 (keyed on the class)
+  # misses it. Found by running a real Boot 3.2 app. Same 404 diagnosis.
+  - id: "5.13"
+    name: "404 No endpoint (Spring Boot 3.2+)"
+    phases: [RUNTIME]
+    taps: [RUN_CONSOLE, TEST_CONSOLE]
+    signals:
+      messageContains: "No endpoint "
+    diagnosis: "Spring MVC found no handler for the requested path and returned 404 (logged as 'No endpoint <method> <path>'). The controller may not be component-scanned, or the path or HTTP method may not match the mapping."
+    fix: "Check the exact path (including any server.servlet.context-path) and HTTP method against the controller's @GetMapping/@PostMapping, and confirm the controller is a scanned @RestController/@Controller bean."
+    confidence: HIGH
+    fixture: "fixtures/5.13-no-endpoint.log"
+    status: DONE
+
   - id: "5.5"
     name: "MethodArgumentNotValidException"
     phases: [RUNTIME]
@@ -422,9 +438,11 @@ rules:
     phases: [RUNTIME]
     taps: [RUN_CONSOLE]
     signals:
-      causedByClass: "StackOverflowError"
+      # Keyed on the message, not StackOverflowError: in the common web case Jackson reports
+      # "Could not write JSON: Infinite recursion (StackOverflowError)" via
+      # HttpMessageNotWritableException, so the StackOverflowError is not the deepest cause.
       messageContains: "Infinite recursion"
-    diagnosis: "Jackson recursed infinitely while serialising a bidirectional JPA relationship where each side references the other (for example Order has a Customer and Customer has a List<Order>), producing a StackOverflowError because serialisation never terminates."
+    diagnosis: "Jackson recursed infinitely while serialising a bidirectional relationship where each side references the other (for example Order has a Customer and Customer has a List<Order>), producing a StackOverflowError because serialisation never terminates."
     fix: "Break the cycle on one side: annotate the parent reference with @JsonManagedReference and the child back-reference with @JsonBackReference, or put @JsonIgnore on the side you do not need in the output. The cleanest long-term fix is to serialise DTOs instead of entities so the API shape is explicit."
     confidence: HIGH
     fixture: "fixtures/7.2-infinite-recursion.log"
