@@ -125,7 +125,7 @@ If you run your app or build from the integrated **Terminal** (for example `./gr
 2. Click the **▶ Monitor terminal** button in the panel toolbar.
 3. Pick the terminal tab you want to watch. To stop, open the same menu and choose **Stop monitoring**.
 
-While monitoring, the plugin polls that terminal's output and surfaces a diagnosis card when a Spring Boot error appears, exactly like the Run and Test taps. Only one terminal is watched at a time. Detection is poll-based (it reads the tab's scrollback, so you can attach after output has started) and may lag a second or two. The **Terminal** plugin must be enabled, and the **new (Gen2) Terminal** is not supported yet — if the chooser says no terminals are found, either turn the new Terminal off in **Settings > Tools > Terminal**, or use **Diagnose pasted output** (above), which always works regardless of how the app was launched.
+While monitoring, the plugin polls that terminal's output and surfaces a diagnosis card when a Spring Boot error appears, exactly like the Run and Test taps. Only one terminal is watched at a time. Detection is poll-based (it reads the tab's scrollback, so you can attach after output has started) and may lag a second or two. The **Terminal** plugin must be enabled. This button monitors the **classic** terminal; for the **new (Gen2) Terminal** see the "Running tests and bootRun in a terminal" section above (test-result watching and log tailing are the dependable paths; an opt-in experimental new-terminal reader is also available). If the chooser says no terminals are found, use **Diagnose pasted output**, which always works regardless of how the app was launched.
 
 ---
 
