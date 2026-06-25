@@ -1,10 +1,12 @@
 // VS Code extension entry point. Thin glue: it loads the shared rule catalog, runs the ported
 // ConsoleDiagnoser, and surfaces results through a webview card and a history tree. All diagnosis
 // logic lives in the engine; this file only bridges to the vscode API.
+import * as path from 'path';
 import * as vscode from 'vscode';
-import { ConsoleDiagnoser, DiagnosisCard } from './engine';
+import { ConsoleDiagnoser, DiagnosisCard, discoverAll } from './engine';
 import { DiagnosisHistory } from './history';
 import { TestResultsWatcher } from './capture/test-results-watch';
+import { LogTailWatcher } from './capture/log-tail-watch';
 import { loadBundledCatalog } from './runtime/catalog';
 import { renderCardsHtml } from './ui/card-html';
 import { HistoryTreeProvider } from './ui/history-tree';
@@ -12,6 +14,7 @@ import { HistoryTreeProvider } from './ui/history-tree';
 let diagnoser: ConsoleDiagnoser | undefined;
 let history: DiagnosisHistory | undefined;
 let watcher: TestResultsWatcher | undefined;
+let tailer: LogTailWatcher | undefined;
 let panel: vscode.WebviewPanel | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -37,17 +40,41 @@ export function activate(context: vscode.ExtensionContext): void {
 
   watcher = new TestResultsWatcher(diagnoser, () => workspaceBase());
   watcher.start((cards) => onCapturedCards(context, cards));
-  context.subscriptions.push({ dispose: () => watcher?.stop() });
+
+  tailer = new LogTailWatcher(diagnoser, () => resolveLogFiles());
+  tailer.start((cards) => onCapturedCards(context, cards));
+
+  context.subscriptions.push({
+    dispose: () => {
+      watcher?.stop();
+      tailer?.stop();
+    },
+  });
 }
 
 export function deactivate(): void {
   watcher?.stop();
+  tailer?.stop();
   panel?.dispose();
   panel = undefined;
 }
 
 function workspaceBase(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
+/** An explicit logFilePath setting wins; otherwise auto-discover every logging.file.name in the project. */
+function resolveLogFiles(): string[] {
+  const base = workspaceBase();
+  if (!base) return [];
+  const configured = vscode.workspace
+    .getConfiguration('springDebugger')
+    .get<string>('logFilePath', '')
+    .trim();
+  if (configured !== '') {
+    return [path.isAbsolute(configured) ? configured : path.join(base, configured)];
+  }
+  return discoverAll(base);
 }
 
 async function diagnosePasted(context: vscode.ExtensionContext): Promise<void> {
