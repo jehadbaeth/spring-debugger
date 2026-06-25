@@ -1,12 +1,17 @@
 // VS Code extension entry point. Thin glue: it loads the shared rule catalog, runs the ported
-// ConsoleDiagnoser, and renders cards in a reused webview. All diagnosis logic lives in the engine;
-// this file only bridges to the vscode API.
+// ConsoleDiagnoser, and surfaces results through a webview card and a history tree. All diagnosis
+// logic lives in the engine; this file only bridges to the vscode API.
 import * as vscode from 'vscode';
 import { ConsoleDiagnoser, DiagnosisCard } from './engine';
+import { DiagnosisHistory } from './history';
+import { TestResultsWatcher } from './capture/test-results-watch';
 import { loadBundledCatalog } from './runtime/catalog';
 import { renderCardsHtml } from './ui/card-html';
+import { HistoryTreeProvider } from './ui/history-tree';
 
 let diagnoser: ConsoleDiagnoser | undefined;
+let history: DiagnosisHistory | undefined;
+let watcher: TestResultsWatcher | undefined;
 let panel: vscode.WebviewPanel | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -19,16 +24,30 @@ export function activate(context: vscode.ExtensionContext): void {
     return;
   }
 
+  history = new DiagnosisHistory();
+  const tree = new HistoryTreeProvider(history);
   context.subscriptions.push(
-    vscode.commands.registerCommand('springDebugger.diagnosePasted', () =>
-      diagnosePasted(context),
+    vscode.window.registerTreeDataProvider('springDebuggerHistory', tree),
+    vscode.commands.registerCommand('springDebugger.diagnosePasted', () => diagnosePasted(context)),
+    vscode.commands.registerCommand('springDebugger.openCard', (card: DiagnosisCard) =>
+      showCards(context, [card]),
     ),
+    vscode.commands.registerCommand('springDebugger.clearHistory', () => history?.clear()),
   );
+
+  watcher = new TestResultsWatcher(diagnoser, () => workspaceBase());
+  watcher.start((cards) => onCapturedCards(context, cards));
+  context.subscriptions.push({ dispose: () => watcher?.stop() });
 }
 
 export function deactivate(): void {
+  watcher?.stop();
   panel?.dispose();
   panel = undefined;
+}
+
+function workspaceBase(): string | undefined {
+  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 }
 
 async function diagnosePasted(context: vscode.ExtensionContext): Promise<void> {
@@ -43,17 +62,28 @@ async function diagnosePasted(context: vscode.ExtensionContext): Promise<void> {
         placeHolder: 'Exception text, log lines, or a stack trace',
       })) ?? '';
   }
-  if (!text || text.trim() === '') {
-    return;
-  }
+  if (!text || text.trim() === '') return;
 
   const cards = diagnoser.diagnoseAll(text);
+  for (const card of cards) history?.add(card);
   showCards(context, cards);
   if (cards.length === 0) {
     vscode.window.showInformationMessage(
       'Spring Boot Debugger: no known error recognised in the pasted output.',
     );
   }
+}
+
+/** Handles cards produced by a background capture path (test results, later log tailing). */
+function onCapturedCards(context: vscode.ExtensionContext, cards: DiagnosisCard[]): void {
+  if (cards.length === 0) return;
+  for (const card of cards) history?.add(card);
+  const first = cards[0];
+  vscode.window
+    .showWarningMessage(`Spring Boot Debugger: ${first.ruleId} — ${first.diagnosisSentence}`, 'Show')
+    .then((sel) => {
+      if (sel === 'Show') showCards(context, cards);
+    });
 }
 
 function showCards(context: vscode.ExtensionContext, cards: DiagnosisCard[]): void {

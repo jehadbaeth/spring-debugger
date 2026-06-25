@@ -23,8 +23,51 @@
         "command": "springDebugger.diagnosePasted",
         "title": "Diagnose Pasted Output",
         "category": "Spring Boot Debugger"
+      },
+      {
+        "command": "springDebugger.openCard",
+        "title": "Open Diagnosis Card",
+        "category": "Spring Boot Debugger"
+      },
+      {
+        "command": "springDebugger.clearHistory",
+        "title": "Clear History",
+        "category": "Spring Boot Debugger",
+        "icon": "$(clear-all)"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "springDebugger",
+          "title": "Spring Boot Debugger",
+          "icon": "media/leaf.svg"
+        }
+      ]
+    },
+    "views": {
+      "springDebugger": [
+        {
+          "id": "springDebuggerHistory",
+          "name": "Diagnosis History"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "springDebugger.clearHistory",
+          "when": "view == springDebuggerHistory",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "springDebugger.openCard",
+          "when": "false"
+        }
+      ]
+    }
   },
   "scripts": {
     "copy-assets": "node scripts/copy-assets.js",
