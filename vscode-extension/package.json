@@ -1,0 +1,37 @@
+{
+  "name": "spring-boot-debugger",
+  "displayName": "Spring Boot Debugger",
+  "description": "Watches Spring Boot run, test, and build output and explains errors in plain language. One sentence names the problem, one gives the fix.",
+  "version": "0.10.0",
+  "publisher": "okapiorbits",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Linters",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "copy-assets": "node scripts/copy-assets.js",
+    "compile": "tsc -p ./",
+    "bundle": "npm run copy-assets && node esbuild.js",
+    "test": "npm run copy-assets && vitest run",
+    "test:watch": "vitest",
+    "package": "npm run bundle && vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

@@ -1,0 +1,11 @@
+.gitignore
+tsconfig.json
+esbuild.js
+scripts/**
+src/**
+test/**
+vitest.config.ts
+**/*.map
+**/*.ts
+node_modules/**
+!assets/**
