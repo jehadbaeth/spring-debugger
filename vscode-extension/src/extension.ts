@@ -20,6 +20,7 @@ let tailer: LogTailWatcher | undefined;
 let panel: vscode.WebviewPanel | undefined;
 let status: vscode.StatusBarItem | undefined;
 let ruleCount = 0;
+let activeContext: vscode.ExtensionContext | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   try {
@@ -33,6 +34,7 @@ export function activate(context: vscode.ExtensionContext): void {
     return;
   }
 
+  activeContext = context;
   history = new DiagnosisHistory(readSettings().maxHistory);
   const tree = new HistoryTreeProvider(history);
 
@@ -183,4 +185,12 @@ function nonce(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   for (let i = 0; i < 32; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
   return s;
+}
+
+/**
+ * Test seam: drives the background-capture handler (the path a watcher callback takes) with the
+ * active context, so the filter/history/notification wiring can be exercised without a real timer.
+ */
+export function __simulateCapturedCardsForTest(cards: DiagnosisCard[]): void {
+  if (activeContext) onCapturedCards(activeContext, cards);
 }
