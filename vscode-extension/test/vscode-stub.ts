@@ -81,6 +81,7 @@ export const control = {
 export const StatusBarAlignment = { Left: 1, Right: 2 };
 export const ViewColumn = { Active: -1, Beside: -2, One: 1 };
 export const TreeItemCollapsibleState = { None: 0, Collapsed: 1, Expanded: 2 };
+export const SymbolKind = { Class: 4, Interface: 10 };
 
 export const window = {
   createStatusBarItem() {
@@ -154,6 +155,10 @@ export const commands = {
     control.commands.set(id, cb);
     return { dispose: () => control.commands.delete(id) };
   },
+  // The enrichment context calls this; default to no symbols so enrichment is a graceful no-op.
+  async executeCommand() {
+    return [];
+  },
 };
 
 export const workspace = {
@@ -171,6 +176,12 @@ export const workspace = {
   onDidChangeConfiguration(l: Listener) {
     control.configListeners.push(l);
     return { dispose: () => {} };
+  },
+  async findFiles() {
+    return [];
+  },
+  async openTextDocument() {
+    return { getText: () => '' };
   },
 };
 

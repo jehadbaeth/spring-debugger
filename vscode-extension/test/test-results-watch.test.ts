@@ -25,50 +25,51 @@ describe('TestResultsWatcher.pollOnce', () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'sbd-watch-'));
     resultsDir = path.join(root, 'app/build/test-results/test');
     fs.mkdirSync(resultsDir, { recursive: true });
-    watcher = new TestResultsWatcher(new ConsoleDiagnoser(loadCanonicalCatalog()), () => root);
+    const d = new ConsoleDiagnoser(loadCanonicalCatalog());
+    watcher = new TestResultsWatcher((t) => Promise.resolve(d.diagnoseAll(t)), () => root);
   });
 
   afterEach(() => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('does not surface files present at baseline', () => {
+  it('does not surface files present at baseline', async () => {
     fs.writeFileSync(path.join(resultsDir, 'TEST-pre.xml'), FAILING_XML);
     watcher.baseline();
-    expect(watcher.pollOnce()).toEqual([]);
+    expect(await watcher.pollOnce()).toEqual([]);
   });
 
-  it('diagnoses a result file written after baseline', () => {
+  it('diagnoses a result file written after baseline', async () => {
     watcher.baseline();
     fs.writeFileSync(path.join(resultsDir, 'TEST-new.xml'), FAILING_XML);
-    const cards = watcher.pollOnce();
+    const cards = await watcher.pollOnce();
     expect(cards.map((c) => c.ruleId)).toContain('2.1');
   });
 
-  it('does not re-surface an unchanged file on the next poll', () => {
+  it('does not re-surface an unchanged file on the next poll', async () => {
     watcher.baseline();
     fs.writeFileSync(path.join(resultsDir, 'TEST-new.xml'), FAILING_XML);
-    expect(watcher.pollOnce().length).toBeGreaterThan(0);
-    expect(watcher.pollOnce()).toEqual([]);
+    expect((await watcher.pollOnce()).length).toBeGreaterThan(0);
+    expect(await watcher.pollOnce()).toEqual([]);
   });
 
-  it('re-surfaces when the file is rewritten (re-run)', () => {
+  it('re-surfaces when the file is rewritten (re-run)', async () => {
     watcher.baseline();
     const file = path.join(resultsDir, 'TEST-new.xml');
     fs.writeFileSync(file, FAILING_XML);
-    expect(watcher.pollOnce().length).toBeGreaterThan(0);
+    expect((await watcher.pollOnce()).length).toBeGreaterThan(0);
     // Simulate a re-run rewriting the file with a newer mtime.
     const future = new Date(Date.now() + 5000);
     fs.writeFileSync(file, FAILING_XML);
     fs.utimesSync(file, future, future);
-    expect(watcher.pollOnce().map((c) => c.ruleId)).toContain('2.1');
+    expect((await watcher.pollOnce()).map((c) => c.ruleId)).toContain('2.1');
   });
 
-  it('deduplicates the same failure across many suite files in one batch', () => {
+  it('deduplicates the same failure across many suite files in one batch', async () => {
     watcher.baseline();
     fs.writeFileSync(path.join(resultsDir, 'TEST-a.xml'), FAILING_XML);
     fs.writeFileSync(path.join(resultsDir, 'TEST-b.xml'), FAILING_XML);
-    const cards = watcher.pollOnce();
+    const cards = await watcher.pollOnce();
     expect(cards.filter((c) => c.ruleId === '2.1')).toHaveLength(1);
   });
 });

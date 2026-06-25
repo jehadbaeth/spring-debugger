@@ -36,52 +36,53 @@ describe('LogTailWatcher', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sbd-tail-'));
     logFile = path.join(dir, 'app.log');
     fs.writeFileSync(logFile, '');
-    watcher = new LogTailWatcher(new ConsoleDiagnoser(loadCanonicalCatalog()), () => [logFile]);
+    const d = new ConsoleDiagnoser(loadCanonicalCatalog());
+    watcher = new LogTailWatcher((t) => Promise.resolve(d.diagnoseAll(t)), () => [logFile]);
     watcher.baseline();
   });
 
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  it('diagnoses an error appended after baseline', () => {
+  it('diagnoses an error appended after baseline', async () => {
     fs.appendFileSync(logFile, RUN1);
-    expect(watcher.pollOnce().map((c) => c.ruleId)).toContain('2.1');
+    expect((await watcher.pollOnce()).map((c) => c.ruleId)).toContain('2.1');
   });
 
-  it('does not re-surface a steady error within the same run', () => {
+  it('does not re-surface a steady error within the same run', async () => {
     fs.appendFileSync(logFile, RUN1);
-    expect(watcher.pollOnce().length).toBeGreaterThan(0);
+    expect((await watcher.pollOnce()).length).toBeGreaterThan(0);
     // Same error logged again in the same run (no new Starting line).
     fs.appendFileSync(logFile, RUN1.split('\n').slice(1).join('\n'));
-    expect(watcher.pollOnce()).toEqual([]);
+    expect(await watcher.pollOnce()).toEqual([]);
   });
 
-  it('ignores pre-baseline content (no replay on open)', () => {
+  it('ignores pre-baseline content (no replay on open)', async () => {
     // Write before a fresh baseline; baseline should set the offset to EOF.
     fs.appendFileSync(logFile, RUN1);
     watcher.baseline();
-    expect(watcher.pollOnce()).toEqual([]);
+    expect(await watcher.pollOnce()).toEqual([]);
   });
 
-  it('re-surfaces the same error on a re-run', () => {
+  it('re-surfaces the same error on a re-run', async () => {
     fs.appendFileSync(logFile, RUN1);
-    expect(watcher.pollOnce().length).toBeGreaterThan(0);
+    expect((await watcher.pollOnce()).length).toBeGreaterThan(0);
     // A new run starts clean, then hits the same error again.
     fs.appendFileSync(logFile, RUN2_START + RUN1.split('\n').slice(1).join('\n'));
-    expect(watcher.pollOnce().map((c) => c.ruleId)).toContain('2.1');
+    expect((await watcher.pollOnce()).map((c) => c.ruleId)).toContain('2.1');
   });
 
-  it('does not surface a stale error once a clean re-run has started', () => {
+  it('does not surface a stale error once a clean re-run has started', async () => {
     fs.appendFileSync(logFile, RUN1);
-    watcher.pollOnce();
+    await watcher.pollOnce();
     fs.appendFileSync(logFile, RUN2_START + RUN2_CLEAN);
-    expect(watcher.pollOnce()).toEqual([]);
+    expect(await watcher.pollOnce()).toEqual([]);
   });
 
-  it('resets and re-reads on truncation', () => {
+  it('resets and re-reads on truncation', async () => {
     fs.appendFileSync(logFile, RUN1);
-    watcher.pollOnce();
+    await watcher.pollOnce();
     // Truncate (rotation) to a shorter fresh run; length < offset must trigger a reset and re-read.
     fs.writeFileSync(logFile, RUN_SHORT);
-    expect(watcher.pollOnce().map((c) => c.ruleId)).toContain('2.1');
+    expect((await watcher.pollOnce()).map((c) => c.ruleId)).toContain('2.1');
   });
 });

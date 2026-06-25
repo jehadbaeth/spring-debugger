@@ -3,13 +3,25 @@
 // logic lives in the engine; this file only bridges to the vscode API.
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { ConsoleDiagnoser, DiagnosisCard, discoverAll } from './engine';
+import {
+  ActuatorEnricher,
+  ConsoleDiagnoser,
+  DiagnosisCard,
+  Enricher,
+  EnrichmentContext,
+  LlmDiagnosisEngine,
+  OllamaHttpClient,
+  PropertyPrecedenceEnricher,
+  PsiEnricher,
+  discoverAll,
+} from './engine';
 import { DiagnosisHistory } from './history';
 import { filterByConfidence } from './confidence';
 import { readSettings } from './settings';
 import { TestResultsWatcher } from './capture/test-results-watch';
 import { LogTailWatcher } from './capture/log-tail-watch';
 import { loadBundledCatalog } from './runtime/catalog';
+import { VscodeEnrichmentContext } from './runtime/vscode-enrichment-context';
 import { renderCardsHtml } from './ui/card-html';
 import { HistoryTreeProvider } from './ui/history-tree';
 
@@ -41,8 +53,8 @@ export function activate(context: vscode.ExtensionContext): void {
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
   status.command = 'workbench.view.extension.springDebugger';
 
-  watcher = new TestResultsWatcher(diagnoser, () => workspaceBase());
-  tailer = new LogTailWatcher(diagnoser, () => resolveLogFiles());
+  watcher = new TestResultsWatcher((text) => diagnose(text), () => workspaceBase());
+  tailer = new LogTailWatcher((text) => diagnose(text), () => resolveLogFiles());
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('springDebuggerHistory', tree),
@@ -102,6 +114,33 @@ function workspaceBase(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 }
 
+/**
+ * The single diagnose entry point used by every path (paste and both watchers). It assembles the
+ * enrichment layers from current settings: PSI source enrichment (default on, local and cheap),
+ * Actuator + property-precedence enrichment (default off, probes the running app), and the Ollama
+ * LLM fallback (default off). With all off this is exactly the rule-only engine.
+ */
+async function diagnose(text: string): Promise<DiagnosisCard[]> {
+  if (!diagnoser) return [];
+  const s = readSettings();
+
+  const enrichers: Enricher[] = [];
+  let context: EnrichmentContext | undefined;
+  if (s.enrichSource || s.actuatorEnabled) {
+    context = new VscodeEnrichmentContext(s.actuatorBaseUrl);
+    if (s.enrichSource) enrichers.push(new PsiEnricher());
+    if (s.actuatorEnabled) {
+      enrichers.push(new ActuatorEnricher(), new PropertyPrecedenceEnricher());
+    }
+  }
+
+  const llm = s.ollamaEnabled
+    ? new LlmDiagnosisEngine(new OllamaHttpClient(s.ollamaBaseUrl, s.ollamaModel))
+    : undefined;
+
+  return diagnoser.diagnoseAllEnriched(text, { context, enrichers, llm });
+}
+
 /** An explicit logFilePath setting wins; otherwise auto-discover every logging.file.name. */
 function resolveLogFiles(): string[] {
   const base = workspaceBase();
@@ -129,7 +168,7 @@ async function diagnosePasted(context: vscode.ExtensionContext): Promise<void> {
 
   // Explicit paste shows everything found, regardless of the minimumConfidence threshold that
   // governs background capture: the user asked for a diagnosis of this specific text.
-  const cards = diagnoser.diagnoseAll(text);
+  const cards = await diagnose(text);
   for (const card of cards) history?.add(card);
   showCards(context, cards);
   if (cards.length === 0) {

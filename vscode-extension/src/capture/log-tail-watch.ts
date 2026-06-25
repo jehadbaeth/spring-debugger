@@ -8,7 +8,6 @@
 // The pure tailing logic is separated from the timer so it is unit tested directly.
 import * as fs from 'fs';
 import {
-  ConsoleDiagnoser,
   DiagnosisCard,
   containsRunStart,
   containsErrorSignature,
@@ -20,6 +19,9 @@ const POLL_MS = 1500;
 const REDISCOVER_EVERY = 6;
 const BUFFER_MAX_CHARS = 200_000;
 
+/** Diagnoses a block of text into cards (the enriched path in production, rule-only in tests). */
+export type DiagnoseFn = (text: string) => Promise<DiagnosisCard[]>;
+
 export class LogTailWatcher {
   private readonly watched = new Map<string, string>();
   private readonly offsets = new Map<string, number>();
@@ -29,7 +31,7 @@ export class LogTailWatcher {
   private timer: ReturnType<typeof setInterval> | undefined;
 
   constructor(
-    private readonly diagnoser: ConsoleDiagnoser,
+    private readonly diagnose: DiagnoseFn,
     private readonly resolveLogFiles: () => string[],
   ) {}
 
@@ -47,7 +49,7 @@ export class LogTailWatcher {
   }
 
   /** One poll over all watched files; returns the newly-surfaced cards (after per-file-per-run dedup). */
-  pollOnce(): DiagnosisCard[] {
+  async pollOnce(): Promise<DiagnosisCard[]> {
     if (++this.sinceDiscovery >= REDISCOVER_EVERY) {
       this.sinceDiscovery = 0;
       this.rediscover();
@@ -55,7 +57,7 @@ export class LogTailWatcher {
     const cards: DiagnosisCard[] = [];
     for (const f of this.watched.values()) {
       try {
-        cards.push(...this.tailOne(f));
+        cards.push(...(await this.tailOne(f)));
       } catch {
         // ignore a transient read error; the next poll re-reads
       }
@@ -67,8 +69,9 @@ export class LogTailWatcher {
     if (this.timer) return;
     this.baseline();
     this.timer = setInterval(() => {
-      const cards = this.pollOnce();
-      if (cards.length > 0) onCards(cards);
+      void this.pollOnce().then((cards) => {
+        if (cards.length > 0) onCards(cards);
+      });
     }, intervalMs);
   }
 
@@ -98,7 +101,7 @@ export class LogTailWatcher {
     }
   }
 
-  private tailOne(file: string): DiagnosisCard[] {
+  private async tailOne(file: string): Promise<DiagnosisCard[]> {
     const length = fileSize(file);
     if (length === null) return [];
     let previous = this.offsets.get(file) ?? 0;
@@ -130,7 +133,7 @@ export class LogTailWatcher {
 
     const currentRun = lastRunSlice(buffer);
     const shown: DiagnosisCard[] = [];
-    for (const card of this.diagnoser.diagnoseAll(currentRun)) {
+    for (const card of await this.diagnose(currentRun)) {
       const key = groupingKey(card);
       if (seen.has(key)) continue;
       seen.add(key);

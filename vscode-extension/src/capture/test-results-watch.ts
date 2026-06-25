@@ -3,16 +3,19 @@
 // frequently excluded from editor file watchers, the same reason the IntelliJ version polls. The
 // pure pollOnce/baseline logic is separated from the timer so it is unit tested directly.
 import * as fs from 'fs';
-import { ConsoleDiagnoser, DiagnosisCard, failureTexts, groupingKey, hasFailures, locate } from '../engine';
+import { DiagnosisCard, failureTexts, groupingKey, hasFailures, locate } from '../engine';
 
 const POLL_MS = 4000;
+
+/** Diagnoses a block of text into cards (the enriched path in production, rule-only in tests). */
+export type DiagnoseFn = (text: string) => Promise<DiagnosisCard[]>;
 
 export class TestResultsWatcher {
   private lastSeen = new Map<string, number>();
   private timer: ReturnType<typeof setInterval> | undefined;
 
   constructor(
-    private readonly diagnoser: ConsoleDiagnoser,
+    private readonly diagnose: DiagnoseFn,
     private readonly baseProvider: () => string | undefined,
   ) {}
 
@@ -29,7 +32,7 @@ export class TestResultsWatcher {
    * Diagnoses the result files written since the last poll (new path or newer mtime), de-duplicated
    * across the whole batch so one test run that rewrites many suite files surfaces each error once.
    */
-  pollOnce(): DiagnosisCard[] {
+  async pollOnce(): Promise<DiagnosisCard[]> {
     const changed: string[] = [];
     for (const f of this.files()) {
       const m = mtime(f);
@@ -46,7 +49,7 @@ export class TestResultsWatcher {
       const content = read(f);
       if (content === null || !hasFailures(content)) continue;
       for (const failure of failureTexts(content)) {
-        for (const card of this.diagnoser.diagnoseAll(failure)) {
+        for (const card of await this.diagnose(failure)) {
           const key = groupingKey(card);
           if (seen.has(key)) continue;
           seen.add(key);
@@ -61,8 +64,9 @@ export class TestResultsWatcher {
     if (this.timer) return;
     this.baseline();
     this.timer = setInterval(() => {
-      const cards = this.pollOnce();
-      if (cards.length > 0) onCards(cards);
+      void this.pollOnce().then((cards) => {
+        if (cards.length > 0) onCards(cards);
+      });
     }, intervalMs);
   }
 
