@@ -28,11 +28,31 @@ Every capability the IntelliJ plugin shipped through v0.10.0:
 5. Diagnosis history with re-inspection.
 6. Copy fix / copy diagnosis.
 7. Settings for confidence threshold, history size, notifications, and the capture toggles.
-8. Offline by design; optional local Ollama fallback for unrecognised errors.
+8. Offline by design.
+
+What "parity" means here, stated precisely: the implemented work is **engine parity** over the rule
+catalog, proven card-for-card against the Java golden across 93 corpus logs. It is **not** full
+feature parity with the shipping IntelliJ plugin, because the enrichment layer and the LLM fallback
+are not yet ported (see below and M5). On the same input, VS Code may therefore show a diagnosis at a
+lower confidence or with less project-specific detail than IntelliJ.
 
 ### Deferred or reduced parity (called out honestly)
 
-- **PSI / source aware enrichment.** The IntelliJ plugin inspects parsed Java source to confirm structural claims ("the missing bean has no stereotype", "this type is a `@Mapper`", "the class is outside the component scan tree") and upgrade confidence. VS Code has no built-in Java model. This is the single largest parity gap. See section 7. First releases ship without it; rules still fire from text signals.
+- **Enrichment layer (PSI, Actuator, PropertyPrecedence) — deferred to M5.** The IntelliJ plugin runs
+  three enrichers at runtime: PSI inspects parsed Java source to confirm structural claims ("the
+  missing bean has no stereotype", "this type is a `@Mapper`", "the class is outside the component
+  scan tree") and upgrade confidence; Actuator confirms a live app's health; PropertyPrecedence
+  sharpens config messages. The TypeScript `ConsoleDiagnoser` is **rule-engine-only** today. PSI has
+  no VS Code equivalent and is the single largest gap (section 7); Actuator and PropertyPrecedence are
+  straightforward Node ports but are not done yet. Until then, rules fire from text signals at their
+  declared base confidence.
+- **LLM (Ollama) fallback — deferred to M5.** Not ported. The implemented settings deliberately omit
+  the `ollama.*` keys so the UI does not promise a feature that is absent.
+- **Confidence note.** Because background capture filters at `minimumConfidence` (default MEDIUM) on
+  *base* confidence, a diagnosis IntelliJ would surface only after an enrichment upgrade would stay
+  hidden in VS Code. In practice the current corpus has zero LOW-confidence cards (90 HIGH, 8
+  MEDIUM), so the default threshold hides nothing today; this matters only once LOW rules or
+  enrichment-dependent confidence enter the picture.
 - **Internal build tap.** IntelliJ taps its own JPS compiler. VS Code has no equivalent internal build; the build path is covered through tasks output and the log/test files instead.
 - **Reading the integrated terminal.** Not possible on either platform's new terminal; not attempted. See section 4.
 
@@ -217,11 +237,14 @@ VS Code settings via `contributes.configuration` in `package.json`, namespace `s
 | Watch test results | `springDebugger.watchTestResults` | true |
 | Watch log file | `springDebugger.watchLogFile` | true |
 | Log file path | `springDebugger.logFilePath` | "" (auto discover) |
-| LLM fallback enabled | `springDebugger.ollama.enabled` | false |
-| Ollama base URL | `springDebugger.ollama.baseUrl` | http://localhost:11434 |
-| Ollama model | `springDebugger.ollama.model` | llama3.2 |
+| LLM fallback enabled | `springDebugger.ollama.enabled` | _M5, not implemented yet_ |
+| Ollama base URL | `springDebugger.ollama.baseUrl` | _M5, not implemented yet_ |
+| Ollama model | `springDebugger.ollama.model` | _M5, not implemented yet_ |
 
-(The experimental new terminal toggle has no VS Code analogue and is dropped.)
+The rows above the LLM block are implemented. The `ollama.*` keys are intentionally absent from the
+current `contributes.configuration` until the LLM fallback is ported in M5, so the settings UI never
+offers a control that does nothing. The experimental new terminal toggle has no VS Code analogue and
+is dropped.
 
 ---
 
