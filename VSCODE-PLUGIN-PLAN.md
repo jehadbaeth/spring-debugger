@@ -1,9 +1,10 @@
 # Spring Boot Debugger: VS Code Extension Implementation Plan
 
 **Target editor:** Visual Studio Code (and VS Code based editors: Cursor, Windsurf, VSCodium)
-**Extension language:** TypeScript (extension host) + a reused headless Java core (rule engine)
-**Rule catalog:** the existing `spring-boot-rules.yaml` (shared, single source of truth)
-**Status:** Living document. Implementation details below are the current intended approach and are expected to change as the work proceeds. Decisions are recorded in section 15; revisit them rather than rewriting history.
+**Extension language:** TypeScript, with the diagnosis engine ported to TypeScript (no JVM at runtime)
+**Rule catalog:** the existing `spring-boot-rules.yaml`, kept as the single shared source of truth for both products
+**Repository:** this repository. The VS Code extension is built here alongside the IntelliJ plugin and ships as an additional release artifact. No separate repo.
+**Status:** Living document. Implementation details below are the current intended approach and are expected to change as the work proceeds. Decisions are recorded in section 16; revisit them rather than rewriting history.
 
 ---
 
@@ -41,41 +42,44 @@ Every capability the IntelliJ plugin shipped through v0.10.0:
 
 ---
 
-## 2. Why a Shared Java Core (architecture decision)
+## 2. Architecture: TypeScript Engine, Shared Rules and Fixtures (decision)
 
-Two strategies were considered. The recommended one is a shared headless core.
+The chosen path is a native TypeScript engine inside the extension. No JVM, no bundled JAR, no out-of-process core. This was decided on 2026-06-25 (section 16): for VS Code, a pure TypeScript extension is the simpler and more native integration, the install is lighter, and there is no process lifecycle to manage. The team is comfortable porting the logic and the rules.
 
-### Option A (recommended): shared headless Java core + thin TypeScript shell
+### The honest cost, and how this plan contains it
 
-Extract the platform independent engine from the IntelliJ plugin into a standalone module with no IntelliJ imports, exposing a single entry point roughly of the form `diagnose(text, context) -> DiagnosisCard[]`. Ship it as a small executable (CLI over stdin/stdout, or a Language Server style process). The VS Code extension is TypeScript that captures output, sends text to the core, and renders the returned cards.
+A TypeScript rewrite means the classifier logic exists in two languages. Logic drift between the Java and TypeScript engines is a real and recurring cost; this codebase changed the rules and the segmenter several times in a single session. The plan does not wave this away. It contains drift with three concrete disciplines:
 
-Rationale:
-- The 60 rules and the classifier are the actual asset. Maintaining two diverging copies (Java and a TypeScript reimplementation) would be a constant tax; this session alone changed the rules and the segmenter several times.
-- The existing 203 tests stay meaningful and keep guarding both products.
-- Spring developers already have a JVM available, so the runtime dependency is acceptable.
+1. **The rule catalog stays a single shared data file.** `spring-boot-rules.yaml` is data, not code. Both products read the exact same file from this repo. The TypeScript engine parses the identical YAML; it does not get its own hand-edited copy. At package time the file is copied into the `.vsix`; it is never forked. A rule added for one product is a rule added for both, automatically.
+2. **The test fixtures stay shared.** The real-world logs and the synthetic fixtures (including the multi-module bootRun log and the schema-out-of-sync fixtures) live once in the repo and are consumed by both test suites.
+3. **A parity test gates CI.** A cross-engine parity suite feeds every shared fixture through both the Java engine and the TypeScript engine and asserts the same cards come out (same rule ids, same phase, same dedup/occurrence behaviour). If the two engines disagree, CI fails. This turns "hope they stay in sync" into "the build breaks when they drift." This suite is the load-bearing safeguard of the whole TypeScript decision and is built in M0, before any feature work.
 
-Cost:
-- A decoupling refactor of the current plugin to separate an `engine-core` module from the IntelliJ `platform` module. Some classes already leak IntelliJ types (for example `ConsoleDiagnoser` takes a `Project`, though it tolerates null; enrichers use PSI). These must be split behind interfaces.
-- A process boundary (start the core, speak a small protocol, manage its lifecycle) and JAR bundling in the extension.
+What still has to be ported by hand, and kept in parity by the suite above: the classifier (first-match-wins, phase filtering, DONE-only, `SignalCriteria` AND/`messageContainsAny` OR semantics, deepest-cause matching for `causedByClass`/`causedByMessage`), the extractor, the `StackTraceSegmenter` boundaries, the `TestResultsParser` (XXE-hardened XML parse), the `LogFilePropertyFinder` discovery, the `LogRunBoundary` slicing, and the `ConsoleDiagnoser.diagnoseAll` segmentation + dedup. These are pure functions with no platform coupling, which is what makes a faithful port tractable.
 
-### Option B: full TypeScript rewrite
+### What was rejected
 
-Reimplement the engine and rules in TypeScript; no JVM at runtime.
+A shared headless Java core invoked out-of-process (CLI or LSP) from the extension was considered and rejected for VS Code. It would have kept one engine, but at the price of a bundled JVM, JVM discovery, JAR packaging, and a process boundary to manage inside the extension host. For a VS Code audience that is a heavier and less native install than the port is worth. The IntelliJ plugin remains the Java engine; the VS Code extension is its TypeScript sibling, kept honest by shared data and the parity suite.
 
-Rejected as the primary path because of dual maintenance and rule drift, which this codebase has shown to be a real and frequent cost. It remains a fallback if the JVM dependency proves unacceptable to the team (see section 14, open questions).
+### Repository shape (target)
 
-### Module shape (target)
+Single repo, two products, shared data.
 
 ```
 spring-debugger/
-  engine-core/        (new) pure Java: rules, classifier, extractor, segmenter,
-                      parsers, run-boundary, models. No IntelliJ imports. The 203 tests move here.
-  platform-intellij/  the current plugin, depends on engine-core.
-  engine-cli/         (new) thin main() wrapping engine-core: reads text, writes JSON cards.
-  vscode-extension/   (new) TypeScript extension; bundles engine-cli JAR; captures + renders.
+  src/                         the IntelliJ plugin (Java engine + IntelliJ platform glue). Unchanged.
+  src/main/resources/rules/
+    spring-boot-rules.yaml      THE single rule catalog. Shared, not forked.
+  fixtures/ (+ existing test fixtures)
+                               shared real-world logs and synthetic fixtures, consumed by both suites.
+  vscode-extension/            (new) the TypeScript extension and the ported TS engine.
+    src/engine/                ported classifier, extractor, segmenter, parsers, run-boundary, models.
+    src/capture/               file watchers, log tailing, paste, debug tracker.
+    src/ui/                    webview card, history tree, notifications.
+    test/                      TS unit tests + the TS side of the parity suite.
+  parity/                      (new) cross-engine parity harness and shared fixture manifest.
 ```
 
-The first concrete task (independent of VS Code) is extracting `engine-core`. It improves the IntelliJ plugin's testability regardless of whether the VS Code port proceeds.
+The build copies `spring-boot-rules.yaml` and the shared fixtures into `vscode-extension/` at build/package time (a copy step, not a committed duplicate) so there is exactly one editable source.
 
 ---
 
@@ -83,14 +87,14 @@ The first concrete task (independent of VS Code) is extracting `engine-core`. It
 
 | Capability | IntelliJ mechanism | VS Code mechanism | Risk |
 |---|---|---|---|
-| Rule diagnosis | `RuleBasedClassifier` over taps | same engine via core process | Low |
+| Rule diagnosis | `RuleBasedClassifier` over taps | ported TypeScript engine, same shared rules | Low |
 | Run launch capture | `ExecutionManager.EXECUTION_TOPIC` process listener | Debug adapter tracker (section 5.4); else log file | Medium |
 | Test capture | SMT test runner + `TestResultsWatchService` | file watcher on result XML (section 5.1) | Low |
 | Gradle/Maven panel | external system task bus | not applicable; use task output + log/test files | Medium |
 | Terminal bootRun | classic terminal poll / log tail | log file tailing only (section 5.2) | Medium |
 | Diagnose pasted output | toolbar action + input dialog | command + input box / paste from clipboard | Low |
-| Multi error + dedup | `ConsoleDiagnoser.diagnoseAll` | same (in core) | Low |
-| Run boundary handling | `LogRunBoundary` | same (in core) | Low |
+| Multi error + dedup | `ConsoleDiagnoser.diagnoseAll` | ported equivalent in TS engine | Low |
+| Run boundary handling | `LogRunBoundary` | ported equivalent in TS engine | Low |
 | Diagnosis card UI | tool window panel | webview panel or rich tree item | Medium |
 | History | tool window list + service | TreeView backed by extension state | Low |
 | Settings | `Configurable` + persisted state | `package.json` `contributes.configuration` | Low |
@@ -112,24 +116,24 @@ Shell integration (the VS Code feature that knows command start/end and exit cod
 
 ## 5. Capture Layer Design
 
-All capture paths converge on the same call: hand a block of text to the engine core, receive cards, render them. The capture paths differ only in where the text comes from and when.
+All capture paths converge on the same call: hand a block of text to the TypeScript engine, receive cards, render them. The capture paths differ only in where the text comes from and when.
 
 ### 5.1 Test results watcher (zero config, primary win)
 
 Port of `TestResultsWatchService` + `TestResultsParser` + `TestResultsLocator`.
 
-- Use `vscode.workspace.createFileSystemWatcher` with a glob such as `**/build/test-results/test/*.xml` and `**/target/surefire-reports/*.xml` and `**/target/failsafe-reports/*.xml`.
-- Caveat to verify: VS Code respects `files.watcherExclude`, which often excludes `**/build/**`. The extension may need to register an explicit watcher outside the exclude, or fall back to polling (as the IntelliJ version does for the same reason, because `build/` is excluded there too). Decision pending verification (section 15).
-- On change, read the XML, extract `<failure>`/`<error>` blocks (the parser logic is in core), feed each to the engine, dedupe per batch, render. Baseline on activation so pre-existing results are not replayed.
+- Use `vscode.workspace.createFileSystemWatcher` with globs such as `**/build/test-results/test/*.xml`, `**/target/surefire-reports/*.xml`, `**/target/failsafe-reports/*.xml`.
+- Caveat to verify: VS Code respects `files.watcherExclude`, which often excludes `**/build/**`. The extension may need to register an explicit watcher outside the exclude, or fall back to polling (as the IntelliJ version does for the same reason, because `build/` is excluded there too). Decision pending verification (section 16).
+- On change, read the XML, extract `<failure>`/`<error>` blocks (ported parser, XXE-hardened), feed each to the engine, dedupe per batch, render. Baseline on activation so pre-existing results are not replayed.
 
 ### 5.2 Log file tailing (bootRun, near zero config)
 
 Port of `LogFileTailService` + `LogFilePropertyFinder` + `LogRunBoundary`.
 
-- Discover every `logging.file.name` across all `application*.properties` / `application*.yml` (logic already in core). Resolve relative paths against each module.
-- Tail each file by byte offset using Node `fs`. The run boundary logic (only diagnose the latest run, reset dedup on a new `Starting ... with PID` line) is reused from core unchanged.
-- Same honesty as IntelliJ: console only apps need a committed `logging.file.name`. Document it identically.
-- `fs.watch` is event based but unreliable across platforms for some editors; a polling fallback (the IntelliJ approach) is the safe default.
+- Discover every `logging.file.name` across all `application*.properties` / `application*.yml`. Resolve relative paths against each module (the `resolveAgainstModule` logic, stripping `/src/`).
+- Tail each file by byte offset using Node `fs`. The run boundary logic (only diagnose the latest run, reset dedup on a new `Starting ... with PID` line, reset offset on truncation) is ported unchanged.
+- Same honesty as IntelliJ: console only apps need a committed `logging.file.name`. Document it identically, including that Spring Boot 3.x uses `logging.file.name` not the removed `logging.file`.
+- `fs.watch` is event based but unreliable across platforms for some editors; a polling fallback (the IntelliJ approach, ~poll every few seconds, re-discover periodically) is the safe default.
 
 ### 5.3 Diagnose pasted output (always works)
 
@@ -152,12 +156,12 @@ If the team runs Gradle/Maven through VS Code tasks, `vscode.tasks.onDidEndTaskP
 
 ---
 
-## 6. Rule Engine Reuse
+## 6. Engine Port (TypeScript)
 
-- `engine-core` exposes `diagnose(text, context)` returning a list of cards as plain data (id, phase, diagnosis, fix, confidence, excerpt, groupingKey).
-- `engine-cli` wraps it: read a request on stdin (text plus minimal context such as project base path for discovery, and optional actuator/LLM config), write a JSON array of cards on stdout. A long lived process speaking newline delimited JSON avoids per call JVM startup cost. An LSP framing is an alternative if we want richer lifecycle.
-- The VS Code extension spawns this process once per workspace, keeps it warm, and sends each captured block to it.
-- Rule catalog stays a single `spring-boot-rules.yaml` packaged inside the core. No rule logic in TypeScript.
+- A single entry point, roughly `diagnose(text, context): DiagnosisCard[]`, mirroring the Java `ConsoleDiagnoser.diagnoseAll` contract: segment via the ported `StackTraceSegmenter`, classify each block first-match-per-block, dedupe by `groupingKey` (`ruleId + "|" + diagnosisSentence`).
+- The YAML is parsed at activation with a small dependency (for example `js-yaml`), producing the same rule model the Java side builds. Rule semantics ported faithfully: phase filtering, DONE-only, `messageContains` (single) vs `messageContainsAny` (OR), `causedByClass`/`causedByMessage` matching the deepest cause, AND across non-null criteria.
+- Card model is plain data (id, phase, diagnosis, fix, confidence, excerpt, groupingKey), identical fields to the Java card so the parity suite can compare directly.
+- Enrichment is behind a port/interface so actuator, property-precedence, and a future jdt.ls source enricher are pluggable (section 7).
 
 ---
 
@@ -171,15 +175,15 @@ The IntelliJ plugin uses PSI to verify structural claims and raise confidence. V
 2. **Lightweight heuristics.** Regex/AST-lite scans of the workspace source for annotations and package layout to approximate the most valuable checks (stereotype presence, component scan tree). Cheap, imperfect.
 3. **Java language server integration.** Drive `redhat.java` (jdt.ls) through available commands or an LSP request to inspect symbols. Highest fidelity, highest cost and coupling, and the jdt.ls extension API for third parties is limited. Evaluate only after MVP.
 
-The enrichment interface in `engine-core` should be a pluggable port so the IntelliJ PSI enricher and a future VS Code enricher are two implementations of the same contract. This keeps the core honest and the gap contained.
+Keep enrichment behind a pluggable port in the TypeScript engine so the omit/heuristic/jdt.ls variants are swappable without touching the classifier.
 
 ### 7.2 Actuator enrichment
 
-Pure HTTP to `/actuator/health`. Reimplement in the extension or keep in the core CLI (preferred, so it stays one implementation). Low risk.
+Pure HTTP to `/actuator/health`, reimplemented with Node HTTP. Identical logic to the Java enricher. Low risk.
 
 ### 7.3 Property precedence enrichment
 
-Logic is data driven and lives in core; reused directly.
+Data driven; port the logic directly.
 
 ---
 
@@ -221,23 +225,25 @@ VS Code settings via `contributes.configuration` in `package.json`, namespace `s
 
 ---
 
-## 10. Packaging and Distribution
+## 10. Packaging, Distribution, and Release Process
 
-- Bundle the `engine-cli` JAR inside the `.vsix`. Size is acceptable (a few MB).
-- **JVM discovery**: locate a JRE via, in order, `springDebugger.javaHome` setting, `JAVA_HOME`, the `redhat.java` extension's embedded JRE if present, then `PATH`. If none is found, disable the engine gracefully and tell the user once, with the paste command and settings link. Never crash the host.
-- **Degraded no-JVM mode** (optional, later): if the team rejects the JVM dependency, this is the trigger to reconsider Option B for a pure-TS core. Documented as a fork point, not built now.
-- Publish to the VS Code Marketplace and Open VSX (for Cursor / VSCodium). Use `vsce` and `ovsx`.
-- Versioning independent from the IntelliJ plugin, but the bundled core version is recorded in release notes so rule parity is traceable.
+The VS Code extension is an additional artifact of this repo's existing release process, not a separate release.
+
+- **Build artifact**: a `.vsix` produced from `vscode-extension/`. Pure TypeScript bundle (esbuild/webpack), no JVM, no bundled JAR. The shared `spring-boot-rules.yaml` is copied in at package time.
+- **Release coupling**: each tagged release of this repo attaches both the IntelliJ plugin `.zip` and the VS Code `.vsix`. Release notes state which `spring-boot-rules.yaml` revision both were built from, so rule parity is traceable from a single tag. Versioning can stay unified across both artifacts since they ship together from one repo; if they ever need to diverge, note it explicitly in the release.
+- **Marketplaces**: publish the `.vsix` to the VS Code Marketplace (`vsce`) and Open VSX (`ovsx`, for Cursor / Windsurf / VSCodium). This is independent of the JetBrains Marketplace publish for the IntelliJ plugin.
+- **No JVM dependency** to discover or degrade around. One fewer failure mode than the rejected shared-core approach.
 
 ---
 
 ## 11. Testing Strategy
 
-- **Engine**: the existing 203 Java tests move to `engine-core` and keep running in CI. They are the parity guarantee.
-- **CLI protocol**: a small Java test that feeds known logs through `engine-cli` and asserts the JSON cards (the same real-world fixtures used today, including the multi-module bootRun log and the schema-out-of-sync fixtures).
-- **Extension logic**: unit test the TypeScript capture glue (file discovery globs, offset tailing, debounce, dedup wiring) with the extension test runner.
-- **Integration**: `@vscode/test-electron` smoke tests that open a fixture workspace, drop a result XML / append to a log file, and assert a diagnosis is produced and shown.
-- **Manual validation**: the same loop that worked this session. Real terminal `./gradlew test` and `bootRun` with infra down, confirm cards. The team has been an effective validation partner; keep that loop.
+- **Cross-engine parity suite (the safeguard).** Built first, in M0. Feeds every shared fixture through both the Java engine and the TypeScript engine and asserts identical cards. Fails CI on any divergence. This is what makes the two-language engine safe.
+- **TypeScript engine unit tests.** Port the meaningful Java unit tests (segmenter boundaries, classifier semantics, parser, run-boundary, property finder) to the TS suite so the TS engine is independently covered, not only checked by parity.
+- **Java engine tests.** The existing 203 tests stay and keep guarding the Java engine.
+- **Extension logic tests.** Unit test the TypeScript capture glue (file discovery globs, offset tailing, debounce, dedup wiring).
+- **Integration.** `@vscode/test-electron` smoke tests that open a fixture workspace, drop a result XML / append to a log file, and assert a diagnosis is produced and shown.
+- **Manual validation.** The same loop that worked this session: real terminal `./gradlew test` and `bootRun` with infra down, confirm cards. The team has been an effective validation partner; keep that loop.
 
 ---
 
@@ -251,54 +257,53 @@ Same posture as the IntelliJ plugin: fully offline by default, no network egress
 
 Each milestone is shippable and has an exit test.
 
-**M0. Core extraction (no VS Code yet).**
-Split `engine-core` out of the IntelliJ plugin with zero IntelliJ imports; move the tests; keep the IntelliJ plugin green on top of it. Exit: IntelliJ plugin builds and all tests pass against the extracted core.
+**M0. TypeScript engine port + parity harness (no UI yet).**
+Scaffold `vscode-extension/`, port the engine (classifier, extractor, segmenter, parser, run-boundary, property finder, models) to TypeScript reading the shared YAML, and stand up the cross-engine parity suite over the shared fixtures. Exit: parity suite green, that is the TS engine produces the same cards as the Java engine for every shared fixture, and the TS unit tests pass.
 
-**M1. Engine CLI.**
-`engine-cli` long-lived process, newline-delimited JSON in/out, packaged JAR. Exit: piping the real-world fixtures through the CLI yields the expected card sets (matches the Java tests).
+**M1. VS Code skeleton + paste command.**
+Extension activates, loads the engine, implements Diagnose pasted output end to end with the Webview card. Exit: pasting the multi-module bootRun log shows the three expected cards.
 
-**M2. VS Code skeleton + paste command.**
-Extension activates, spawns the core, implements Diagnose pasted output end to end with the Webview card. Exit: pasting the multi-module bootRun log shows the three expected cards.
-
-**M3. Test results watching.**
+**M2. Test results watching.**
 File watcher (or polling fallback) over result XML, dedup, history TreeView. Exit: `./gradlew test` with a failing context test in the VS Code terminal produces a card with no configuration.
 
-**M4. Log file tailing.**
+**M3. Log file tailing.**
 Auto discovery across modules, multi-file tailing, run boundary handling, settings. Exit: terminal `bootRun` with `logging.file.name` committed and infra down produces DB and Kafka cards, re-runs re-surface, stale runs ignored.
 
-**M5. Notifications, status, settings polish, JVM discovery, packaging.**
-Exit: installable `.vsix` that degrades cleanly with no JVM and publishes to Marketplace and Open VSX.
+**M4. Notifications, status, settings polish, packaging.**
+Exit: installable `.vsix` published to Marketplace and Open VSX, attached to a repo release alongside the IntelliJ `.zip`.
 
-**M6. Enrichment and Run/Debug capture (parity stretch).**
-Actuator and LLM via the core; debug adapter tracker capture (5.4); evaluate jdt.ls based PSI-equivalent enrichment. Exit: confidence upgrades demonstrably improve on at least the highest value checks, or a documented decision to stay text-only.
+**M5. Enrichment and Run/Debug capture (parity stretch).**
+Actuator and LLM in TS; debug adapter tracker capture (5.4); evaluate jdt.ls based PSI-equivalent enrichment. Exit: confidence upgrades demonstrably improve on at least the highest value checks, or a documented decision to stay text-only.
 
 ---
 
 ## 14. Effort Estimate
 
-Assuming one developer fluent in TypeScript and Java, accepting the JVM dependency, and shipping MVP without PSI enrichment:
+Assuming one developer fluent in TypeScript, no JVM dependency, MVP without PSI enrichment:
 
-- M0 core extraction: about 1 week (also benefits the IntelliJ plugin).
-- M1 CLI: a few days.
-- M2 to M4 (the capture core and UI): about 2 to 3 weeks.
-- M5 packaging and robustness: about 1 week.
-- M6 enrichment and debug capture: open ended; weeks if jdt.ls integration is pursued, near zero if deferred.
+- M0 engine port + parity harness: about 1 to 1.5 weeks. This is the bulk of the real work and the most important to get right.
+- M1 skeleton + paste: a few days.
+- M2 to M3 (capture core and UI): about 1.5 to 2 weeks.
+- M4 packaging and robustness: a few days to a week.
+- M5 enrichment and debug capture: open ended; weeks if jdt.ls integration is pursued, near zero if deferred.
 
-MVP through M5 is roughly **3 to 4 weeks**. Full parity including source aware enrichment is the long pole and is deliberately deferred.
+MVP through M4 is roughly **3 to 4 weeks**. Source aware enrichment is the long pole and is deliberately deferred. The estimate is similar to the rejected shared-core route: the JVM/CLI plumbing that route needed is replaced here by the engine port and parity harness.
 
 ---
 
 ## 15. Open Questions and Decisions to Revisit
 
-1. **JVM dependency acceptable?** The whole shared-core strategy rests on this. If no, switch to a TypeScript engine (Option B) and accept dual maintenance. Needs a team decision.
+1. **Parity suite scope.** Does card-level equality (ids, phase, dedup) suffice, or do we also assert excerpt text byte-for-byte? Leaning card-level plus excerpt presence, not exact excerpt bytes, since segmentation offsets may legitimately differ. Decide in M0.
 2. **File watcher vs polling for `build/` outputs.** VS Code `files.watcherExclude` likely hides `build/`. Verify whether an explicit watcher fires; default to polling if not (matches IntelliJ).
-3. **Card surface: Webview vs Tree+hover.** Webview is closest to parity but heavier; decide after a UX spike in M2.
-4. **CLI vs LSP framing for the core process.** Start with newline-delimited JSON; promote to LSP only if lifecycle needs grow.
+3. **Card surface: Webview vs Tree+hover.** Webview is closest to parity but heavier; decide after a UX spike in M1.
+4. **YAML parser choice.** `js-yaml` is the obvious pick; confirm it handles the rule file's constructs and pin it.
 5. **How much PSI parity is worth rebuilding.** Quantify which enrichment checks actually change outcomes on real logs before investing in jdt.ls.
-6. **Editor targets.** Marketplace only, or Open VSX too (Cursor/Windsurf/VSCodium). Leaning both.
+6. **Unified vs independent versioning** for the two artifacts. Default unified (they ship from one tag); revisit only if they must diverge.
 
 ---
 
 ## 16. Decisions Log
 
-- 2026-06-25: Plan created. Chose shared headless Java core (Option A) over TypeScript rewrite (Option B), pending confirmation of the JVM dependency (open question 1). MVP scope set to M0 through M5, PSI enrichment deferred to M6. Terminal reading explicitly out of scope on the same grounds as the IntelliJ Gen2 terminal.
+- 2026-06-25: Plan created, originally recommending a shared headless Java core (Option A) pending a JVM-dependency decision.
+- 2026-06-25: **Decision reversed by the team.** Chose a native TypeScript engine over the shared Java core. Rationale: for VS Code a pure TypeScript extension is the simpler, more native integration with a lighter install and no process lifecycle to manage; the team accepts porting the logic. The recurring drift cost of a two-language engine is contained by keeping `spring-boot-rules.yaml` and the test fixtures as single shared sources and gating CI with a cross-engine parity suite (built first, in M0). The JVM dependency is no longer in play, so its open question is closed.
+- 2026-06-25: **Single repo, added artifact.** The VS Code extension is built in this repository and shipped as an additional release artifact (`.vsix` alongside the IntelliJ `.zip`) from the same tags. No separate repository.
