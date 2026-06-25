@@ -1,0 +1,967 @@
+{
+  "fixtures/1.1-application-context-exception.log": [
+    {
+      "ruleId": "1.1",
+      "phase": "STARTUP",
+      "diagnosis": "The Spring application context failed to start and threw ApplicationContextException, which is only a wrapper: the real cause is the deepest 'Caused by' line further down the log, where the web server, a bean, or an auto-configuration actually failed.",
+      "fix": "Scroll to the innermost 'Caused by' in the stack trace and diagnose that exception, not this one. The most common roots are a port conflict, a failed DataSource, or a bean that could not be created; once the deepest cause is fixed, this wrapper disappears.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/1.10-failed-to-load-context.log": [],
+  "fixtures/1.12-autoconfiguration-missing.log": [
+    {
+      "ruleId": "1.12",
+      "phase": "STARTUP",
+      "diagnosis": "A Spring Boot auto-configuration did not activate because a starter it is conditional on is missing from the classpath, so the beans it would have created (a DataSource, a security filter chain, and so on) are absent; the symptom is usually a missing bean or unexpected default behaviour rather than a hard error.",
+      "fix": "Add the starter that provides the feature (for example spring-boot-starter-data-jpa, spring-boot-starter-web, or spring-boot-starter-security) and rebuild. Run with --debug to print the auto-configuration report and confirm the entry moves from 'Negative matches' to 'Positive matches'.",
+      "confidence": "MEDIUM",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/1.13-circular-dependency.log": [
+    {
+      "ruleId": "1.13",
+      "phase": "STARTUP",
+      "diagnosis": "Spring detected a circular dependency during startup: two or more beans require each other through constructor injection, so none can be fully created first and Spring fails fast rather than resolving the cycle.",
+      "fix": "Break the cycle by extracting the shared logic into a third bean that both depend on, or redesign so the dependency flows one way. As a temporary measure annotate one injection point with @Lazy, or set spring.main.allow-circular-references=true only while debugging; neither is a real fix.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/1.2-bean-definition-store.log": [
+    {
+      "ruleId": "1.2",
+      "phase": "STARTUP",
+      "diagnosis": "Spring could not read or parse a bean definition source, typically a @Configuration class, a @PropertySource file, or an @Import/XML reference that points at something missing or malformed, so the definition phase fails and the context never finishes loading.",
+      "fix": "Check the @Configuration classes, @Import, and @PropertySource declarations you edited most recently and confirm every referenced class and resource exists and is spelled correctly. The deepest 'Caused by' usually names the exact file or class that could not be parsed.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/1.3-bean-creation.log": [
+    {
+      "ruleId": "1.3",
+      "phase": "STARTUP",
+      "diagnosis": "Spring found the bean but failed during instantiation or wiring for the reason shown in the nested exception.",
+      "fix": "Read the nested Caused by to find whether the failure is an unresolved dependency, a @Value placeholder, or a constructor exception, then fix that root cause.",
+      "confidence": "MEDIUM",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/1.4-bean-instantiation.log": [
+    {
+      "ruleId": "1.4",
+      "phase": "STARTUP",
+      "diagnosis": "Spring located the bean's class but could not create an instance of it, either because it has no usable no-argument constructor or because its constructor threw while running; construction happens during context refresh, so this fails startup.",
+      "fix": "Add a public no-arg constructor (for an entity or DTO with Lombok, @NoArgsConstructor), or move risky initialisation out of the constructor into a @PostConstruct method where the failure is easier to trace. Read the nested 'Caused by' to see whether it is a missing constructor or a thrown exception.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/1.5-bean-definition-override.log": [
+    {
+      "ruleId": "1.5",
+      "phase": "STARTUP",
+      "diagnosis": "Two different bean definitions are registered under the same bean name, which Spring Boot forbids by default since 2.1 to stop one bean silently shadowing another; this usually happens when a component is both component-scanned and declared as an @Bean, or two @Bean methods share a name.",
+      "fix": "Give one of the beans a distinct name with @Bean(\"uniqueName\") or remove the duplicate definition. Do not set spring.main.allow-bean-definition-overriding=true except as a temporary diagnostic, because it hides the real conflict and lets an unintended bean win.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/1.8-port-in-use.log": [
+    {
+      "ruleId": "1.8",
+      "phase": "STARTUP",
+      "diagnosis": "Another process is already listening on port 8080, so the embedded web server cannot bind to it.",
+      "fix": "Find the process holding port 8080 with 'lsof -i :8080' (macOS/Linux) or 'netstat -ano | findstr 8080' (Windows) and stop it, or run this app on a different port via server.port=<port> in application.properties or the SERVER_PORT environment variable.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/1.9-no-active-profile.log": [
+    {
+      "ruleId": "1.9",
+      "phase": "STARTUP",
+      "diagnosis": "No Spring profile is active, so the application runs on the default profile only: profile-specific files such as application-dev.yml and any @Profile-gated beans are not loaded. This is a warning rather than a failure, but it often explains missing configuration.",
+      "fix": "Activate the intended profile with spring.profiles.active=<profile> in application.properties, the SPRING_PROFILES_ACTIVE environment variable, or -Dspring.profiles.active=<profile> as a JVM argument, and confirm the startup log lists it under 'The following profiles are active'.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/10.1-no-such-method.log": [
+    {
+      "ruleId": "10.1",
+      "phase": "STARTUP",
+      "diagnosis": "Two versions of the same library are on the classpath and the wrong one loaded at runtime; it lacks a method or class your code (or another library) was compiled against, producing NoSuchMethodError/NoClassDefFoundError. This is a dependency conflict, not a code bug.",
+      "fix": "Run 'mvn dependency:tree' or 'gradle dependencies' to find which dependencies pull in the conflicting versions, then exclude the unwanted transitive version and let the Spring Boot dependency BOM manage the correct one. Avoid pinning a library to a version the BOM does not expect.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/10.5-lombok-missing.log": [],
+  "fixtures/10.6-java-version.log": [
+    {
+      "ruleId": "10.6",
+      "phase": "STARTUP",
+      "diagnosis": "The classes were compiled targeting a newer Java bytecode version than the JRE/JDK running them, so the runtime rejects them with UnsupportedClassVersionError; the build JDK and the run/deploy JDK are out of step.",
+      "fix": "Make the build target and runtime JDK match: set sourceCompatibility/targetCompatibility (Gradle) or maven.compiler.release / <java.version> (Maven) to a version the target supports, or upgrade the JDK on the run/deploy machine. Verify with 'java -version' where the app actually runs.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/13.1-unmapped-target.log": [
+    {
+      "ruleId": "13.1",
+      "phase": "COMPILE",
+      "diagnosis": "MapStruct found one or more properties on the target type with no corresponding source mapping; with unmappedTargetPolicy = ERROR this fails the build (otherwise it is a warning), because MapStruct will not silently leave those fields unset.",
+      "fix": "Add an explicit @Mapping(source = \"...\", target = \"field\") for each unmapped property, or @Mapping(target = \"field\", ignore = true) if it should intentionally stay unset. The compiler message lists every unmapped target property by name.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/13.2-incompatible-types.log": [
+    {
+      "ruleId": "13.2",
+      "phase": "COMPILE",
+      "diagnosis": "MapStruct cannot map a source property to a target property because their types are incompatible and it knows no built-in conversion or mapping method for that pair, so it fails the build rather than guessing.",
+      "fix": "Provide the conversion: add a mapping method (or shared @Mapper) that converts between the two types and reference it with @Mapping(target = \"field\", qualifiedByName = \"...\"), or supply an expression/dateFormat/numberFormat where applicable. The message names the exact source and target properties.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/13.3-mapperimpl-missing.log": [
+    {
+      "ruleId": "13.3",
+      "phase": "STARTUP",
+      "diagnosis": "The MapStruct annotation processor did not run, so the generated implementation class (XxxMapperImpl) was never produced: the symbol is missing at compile time, or at runtime no implementation bean exists. Annotation processing is off or the processor is not on the right classpath.",
+      "fix": "Enable annotation processing and declare org.mapstruct:mapstruct-processor in the annotationProcessor scope (Gradle) or the maven-compiler-plugin annotationProcessorPaths (Maven), not compileOnly/implementation. If Lombok is also present, add lombok-mapstruct-binding so the two processors cooperate, then rebuild.",
+      "confidence": "MEDIUM",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/13.4-mapper-not-spring-bean.log": [
+    {
+      "ruleId": "13.4",
+      "phase": "STARTUP",
+      "diagnosis": "A @Mapper interface could not be injected because its generated implementation is not registered as a Spring bean; MapStruct only registers it when componentModel = \"spring\" is set on the @Mapper annotation, so without that the mapper is invisible to the context.",
+      "fix": "Add componentModel = \"spring\" to the @Mapper annotation (@Mapper(componentModel = \"spring\")), then inject the mapper with constructor injection like any other bean, and rebuild so the processor regenerates the implementation.",
+      "confidence": "MEDIUM",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/13.5-no-impl-for-return-type.log": [
+    {
+      "ruleId": "13.5",
+      "phase": "COMPILE",
+      "diagnosis": "MapStruct cannot generate a mapping method because the return type is an abstract type or interface with no registered implementation it can instantiate, so it does not know what concrete class to create.",
+      "fix": "Map to a concrete type, or tell MapStruct which implementation to use: for custom abstract types provide a mapping method that returns a concrete instance, and for partial mappings use @BeanMapping(ignoreByDefault = true) to map only the fields you can. Collections and maps are usually inferred automatically.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/13.6-missing-mapper-annotation.log": [
+    {
+      "ruleId": "13.6",
+      "phase": "COMPILE",
+      "diagnosis": "An interface intended to be a MapStruct mapper is missing the @Mapper annotation (or it was imported from the wrong package), so MapStruct does not recognise it and generates no implementation.",
+      "fix": "Add @Mapper from org.mapstruct to the interface and check the import is org.mapstruct.Mapper, not another library. If it must be a Spring bean, set componentModel = \"spring\" in the same annotation so the generated impl is registered for injection.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.1-kafka-broker-unreachable.log": [
+    {
+      "ruleId": "14.1",
+      "phase": "STARTUP",
+      "diagnosis": "The Kafka client cannot reach any broker: it repeatedly logs that the connection to the bootstrap broker (node -1) could not be established, so no consumer or producer can work. This is almost always a wrong address, a broker that is down, or a network/firewall block rather than an application bug.",
+      "fix": "Confirm spring.kafka.bootstrap-servers points at a reachable host:port (e.g. broker:9092) and test it with 'nc -zv <host> <port>'. In Docker/Kubernetes/cloud, set the broker's advertised.listeners to an address the client can actually resolve (not an internal container name) and open the port in any firewall or security group; the client reconnects automatically once the broker is reachable.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.10-kafka-topic-authorization.log": [
+    {
+      "ruleId": "14.10",
+      "phase": "STARTUP",
+      "diagnosis": "Authentication succeeded but the authenticated principal lacks the ACL required for the topic (Read for consumers, Write for producers, Describe for admin), so the broker returns a topic authorization failure and the listener container stops as a fatal error by default.",
+      "fix": "Grant the ACL, e.g. 'kafka-acls.sh --add --allow-principal User:<name> --operation Read --topic <topic> --bootstrap-server <host>:<port>' (use Write and Describe for producers, and also grant Read on the consumer group). In Spring Kafka set containerProperties.setAuthorizationExceptionRetryInterval(Duration.ofSeconds(10)) so transient ACL-propagation delays are retried instead of stopping the container.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.11-kafka-offset-out-of-range.log": [
+    {
+      "ruleId": "14.11",
+      "phase": "STARTUP",
+      "diagnosis": "The consumer's committed offset no longer exists on the broker (the log segments were deleted by retention while the consumer was offline) and auto.offset.reset is set to 'none', so the client throws OffsetOutOfRangeException instead of repositioning.",
+      "fix": "Set spring.kafka.consumer.auto-offset-reset=earliest (replay from the start of what is retained) or latest (skip to the end, accepting data loss), depending on your needs. Avoid auto.offset.reset=none unless you handle the reset manually, and consider increasing the topic's retention.ms if consumers are regularly offline long enough to fall behind retention.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.12-kafka-record-too-large.log": [
+    {
+      "ruleId": "14.12",
+      "phase": "STARTUP",
+      "diagnosis": "A record exceeds a configured size limit. Producer-side it is larger than max.request.size (default 1 MB) and is rejected before sending; broker-side it exceeds message.max.bytes or the topic's max.message.bytes. The same RecordTooLargeException is thrown in both cases.",
+      "fix": "Align all three limits: spring.kafka.producer.properties.max.request.size, the broker's message.max.bytes (or per-topic max.message.bytes via kafka-configs.sh), and the consumer's spring.kafka.consumer.properties.max.partition.fetch.bytes / fetch-max-bytes. Prefer enabling compression (spring.kafka.producer.compression-type=lz4) or splitting large payloads into chunks rather than raising the limits without bound.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.2-kafka-missing-bootstrap.log": [
+    {
+      "ruleId": "14.2",
+      "phase": "STARTUP",
+      "diagnosis": "The Kafka client configuration is missing the required 'bootstrap.servers' property, so the producer/consumer factory cannot be constructed and the application context fails to start. Common causes are an absent property, a typo such as 'bootstrap-server' (missing the trailing s), or the value living in a profile that is not active.",
+      "fix": "Add spring.kafka.bootstrap-servers=<host>:<port> to application.properties or the active profile file. If you build custom ConsumerFactory/ProducerFactory beans, inject KafkaProperties and use kafkaProperties.buildConsumerProperties()/buildProducerProperties() so the value propagates, and watch for typos because Spring silently ignores unknown spring.kafka.* keys.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.3-kafka-invalid-group-id.log": [
+    {
+      "ruleId": "14.3",
+      "phase": "STARTUP",
+      "diagnosis": "A Kafka consumer is using group management or committing offsets without a valid group.id, so the broker rejects the join-group request and the listener stops. Newer Kafka clients no longer default the group id, so it must be set explicitly.",
+      "fix": "Set spring.kafka.consumer.group-id=<your-group> in application.properties, or specify it on the listener with @KafkaListener(topics = \"...\", groupId = \"...\"). The group id must be a non-empty string and, when ACLs are enabled, must have Read permission on the group.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.4-kafka-trusted-packages.log": [
+    {
+      "ruleId": "14.4",
+      "phase": "STARTUP",
+      "diagnosis": "Spring Kafka's JsonDeserializer read the target class name from the message's __TypeId__ header, but that class's package is not in the deserializer's trusted-packages allowlist, so it refuses to instantiate it (a deserialization security control). The deepest cause is an IllegalArgumentException naming the blocked class.",
+      "fix": "Add the package to the allowlist: spring.kafka.consumer.properties.spring.json.trusted.packages=com.example.* (comma-separated, wildcards allowed), or '*' to trust all (only for fully trusted producers). Alternatively stop sending type headers on the producer (spring.kafka.producer.properties.spring.json.add.type.headers=false) and set a fixed target type on the consumer with spring.kafka.consumer.properties.spring.json.value.default.type=com.example.MyEvent.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.5-kafka-consumer-deserialization.log": [
+    {
+      "ruleId": "14.5",
+      "phase": "STARTUP",
+      "diagnosis": "A consumed record could not be deserialized into the target type (a 'poison pill'): the configured deserializer threw while converting the raw bytes, usually because the producer used a different format or schema, or a malformed message is on the topic. Without an error-handling deserializer the consumer is stuck at that offset and cannot advance.",
+      "fix": "Wrap the real deserializer with ErrorHandlingDeserializer so bad records are captured instead of blocking the consumer: spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.ErrorHandlingDeserializer plus spring.kafka.consumer.properties.spring.deserializer.value.delegate.class=<your real deserializer>. Then configure a DefaultErrorHandler with a DeadLetterPublishingRecoverer to route failures to a DLT topic, and confirm the producer and consumer agree on the serialization format.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.6-kafka-producer-serialization.log": [
+    {
+      "ruleId": "14.6",
+      "phase": "STARTUP",
+      "diagnosis": "The Kafka producer failed to serialize the value before sending: the configured serializer threw, typically because the payload class lacks Jackson getters or a no-arg constructor, contains a non-serializable field, or jackson-databind is missing. KafkaTemplate.send therefore returns a failed future and the message is never published.",
+      "fix": "Give the payload class a public no-arg constructor and standard getters/setters (or @JsonProperty annotations), and ensure com.fasterxml.jackson.core:jackson-databind is on the classpath. Configure spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JsonSerializer, and handle the returned future (or add a ProducerListener) so per-message serialization failures are logged and recovered.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.7-kafka-unknown-topic.log": [
+    {
+      "ruleId": "14.7",
+      "phase": "STARTUP",
+      "diagnosis": "A consumer or producer references a topic that does not exist on the broker (auto-create is usually disabled in production), so metadata requests return UNKNOWN_TOPIC_OR_PARTITION. The listener starts but silently receives nothing, or sends fail, and the client retries indefinitely; a misspelled topic name is the most common cause.",
+      "fix": "Verify the exact topic name with 'kafka-topics.sh --list --bootstrap-server <host>:<port>'. Create it with a @Bean NewTopic in a @Configuration class so Spring Kafka's KafkaAdmin provisions it on startup, and set spring.kafka.admin.fail-fast=true so a missing or unreachable topic fails startup loudly instead of failing silently.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.8-kafka-commit-failed.log": [
+    {
+      "ruleId": "14.8",
+      "phase": "STARTUP",
+      "diagnosis": "The consumer took longer than max.poll.interval.ms (default 5 minutes) to process a batch between poll() calls, so the broker treated it as dead, rebalanced its partitions to another member, and then rejected its offset commit with CommitFailedException. Those records may be reprocessed by the new owner.",
+      "fix": "Either speed up processing or allow more time: raise spring.kafka.consumer.properties.max.poll.interval.ms (e.g. 600000) and/or lower spring.kafka.consumer.max-poll-records (default 500) so each batch is smaller. For long or unpredictable work, hand records to a bounded executor and return from the listener quickly, and tune heartbeat.interval.ms/session.timeout.ms if heartbeat failures also appear.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/14.9-kafka-sasl-auth.log": [
+    {
+      "ruleId": "14.9",
+      "phase": "STARTUP",
+      "diagnosis": "The Kafka client failed SASL authentication during the connection handshake, so the broker closed the connection before any topic operation. Typical causes are wrong credentials, a mechanism mismatch (for example PLAINTEXT instead of PLAIN), or a malformed sasl.jaas.config string; this is not retriable.",
+      "fix": "Check the spring.kafka.properties.sasl.jaas.config syntax (e.g. org.apache.kafka.common.security.plain.PlainLoginModule required username=\"u\" password=\"p\";) and make sure spring.kafka.properties.sasl.mechanism (PLAIN, SCRAM-SHA-256, ...) and spring.kafka.properties.security.protocol (SASL_SSL or SASL_PLAINTEXT) match the broker. Verify the same credentials work through the Kafka CLI with --command-config before retrying.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/2.1-no-such-bean.log": [
+    {
+      "ruleId": "2.1",
+      "phase": "STARTUP",
+      "diagnosis": "Spring cannot find a bean of type OrderService; no class of that type is registered in the application context.",
+      "fix": "Annotate the OrderService class with @Component (or @Service / @Repository to match its role), or declare it as an @Bean in a @Configuration class, and confirm it lives inside the package tree scanned by your @SpringBootApplication class.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/2.13-missing-bean-banner.log": [
+    {
+      "ruleId": "2.13",
+      "phase": "STARTUP",
+      "diagnosis": "Spring's failure analyzer reports that a required bean of type PaymentGateway could not be found, so an @Autowired constructor or field has no candidate and the context fails to start (the full stack is suppressed in favour of this banner).",
+      "fix": "Declare PaymentGateway as a bean: annotate its class with @Component/@Service/@Repository, or add an @Bean method in a @Configuration class, and ensure it sits inside the package tree scanned by your @SpringBootApplication class. The banner's Action line names the exact type to define.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/2.2-no-unique-bean.log": [
+    {
+      "ruleId": "2.2",
+      "phase": "STARTUP",
+      "diagnosis": "More than one bean matches the injected type PaymentService, so Spring cannot decide which one to wire and fails; this typically happens when two implementations of the same interface are both registered as beans.",
+      "fix": "Mark the intended implementation @Primary, or disambiguate at the injection point with @Qualifier(\"beanName\") (the bean name defaults to the decapitalised class name). The error message lists the candidate bean names to choose from.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/2.3-unsatisfied-dependency.log": [
+    {
+      "ruleId": "2.3",
+      "phase": "STARTUP",
+      "diagnosis": "A bean could not be wired because one of its dependencies could not be satisfied; UnsatisfiedDependencyException is a wrapper, and the nested 'Caused by' says whether the dependency is missing (NoSuchBeanDefinitionException) or ambiguous (NoUniqueBeanDefinitionException).",
+      "fix": "Read the nested 'Caused by': if a bean is missing, declare or component-scan it; if it is ambiguous, mark one @Primary or add @Qualifier. The failing bean and the dependency it needs are both named in the message.",
+      "confidence": "MEDIUM",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/2.7-circular-dep.log": [
+    {
+      "ruleId": "2.7",
+      "phase": "STARTUP",
+      "diagnosis": "Beans in the application context depend on each other in a cycle (A needs B, B needs A, possibly through more beans), which Spring cannot resolve with constructor injection and reports via a failure-analysis banner that lists the cycle.",
+      "fix": "Break the cycle by extracting the shared logic into a third bean, or invert one dependency so it flows one way. As a temporary workaround put @Lazy on one injection point or set spring.main.allow-circular-references=true while debugging; the banner shows the exact beans in the cycle to target.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/3.1-unresolved-placeholder.log": [
+    {
+      "ruleId": "3.1",
+      "phase": "STARTUP",
+      "diagnosis": "A @Value annotation references the property 'app.database.url', which is not defined in any active property source (application.properties/yml, profile files, environment variables, or command-line arguments).",
+      "fix": "Define app.database.url in application.properties or the active profile file, supply it as an environment variable or a -D JVM argument, or give the annotation a default with @Value(\"${app.database.url:defaultValue}\"); run with --debug to print which property sources are active.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/3.4-type-conversion.log": [
+    {
+      "ruleId": "3.4",
+      "phase": "STARTUP",
+      "diagnosis": "A configuration property value could not be converted to the Java type the target field expects (for example a non-numeric string bound to an int, or a malformed Duration/DataSize/enum), so binding fails at startup; the failure-analysis banner names the property, the offending value, and the required type.",
+      "fix": "Correct the value to match the type: Duration accepts forms like '5s', '200ms', or '1h'; DataSize accepts '10MB'; enums match case-insensitively by name; booleans must be true/false. Fix the property named in the banner in application.properties or the active profile file.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/3.5-yaml-syntax.log": [
+    {
+      "ruleId": "3.5",
+      "phase": "STARTUP",
+      "diagnosis": "An application YAML file has a syntax error and could not be parsed, so none of its properties are loaded and startup fails; the parser reports the line and column, and the usual causes are tabs used for indentation, misaligned keys, or an unquoted value containing a special character.",
+      "fix": "Fix the indentation or syntax at the reported line using spaces only (never tabs), keep keys aligned consistently, and quote any value containing ':', '@', '{', or other special characters. Paste the file into a YAML validator if the offending line is not obvious.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.1-no-embedded-db.log": [
+    {
+      "ruleId": "4.1",
+      "phase": "STARTUP",
+      "diagnosis": "The JPA/Hibernate starter is on the classpath but Spring Boot found no datasource URL and no embedded database (H2, HSQLDB, Derby), so it cannot auto-configure a DataSource and aborts startup. This usually means the connection properties are missing or a dev/test profile that supplies them is not active.",
+      "fix": "For a real database set spring.datasource.url, spring.datasource.username, and spring.datasource.password plus the JDBC driver dependency. For local development or tests add an embedded database such as com.h2database:h2 to the classpath; if this module does not need a database, exclude DataSourceAutoConfiguration.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.13-constraint-violation.log": [
+    {
+      "ruleId": "4.13",
+      "phase": "RUNTIME",
+      "diagnosis": "A database write violated a constraint (unique, not-null, foreign key, or check), so the transaction was rolled back; DataIntegrityViolationException is Spring's wrapper and the deepest 'Caused by' from the JDBC driver names the exact constraint and column.",
+      "fix": "Read the deepest 'Caused by' for the constraint name, then validate or de-duplicate the input before persisting so the violation cannot occur. Map this exception in a @RestControllerAdvice to return a meaningful 4xx instead of a 500, and add an application-level check (for example a uniqueness query) for a friendlier message.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.14-redis-connection-factory.log": [
+    {
+      "ruleId": "4.14",
+      "phase": "STARTUP",
+      "diagnosis": "A RedisTemplate or other Spring Data Redis bean is being created but no RedisConnectionFactory is configured, so there is nothing to connect to Redis with and the context fails; usually the Redis starter is missing or the connection properties are absent.",
+      "fix": "Add spring-boot-starter-data-redis to the build and set spring.data.redis.host and spring.data.redis.port (and password if required), or define a LettuceConnectionFactory (or JedisConnectionFactory) @Bean explicitly. Confirm the properties live in the active profile.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.15-db-connection-refused.log": [
+    {
+      "ruleId": "4.15",
+      "phase": "STARTUP",
+      "diagnosis": "The application cannot open a TCP connection to its database: the JDBC driver reports the connection was refused, which means nothing is listening on that host and port. This is almost always a database that is not running, a wrong host/port, or a firewall rather than an application bug, and Hibernate keeps retrying so the message repeats.",
+      "fix": "Start the database (for local development this is usually the docker-compose stack) and confirm spring.datasource.url points at the right host:port; test it with 'nc -zv <host> <port>' or 'pg_isready -h <host> -p <port>'. In Docker/Kubernetes use the service name the app can actually resolve, not localhost, and open the port in any firewall or security group.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.16-schema-validation.log": [
+    {
+      "ruleId": "4.16",
+      "phase": "STARTUP",
+      "diagnosis": "Hibernate validated your @Entity mappings against the database at startup and found a mismatch (a missing or renamed column, a missing table, or a changed type), so it aborted. This almost always means an entity was changed but the matching schema migration was not added, so the database is behind the code; the message names the exact table and column.",
+      "fix": "Add the missing Liquibase changeset (or Flyway migration) that brings the schema in line with the entity change and run it so the column or table exists. If the database is meant to be authoritative, revert the entity change instead. As a temporary local unblock you can set spring.jpa.hibernate.ddl-auto=update, but commit a proper migration rather than relying on it.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.17-column-not-found.log": [
+    {
+      "ruleId": "4.17",
+      "phase": "RUNTIME",
+      "diagnosis": "A SQL statement referenced a column or table that the database does not have, so the driver rejected it. The most common cause is an @Entity or @Column that was changed without a matching schema migration, so the database is out of sync with the code; it can also be a typo in a hand-written @Query. The message names the exact column or table.",
+      "fix": "Compare the entity or query against the real table and add the missing Liquibase changeset (or Flyway migration) to create or rename the column/table, then run it. If the schema is correct, fix the @Column/@Table mapping or the query instead. Catching this at startup is easier: set spring.jpa.hibernate.ddl-auto=validate so a drift fails fast with a clear schema-validation message.",
+      "confidence": "MEDIUM",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.2-no-datasource.log": [
+    {
+      "ruleId": "4.2",
+      "phase": "STARTUP",
+      "diagnosis": "Spring Boot tried to auto-configure a DataSource but spring.datasource.url is missing, so it cannot determine what to connect to and fails with a failure-analysis banner; the JPA/JDBC starter is present but unconfigured.",
+      "fix": "Provide spring.datasource.url (and username, password, and driver-class-name if the driver cannot be inferred), or, if this module does not actually need a datasource, exclude it with @SpringBootApplication(exclude = DataSourceAutoConfiguration.class). Confirm the properties live in the active profile.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.4-hikari-exhausted.log": [
+    {
+      "ruleId": "4.4",
+      "phase": "RUNTIME",
+      "diagnosis": "The HikariCP connection pool is exhausted: every connection is checked out and none was returned within connectionTimeout, so the request times out. This is almost always a connection leak (connections not closed) or a pool sized too small for the load, not a database outage.",
+      "fix": "Turn on leak detection with spring.datasource.hikari.leak-detection-threshold=20000 to log the stack traces holding connections, and fix those paths to close/return connections (try-with-resources, or let Spring manage the transaction). Only after fixing leaks consider raising spring.datasource.hikari.maximum-pool-size.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.6-not-managed-type.log": [
+    {
+      "ruleId": "4.6",
+      "phase": "STARTUP",
+      "diagnosis": "Hibernate does not recognise a class as a JPA entity, either because it is missing the @Entity annotation or because it lives outside the package tree Hibernate scans for entities, so the repository or query referencing it fails.",
+      "fix": "Add @Entity and an @Id field to the class. If the entity is in a different package from your @SpringBootApplication, point Hibernate at it with @EntityScan(basePackages = \"com.example.domain\") on a @Configuration class; the exception message names the offending class.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/4.8-lazy-init.log": [
+    {
+      "ruleId": "4.8",
+      "phase": "RUNTIME",
+      "diagnosis": "A lazily-loaded JPA association was accessed after its Hibernate session/transaction had already closed, so Hibernate cannot initialise the proxy; this most often happens when an entity is serialised to JSON in the controller after the @Transactional service method returned.",
+      "fix": "Load the association while the transaction is open using a JOIN FETCH query or an @EntityGraph, or convert the entity to a DTO inside the transaction so the controller never touches a lazy proxy. Avoid spring.jpa.open-in-view=true as a fix: it hides the boundary problem and hurts performance.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/5.1-no-handler.log": [
+    {
+      "ruleId": "5.1",
+      "phase": "RUNTIME",
+      "diagnosis": "No controller handler is mapped to the requested HTTP method and path, so Spring MVC raised NoHandlerFoundException (404). The controller may not be component-scanned, the path or method may not match the mapping, or a context-path prefix may be missing.",
+      "fix": "Verify the exact path including any server.servlet.context-path and the HTTP method against the @GetMapping/@PostMapping value, and confirm the controller is a scanned @RestController/@Controller bean. Enable spring.mvc.throw-exception-if-no-handler-found=true so 404s surface as this exception during debugging.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/5.13-no-endpoint.log": [
+    {
+      "ruleId": "5.13",
+      "phase": "RUNTIME",
+      "diagnosis": "Spring MVC found no handler for the requested path and returned 404 (logged as 'No endpoint <method> <path>'). The controller may not be component-scanned, or the path or HTTP method may not match the mapping.",
+      "fix": "Check the exact path (including any server.servlet.context-path) and HTTP method against the controller's @GetMapping/@PostMapping, and confirm the controller is a scanned @RestController/@Controller bean.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/5.5-validation-failure.log": [
+    {
+      "ruleId": "5.5",
+      "phase": "RUNTIME",
+      "diagnosis": "Bean Validation (@Valid) rejected the request body because one or more field constraints failed, so Spring raised MethodArgumentNotValidException and returned 400; this is validation working as designed, and the message lists the rejected fields and the constraints they violated.",
+      "fix": "Handle it in a @RestControllerAdvice with @ExceptionHandler(MethodArgumentNotValidException.class), reading getBindingResult().getFieldErrors() to build a clean, structured 400 payload. Fix the offending request data, or adjust the constraint annotations on the DTO if the rule itself is wrong.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/5.8-ambiguous-mapping.log": [
+    {
+      "ruleId": "5.8",
+      "phase": "STARTUP",
+      "diagnosis": "Two controller methods are mapped to the same HTTP method and path, so Spring cannot decide which should handle a request and fails at startup with an ambiguous-mapping error; this often happens after copy-pasting a handler or merging branches.",
+      "fix": "Make the mappings unique by changing the path, the HTTP method, or by adding distinguishing conditions (params, headers, consumes, or produces) to one @RequestMapping. The error message names both conflicting methods so you can pick which to change.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/6.2-generated-password.log": [
+    {
+      "ruleId": "6.2",
+      "phase": "STARTUP",
+      "diagnosis": "Spring Security is on the classpath with no custom configuration, so it auto-secures every endpoint with HTTP Basic and prints a random generated password at startup; every request now returns 401 until authenticated. This is the default lockdown, not an error.",
+      "fix": "Define your own security: add a @Bean SecurityFilterChain that declares which paths are public and which require authentication, plus a real user store (a UserDetailsService, or an OAuth2/JWT resource server). For a quick local login use the printed password with username 'user', but never rely on the generated password in real environments.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/6.4-web-security-configurer.log": [
+    {
+      "ruleId": "6.4",
+      "phase": "COMPILE",
+      "diagnosis": "The code extends WebSecurityConfigurerAdapter, which was removed in Spring Security 6 / Spring Boot 3, so it no longer compiles or loads; Spring Security moved to a component-based configuration model.",
+      "fix": "Delete the adapter subclass and expose the equivalent beans instead: a @Bean SecurityFilterChain(HttpSecurity) for request authorization, a @Bean WebSecurityCustomizer to ignore static resources, and a @Bean UserDetailsService or AuthenticationManager for the user store. The Spring Security migration guide maps each overridden method to its bean.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/6.5-password-encoder.log": [
+    {
+      "ruleId": "6.5",
+      "phase": "RUNTIME",
+      "diagnosis": "A stored password has no {id} encoding prefix (such as {bcrypt}), so Spring Security's default DelegatingPasswordEncoder cannot tell which algorithm to verify it with and throws 'There is no PasswordEncoder mapped for the id'; this usually means passwords were saved in plain text or with an unprefixed hash.",
+      "fix": "Encode passwords with BCryptPasswordEncoder (or another PasswordEncoder) before storing them so they are saved with the correct {bcrypt} prefix, and re-encode existing rows. If you must read legacy unprefixed hashes, configure the matching encoder explicitly rather than storing plaintext.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/7.2-infinite-recursion.log": [
+    {
+      "ruleId": "7.2",
+      "phase": "RUNTIME",
+      "diagnosis": "Jackson recursed infinitely while serialising a bidirectional relationship where each side references the other (for example Order has a Customer and Customer has a List<Order>), producing a StackOverflowError because serialisation never terminates.",
+      "fix": "Break the cycle on one side: annotate the parent reference with @JsonManagedReference and the child back-reference with @JsonBackReference, or put @JsonIgnore on the side you do not need in the output. The cleanest long-term fix is to serialise DTOs instead of entities so the API shape is explicit.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/7.4-no-default-constructor.log": [
+    {
+      "ruleId": "7.4",
+      "phase": "RUNTIME",
+      "diagnosis": "Jackson cannot deserialise the incoming JSON into the target type because that type has no default (no-arg) constructor and no @JsonCreator, so Jackson has no way to instantiate it; this commonly hits immutable classes and types like Page/PageImpl.",
+      "fix": "Add a no-arg constructor, or annotate the intended constructor with @JsonCreator and each parameter with @JsonProperty(\"field\"). For Java records or third-party types, register the appropriate module (for example the parameter-names module) or deserialise into a concrete DTO you control.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "fixtures/9.2-mockbean-not-replacing.log": [],
+  "fixtures/9.6-testcontainers-docker.log": [],
+  "real-world-logs/FG-SERVICE-gradle-multimodule-bootrun.log": [
+    {
+      "ruleId": "4.15",
+      "phase": "STARTUP",
+      "diagnosis": "The application cannot open a TCP connection to its database: the JDBC driver reports the connection was refused, which means nothing is listening on that host and port. This is almost always a database that is not running, a wrong host/port, or a firewall rather than an application bug, and Hibernate keeps retrying so the message repeats.",
+      "fix": "Start the database (for local development this is usually the docker-compose stack) and confirm spring.datasource.url points at the right host:port; test it with 'nc -zv <host> <port>' or 'pg_isready -h <host> -p <port>'. In Docker/Kubernetes use the service name the app can actually resolve, not localhost, and open the port in any firewall or security group.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "2.1",
+      "phase": "STARTUP",
+      "diagnosis": "Spring cannot find a bean of type CloseApproach; no class of that type is registered in the application context.",
+      "fix": "Annotate the CloseApproach class with @Component (or @Service / @Repository to match its role), or declare it as an @Bean in a @Configuration class, and confirm it lives inside the package tree scanned by your @SpringBootApplication class.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "14.1",
+      "phase": "STARTUP",
+      "diagnosis": "The Kafka client cannot reach any broker: it repeatedly logs that the connection to the bootstrap broker (node -1) could not be established, so no consumer or producer can work. This is almost always a wrong address, a broker that is down, or a network/firewall block rather than an application bug.",
+      "fix": "Confirm spring.kafka.bootstrap-servers points at a reachable host:port (e.g. broker:9092) and test it with 'nc -zv <host> <port>'. In Docker/Kubernetes/cloud, set the broker's advertised.listeners to an address the client can actually resolve (not an internal container name) and open the port in any firewall or security group; the client reconnects automatically once the broker is reachable.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/LIVE-002-integration-runtime-errors.log": [
+    {
+      "ruleId": "5.13",
+      "phase": "RUNTIME",
+      "diagnosis": "Spring MVC found no handler for the requested path and returned 404 (logged as 'No endpoint <method> <path>'). The controller may not be component-scanned, or the path or HTTP method may not match the mapping.",
+      "fix": "Check the exact path (including any server.servlet.context-path) and HTTP method against the controller's @GetMapping/@PostMapping, and confirm the controller is a scanned @RestController/@Controller bean.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "5.5",
+      "phase": "RUNTIME",
+      "diagnosis": "Bean Validation (@Valid) rejected the request body because one or more field constraints failed, so Spring raised MethodArgumentNotValidException and returned 400; this is validation working as designed, and the message lists the rejected fields and the constraints they violated.",
+      "fix": "Handle it in a @RestControllerAdvice with @ExceptionHandler(MethodArgumentNotValidException.class), reading getBindingResult().getFieldErrors() to build a clean, structured 400 payload. Fix the offending request data, or adjust the constraint annotations on the DTO if the rule itself is wrong.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-001-jackson-infinite-recursion.log": [
+    {
+      "ruleId": "7.2",
+      "phase": "RUNTIME",
+      "diagnosis": "Jackson recursed infinitely while serialising a bidirectional relationship where each side references the other (for example Order has a Customer and Customer has a List<Order>), producing a StackOverflowError because serialisation never terminates.",
+      "fix": "Break the cycle on one side: annotate the parent reference with @JsonManagedReference and the child back-reference with @JsonBackReference, or put @JsonIgnore on the side you do not need in the output. The cleanest long-term fix is to serialise DTOs instead of entities so the API shape is explicit.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-002-jackson-no-default-constructor.log": [
+    {
+      "ruleId": "7.4",
+      "phase": "RUNTIME",
+      "diagnosis": "Jackson cannot deserialise the incoming JSON into the target type because that type has no default (no-arg) constructor and no @JsonCreator, so Jackson has no way to instantiate it; this commonly hits immutable classes and types like Page/PageImpl.",
+      "fix": "Add a no-arg constructor, or annotate the intended constructor with @JsonCreator and each parameter with @JsonProperty(\"field\"). For Java records or third-party types, register the appropriate module (for example the parameter-names module) or deserialise into a concrete DTO you control.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-003-data-integrity-violation.log": [
+    {
+      "ruleId": "4.13",
+      "phase": "RUNTIME",
+      "diagnosis": "A database write violated a constraint (unique, not-null, foreign key, or check), so the transaction was rolled back; DataIntegrityViolationException is Spring's wrapper and the deepest 'Caused by' from the JDBC driver names the exact constraint and column.",
+      "fix": "Read the deepest 'Caused by' for the constraint name, then validate or de-duplicate the input before persisting so the violation cannot occur. Map this exception in a @RestControllerAdvice to return a meaningful 4xx instead of a 500, and add an application-level check (for example a uniqueness query) for a friendlier message.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-004-no-handler-found-404.log": [
+    {
+      "ruleId": "5.1",
+      "phase": "RUNTIME",
+      "diagnosis": "No controller handler is mapped to the requested HTTP method and path, so Spring MVC raised NoHandlerFoundException (404). The controller may not be component-scanned, the path or method may not match the mapping, or a context-path prefix may be missing.",
+      "fix": "Verify the exact path including any server.servlet.context-path and the HTTP method against the @GetMapping/@PostMapping value, and confirm the controller is a scanned @RestController/@Controller bean. Enable spring.mvc.throw-exception-if-no-handler-found=true so 404s surface as this exception during debugging.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-005-method-argument-not-valid.log": [
+    {
+      "ruleId": "5.5",
+      "phase": "RUNTIME",
+      "diagnosis": "Bean Validation (@Valid) rejected the request body because one or more field constraints failed, so Spring raised MethodArgumentNotValidException and returned 400; this is validation working as designed, and the message lists the rejected fields and the constraints they violated.",
+      "fix": "Handle it in a @RestControllerAdvice with @ExceptionHandler(MethodArgumentNotValidException.class), reading getBindingResult().getFieldErrors() to build a clean, structured 400 payload. Fix the offending request data, or adjust the constraint annotations on the DTO if the rule itself is wrong.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-006-failed-to-bind-properties.log": [
+    {
+      "ruleId": "3.4",
+      "phase": "STARTUP",
+      "diagnosis": "A configuration property value could not be converted to the Java type the target field expects (for example a non-numeric string bound to an int, or a malformed Duration/DataSize/enum), so binding fails at startup; the failure-analysis banner names the property, the offending value, and the required type.",
+      "fix": "Correct the value to match the type: Duration accepts forms like '5s', '200ms', or '1h'; DataSize accepts '10MB'; enums match case-insensitively by name; booleans must be true/false. Fix the property named in the banner in application.properties or the active profile file.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-007-yaml-scanner-exception.log": [
+    {
+      "ruleId": "3.5",
+      "phase": "STARTUP",
+      "diagnosis": "An application YAML file has a syntax error and could not be parsed, so none of its properties are loaded and startup fails; the parser reports the line and column, and the usual causes are tabs used for indentation, misaligned keys, or an unquoted value containing a special character.",
+      "fix": "Fix the indentation or syntax at the reported line using spaces only (never tabs), keep keys aligned consistently, and quote any value containing ':', '@', '{', or other special characters. Paste the file into a YAML validator if the offending line is not obvious.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-008-no-embedded-db-driver.log": [
+    {
+      "ruleId": "4.1",
+      "phase": "STARTUP",
+      "diagnosis": "The JPA/Hibernate starter is on the classpath but Spring Boot found no datasource URL and no embedded database (H2, HSQLDB, Derby), so it cannot auto-configure a DataSource and aborts startup. This usually means the connection properties are missing or a dev/test profile that supplies them is not active.",
+      "fix": "For a real database set spring.datasource.url, spring.datasource.username, and spring.datasource.password plus the JDBC driver dependency. For local development or tests add an embedded database such as com.h2database:h2 to the classpath; if this module does not need a database, exclude DataSourceAutoConfiguration.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-009-hikaricp-pool-exhausted.log": [
+    {
+      "ruleId": "4.4",
+      "phase": "RUNTIME",
+      "diagnosis": "The HikariCP connection pool is exhausted: every connection is checked out and none was returned within connectionTimeout, so the request times out. This is almost always a connection leak (connections not closed) or a pool sized too small for the load, not a database outage.",
+      "fix": "Turn on leak detection with spring.datasource.hikari.leak-detection-threshold=20000 to log the stack traces holding connections, and fix those paths to close/return connections (try-with-resources, or let Spring manage the transaction). Only after fixing leaks consider raising spring.datasource.hikari.maximum-pool-size.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-010-port-already-in-use.log": [
+    {
+      "ruleId": "1.8",
+      "phase": "STARTUP",
+      "diagnosis": "Another process is already listening on port 8080, so the embedded web server cannot bind to it.",
+      "fix": "Find the process holding port 8080 with 'lsof -i :8080' (macOS/Linux) or 'netstat -ano | findstr 8080' (Windows) and stop it, or run this app on a different port via server.port=<port> in application.properties or the SERVER_PORT environment variable.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-011-generated-security-password.log": [
+    {
+      "ruleId": "6.2",
+      "phase": "STARTUP",
+      "diagnosis": "Spring Security is on the classpath with no custom configuration, so it auto-secures every endpoint with HTTP Basic and prints a random generated password at startup; every request now returns 401 until authenticated. This is the default lockdown, not an error.",
+      "fix": "Define your own security: add a @Bean SecurityFilterChain that declares which paths are public and which require authentication, plus a real user store (a UserDetailsService, or an OAuth2/JWT resource server). For a quick local login use the printed password with username 'user', but never rely on the generated password in real environments.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-012-mapstruct-unmapped-target.log": [
+    {
+      "ruleId": "13.1",
+      "phase": "COMPILE",
+      "diagnosis": "MapStruct found one or more properties on the target type with no corresponding source mapping; with unmappedTargetPolicy = ERROR this fails the build (otherwise it is a warning), because MapStruct will not silently leave those fields unset.",
+      "fix": "Add an explicit @Mapping(source = \"...\", target = \"field\") for each unmapped property, or @Mapping(target = \"field\", ignore = true) if it should intentionally stay unset. The compiler message lists every unmapped target property by name.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-013-mapstruct-no-such-bean.log": [
+    {
+      "ruleId": "13.4",
+      "phase": "STARTUP",
+      "diagnosis": "A @Mapper interface could not be injected because its generated implementation is not registered as a Spring bean; MapStruct only registers it when componentModel = \"spring\" is set on the @Mapper annotation, so without that the mapper is invisible to the context.",
+      "fix": "Add componentModel = \"spring\" to the @Mapper annotation (@Mapper(componentModel = \"spring\")), then inject the mapper with constructor injection like any other bean, and rebuild so the processor regenerates the implementation.",
+      "confidence": "MEDIUM",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/NEW-014-test-context-missing-component.log": [
+    {
+      "ruleId": "2.1",
+      "phase": "STARTUP",
+      "diagnosis": "Spring cannot find a bean of type FgClassifier; no class of that type is registered in the application context.",
+      "fix": "Annotate the FgClassifier class with @Component (or @Service / @Repository to match its role), or declare it as an @Bean in a @Configuration class, and confirm it lives inside the package tree scanned by your @SpringBootApplication class.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/RW-001-circular-dependency.log": [
+    {
+      "ruleId": "1.13",
+      "phase": "STARTUP",
+      "diagnosis": "Spring detected a circular dependency during startup: two or more beans require each other through constructor injection, so none can be fully created first and Spring fails fast rather than resolving the cycle.",
+      "fix": "Break the cycle by extracting the shared logic into a third bean that both depend on, or redesign so the dependency flows one way. As a temporary measure annotate one injection point with @Lazy, or set spring.main.allow-circular-references=true only while debugging; neither is a real fix.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/RW-002-datasource-not-configured.log": [
+    {
+      "ruleId": "4.2",
+      "phase": "STARTUP",
+      "diagnosis": "Spring Boot tried to auto-configure a DataSource but spring.datasource.url is missing, so it cannot determine what to connect to and fails with a failure-analysis banner; the JPA/JDBC starter is present but unconfigured.",
+      "fix": "Provide spring.datasource.url (and username, password, and driver-class-name if the driver cannot be inferred), or, if this module does not actually need a datasource, exclude it with @SpringBootApplication(exclude = DataSourceAutoConfiguration.class). Confirm the properties live in the active profile.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/RW-003-no-password-encoder.log": [
+    {
+      "ruleId": "6.5",
+      "phase": "RUNTIME",
+      "diagnosis": "A stored password has no {id} encoding prefix (such as {bcrypt}), so Spring Security's default DelegatingPasswordEncoder cannot tell which algorithm to verify it with and throws 'There is no PasswordEncoder mapped for the id'; this usually means passwords were saved in plain text or with an unprefixed hash.",
+      "fix": "Encode passwords with BCryptPasswordEncoder (or another PasswordEncoder) before storing them so they are saved with the correct {bcrypt} prefix, and re-encode existing rows. If you must read legacy unprefixed hashes, configure the matching encoder explicitly rather than storing plaintext.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/RW-004-nosuchbeandef-legacy-format.log": [
+    {
+      "ruleId": "2.1",
+      "phase": "STARTUP",
+      "diagnosis": "Spring cannot find a bean of type EntityManagerFactoryBuilder; no class of that type is registered in the application context.",
+      "fix": "Annotate the EntityManagerFactoryBuilder class with @Component (or @Service / @Repository to match its role), or declare it as an @Bean in a @Configuration class, and confirm it lives inside the package tree scanned by your @SpringBootApplication class.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/RW-005-nosuchbeandef-modern-partial.log": [
+    {
+      "ruleId": "2.1",
+      "phase": "STARTUP",
+      "diagnosis": "Spring cannot find a bean of type AccountDao; no class of that type is registered in the application context.",
+      "fix": "Annotate the AccountDao class with @Component (or @Service / @Repository to match its role), or declare it as an @Bean in a @Configuration class, and confirm it lives inside the package tree scanned by your @SpringBootApplication class.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-001-nosuchbean-test-context.log": [
+    {
+      "ruleId": "2.3",
+      "phase": "STARTUP",
+      "diagnosis": "A bean could not be wired because one of its dependencies could not be satisfied; UnsatisfiedDependencyException is a wrapper, and the nested 'Caused by' says whether the dependency is missing (NoSuchBeanDefinitionException) or ambiguous (NoUniqueBeanDefinitionException).",
+      "fix": "Read the nested 'Caused by': if a bean is missing, declare or component-scan it; if it is ambiguous, mark one @Primary or add @Qualifier. The failing bean and the dependency it needs are both named in the message.",
+      "confidence": "MEDIUM",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-002-nosuchbean-with-banner.log": [
+    {
+      "ruleId": "2.1",
+      "phase": "STARTUP",
+      "diagnosis": "Spring cannot find a bean of type MyRepository; no class of that type is registered in the application context.",
+      "fix": "Annotate the MyRepository class with @Component (or @Service / @Repository to match its role), or declare it as an @Bean in a @Configuration class, and confirm it lives inside the package tree scanned by your @SpringBootApplication class.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-003-redis-chain-no-match.log": [
+    {
+      "ruleId": "4.14",
+      "phase": "STARTUP",
+      "diagnosis": "A RedisTemplate or other Spring Data Redis bean is being created but no RedisConnectionFactory is configured, so there is nothing to connect to Redis with and the context fails; usually the Redis starter is missing or the connection properties are absent.",
+      "fix": "Add spring-boot-starter-data-redis to the build and set spring.data.redis.host and spring.data.redis.port (and password if required), or define a LettuceConnectionFactory (or JedisConnectionFactory) @Bean explicitly. Confirm the properties live in the active profile.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-004-port-in-use-test-no-match.log": [],
+  "real-world-logs/SOL-005-unresolved-placeholder.log": [
+    {
+      "ruleId": "3.1",
+      "phase": "STARTUP",
+      "diagnosis": "A @Value annotation references the property 'message', which is not defined in any active property source (application.properties/yml, profile files, environment variables, or command-line arguments).",
+      "fix": "Define message in application.properties or the active profile file, supply it as an environment variable or a -D JVM argument, or give the annotation a default with @Value(\"${message:defaultValue}\"); run with --debug to print which property sources are active.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-006-datasource-github-15828.log": [
+    {
+      "ruleId": "4.2",
+      "phase": "STARTUP",
+      "diagnosis": "Spring Boot tried to auto-configure a DataSource but spring.datasource.url is missing, so it cannot determine what to connect to and fails with a failure-analysis banner; the JPA/JDBC starter is present but unconfigured.",
+      "fix": "Provide spring.datasource.url (and username, password, and driver-class-name if the driver cannot be inferred), or, if this module does not actually need a datasource, exclude it with @SpringBootApplication(exclude = DataSourceAutoConfiguration.class). Confirm the properties live in the active profile.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-007-lazy-init-exception.log": [
+    {
+      "ruleId": "4.8",
+      "phase": "RUNTIME",
+      "diagnosis": "A lazily-loaded JPA association was accessed after its Hibernate session/transaction had already closed, so Hibernate cannot initialise the proxy; this most often happens when an entity is serialised to JSON in the controller after the @Transactional service method returned.",
+      "fix": "Load the association while the transaction is open using a JOIN FETCH query or an @EntityGraph, or convert the entity to a DTO inside the transaction so the controller never touches a lazy proxy. Avoid spring.jpa.open-in-view=true as a fix: it hides the boundary problem and hurts performance.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-008-circular-springboot26.log": [
+    {
+      "ruleId": "1.13",
+      "phase": "STARTUP",
+      "diagnosis": "Spring detected a circular dependency during startup: two or more beans require each other through constructor injection, so none can be fully created first and Spring fails fast rather than resolving the cycle.",
+      "fix": "Break the cycle by extracting the shared logic into a third bean that both depend on, or redesign so the dependency flows one way. As a temporary measure annotate one injection point with @Lazy, or set spring.main.allow-circular-references=true only while debugging; neither is a real fix.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-009-ambiguous-mapping.log": [
+    {
+      "ruleId": "5.8",
+      "phase": "STARTUP",
+      "diagnosis": "Two controller methods are mapped to the same HTTP method and path, so Spring cannot decide which should handle a request and fails at startup with an ambiguous-mapping error; this often happens after copy-pasting a handler or merging branches.",
+      "fix": "Make the mappings unique by changing the path, the HTTP method, or by adding distinguishing conditions (params, headers, consumes, or produces) to one @RequestMapping. The error message names both conflicting methods so you can pick which to change.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-010-nosuchmethod-test-no-match.log": [
+    {
+      "ruleId": "10.1",
+      "phase": "STARTUP",
+      "diagnosis": "Two versions of the same library are on the classpath and the wrong one loaded at runtime; it lacks a method or class your code (or another library) was compiled against, producing NoSuchMethodError/NoClassDefFoundError. This is a dependency conflict, not a code bug.",
+      "fix": "Run 'mvn dependency:tree' or 'gradle dependencies' to find which dependencies pull in the conflicting versions, then exclude the unwanted transitive version and let the Spring Boot dependency BOM manage the correct one. Avoid pinning a library to a version the BOM does not expect.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/SOL-kafka-down-warn-spam.log": [
+    {
+      "ruleId": "14.1",
+      "phase": "STARTUP",
+      "diagnosis": "The Kafka client cannot reach any broker: it repeatedly logs that the connection to the bootstrap broker (node -1) could not be established, so no consumer or producer can work. This is almost always a wrong address, a broker that is down, or a network/firewall block rather than an application bug.",
+      "fix": "Confirm spring.kafka.bootstrap-servers points at a reachable host:port (e.g. broker:9092) and test it with 'nc -zv <host> <port>'. In Docker/Kubernetes/cloud, set the broker's advertised.listeners to an address the client can actually resolve (not an internal container name) and open the port in any firewall or security group; the client reconnects automatically once the broker is reachable.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
+  "real-world-logs/TESTBED-combined-run.log": [
+    {
+      "ruleId": "5.8",
+      "phase": "STARTUP",
+      "diagnosis": "Two controller methods are mapped to the same HTTP method and path, so Spring cannot decide which should handle a request and fails at startup with an ambiguous-mapping error; this often happens after copy-pasting a handler or merging branches.",
+      "fix": "Make the mappings unique by changing the path, the HTTP method, or by adding distinguishing conditions (params, headers, consumes, or produces) to one @RequestMapping. The error message names both conflicting methods so you can pick which to change.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "1.13",
+      "phase": "STARTUP",
+      "diagnosis": "Spring detected a circular dependency during startup: two or more beans require each other through constructor injection, so none can be fully created first and Spring fails fast rather than resolving the cycle.",
+      "fix": "Break the cycle by extracting the shared logic into a third bean that both depend on, or redesign so the dependency flows one way. As a temporary measure annotate one injection point with @Lazy, or set spring.main.allow-circular-references=true only while debugging; neither is a real fix.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "2.1",
+      "phase": "STARTUP",
+      "diagnosis": "Spring cannot find a bean of type MissingBeanContextTest$PaymentGateway; no class of that type is registered in the application context.",
+      "fix": "Annotate the MissingBeanContextTest$PaymentGateway class with @Component (or @Service / @Repository to match its role), or declare it as an @Bean in a @Configuration class, and confirm it lives inside the package tree scanned by your @SpringBootApplication class.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "2.2",
+      "phase": "STARTUP",
+      "diagnosis": "More than one bean matches the injected type NoUniqueBeanContextTest$Notifier, so Spring cannot decide which one to wire and fails; this typically happens when two implementations of the same interface are both registered as beans.",
+      "fix": "Mark the intended implementation @Primary, or disambiguate at the injection point with @Qualifier(\"beanName\") (the bean name defaults to the decapitalised class name). The error message lists the candidate bean names to choose from.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "5.5",
+      "phase": "RUNTIME",
+      "diagnosis": "Bean Validation (@Valid) rejected the request body because one or more field constraints failed, so Spring raised MethodArgumentNotValidException and returned 400; this is validation working as designed, and the message lists the rejected fields and the constraints they violated.",
+      "fix": "Handle it in a @RestControllerAdvice with @ExceptionHandler(MethodArgumentNotValidException.class), reading getBindingResult().getFieldErrors() to build a clean, structured 400 payload. Fix the offending request data, or adjust the constraint annotations on the DTO if the rule itself is wrong.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "7.2",
+      "phase": "RUNTIME",
+      "diagnosis": "Jackson recursed infinitely while serialising a bidirectional relationship where each side references the other (for example Order has a Customer and Customer has a List<Order>), producing a StackOverflowError because serialisation never terminates.",
+      "fix": "Break the cycle on one side: annotate the parent reference with @JsonManagedReference and the child back-reference with @JsonBackReference, or put @JsonIgnore on the side you do not need in the output. The cleanest long-term fix is to serialise DTOs instead of entities so the API shape is explicit.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "5.13",
+      "phase": "RUNTIME",
+      "diagnosis": "Spring MVC found no handler for the requested path and returned 404 (logged as 'No endpoint <method> <path>'). The controller may not be component-scanned, or the path or HTTP method may not match the mapping.",
+      "fix": "Check the exact path (including any server.servlet.context-path) and HTTP method against the controller's @GetMapping/@PostMapping, and confirm the controller is a scanned @RestController/@Controller bean.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    },
+    {
+      "ruleId": "3.1",
+      "phase": "STARTUP",
+      "diagnosis": "A @Value annotation references the property 'app.greeting.message', which is not defined in any active property source (application.properties/yml, profile files, environment variables, or command-line arguments).",
+      "fix": "Define app.greeting.message in application.properties or the active profile file, supply it as an environment variable or a -D JVM argument, or give the annotation a default with @Value(\"${app.greeting.message:defaultValue}\"); run with --debug to print which property sources are active.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ]
+}
