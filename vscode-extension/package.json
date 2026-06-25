@@ -96,6 +96,36 @@
           "type": "string",
           "default": "",
           "description": "Explicit log file to tail. Leave empty to auto-discover every logging.file.name in the workspace."
+        },
+        "springDebugger.enrichSource": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sharpen missing-bean and MapStruct diagnoses by inspecting your Java source (uses the workspace symbol provider; best with the Java extension installed)."
+        },
+        "springDebugger.actuator.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "For runtime errors, confirm the diagnosis against a running app's /actuator/health and /actuator/env. Off by default because it makes HTTP calls to your app."
+        },
+        "springDebugger.actuator.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "Base URL of the running application's Actuator endpoints."
+        },
+        "springDebugger.ollama.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "When no rule matches, ask a local Ollama model for a best-effort diagnosis. Off by default. Sends the error text to localhost only."
+        },
+        "springDebugger.ollama.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Base URL of the local Ollama instance."
+        },
+        "springDebugger.ollama.model": {
+          "type": "string",
+          "default": "llama3.2",
+          "description": "Ollama model name to use for the fallback diagnosis."
         }
       }
     },
