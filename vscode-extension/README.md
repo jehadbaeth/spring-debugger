@@ -25,11 +25,26 @@ project produces on disk instead:
 Console-only apps need a committed `logging.file.name` for the tailing path. Spring Boot 3.x uses
 `logging.file.name`, not the removed `logging.file`.
 
+## Sharper diagnoses (enrichment) and an optional LLM fallback
+
+- **Source enrichment** (`springDebugger.enrichSource`, on by default) inspects your Java source via
+  the workspace symbol provider to name the exact missing type, where it lives, and which annotation
+  fits, upgrading confidence. It is best with the Java extension (`redhat.java`) installed; without
+  it, this quietly no-ops and rules still fire.
+- **Actuator enrichment** (`springDebugger.actuator.enabled`, off by default) confirms a runtime
+  diagnosis against a running app's `/actuator/health` and `/actuator/env`. Off by default because it
+  makes HTTP calls to your app (`springDebugger.actuator.baseUrl`).
+- **LLM fallback** (`springDebugger.ollama.enabled`, off by default) asks a local Ollama model for a
+  best-effort diagnosis when no rule matches. Local only, never a cloud provider.
+
 ## Settings
 
 All under `springDebugger.*`: `enabled`, `minimumConfidence`, `maxHistory`, `showNotifications`,
-`watchTestResults`, `watchLogFile`, `logFilePath`.
+`watchTestResults`, `watchLogFile`, `logFilePath`, `enrichSource`, `actuator.enabled`,
+`actuator.baseUrl`, `ollama.enabled`, `ollama.baseUrl`, `ollama.model`.
 
 ## Privacy
 
-Fully offline. No network calls. History and settings stay in your workspace.
+Offline by default: with the default settings there are no network calls. The only outbound traffic
+is opt-in and local, the Actuator probe to your own app and the Ollama fallback to localhost. History
+and settings stay in your workspace.

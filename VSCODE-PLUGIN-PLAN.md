@@ -30,29 +30,28 @@ Every capability the IntelliJ plugin shipped through v0.10.0:
 7. Settings for confidence threshold, history size, notifications, and the capture toggles.
 8. Offline by design.
 
-What "parity" means here, stated precisely: the implemented work is **engine parity** over the rule
-catalog, proven card-for-card against the Java golden across 93 corpus logs. It is **not** full
-feature parity with the shipping IntelliJ plugin, because the enrichment layer and the LLM fallback
-are not yet ported (see below and M5). On the same input, VS Code may therefore show a diagnosis at a
-lower confidence or with less project-specific detail than IntelliJ.
+What "parity" means here, stated precisely: the rule engine is at **full card-for-card parity** with
+the Java engine, proven against the golden across 93 corpus logs, and as of M5 the enrichment layer
+and the LLM fallback are also ported. One genuine gap remains versus IntelliJ PSI (below).
 
-### Deferred or reduced parity (called out honestly)
+### Enrichment and LLM (implemented in M5, with one documented gap)
 
-- **Enrichment layer (PSI, Actuator, PropertyPrecedence) — deferred to M5.** The IntelliJ plugin runs
-  three enrichers at runtime: PSI inspects parsed Java source to confirm structural claims ("the
-  missing bean has no stereotype", "this type is a `@Mapper`", "the class is outside the component
-  scan tree") and upgrade confidence; Actuator confirms a live app's health; PropertyPrecedence
-  sharpens config messages. The TypeScript `ConsoleDiagnoser` is **rule-engine-only** today. PSI has
-  no VS Code equivalent and is the single largest gap (section 7); Actuator and PropertyPrecedence are
-  straightforward Node ports but are not done yet. Until then, rules fire from text signals at their
-  declared base confidence.
-- **LLM (Ollama) fallback — deferred to M5.** Not ported. The implemented settings deliberately omit
-  the `ollama.*` keys so the UI does not promise a feature that is absent.
-- **Confidence note.** Because background capture filters at `minimumConfidence` (default MEDIUM) on
-  *base* confidence, a diagnosis IntelliJ would surface only after an enrichment upgrade would stay
-  hidden in VS Code. In practice the current corpus has zero LOW-confidence cards (90 HIGH, 8
-  MEDIUM), so the default threshold hides nothing today; this matters only once LOW rules or
-  enrichment-dependent confidence enter the picture.
+- **PSI / source-aware enrichment — implemented via the workspace symbol provider.** The pure
+  PsiEnricher decision logic is ported verbatim (same unit tests). Class facts are resolved through
+  VS Code's stable `executeWorkspaceSymbolProvider` (backed by the Java extension when installed)
+  plus a lightweight source parser. It bails on ambiguity rather than risk a confidently-wrong
+  upgrade. **The one branch that cannot fire from VS Code resolution is the "third-party/library type
+  -> declare an `@Bean`" case**, because a source/symbol scan cannot prove a type is library code
+  (not-found is not the same as library). Without the Java extension installed, PSI enrichment simply
+  no-ops and rules still fire at base confidence.
+- **Actuator + property-precedence enrichment — implemented.** Ported 1:1; off by default
+  (`springDebugger.actuator.enabled`) because they make HTTP calls to the running app.
+- **LLM (Ollama) fallback — implemented.** Ported with the same safety contract (malformed reply ->
+  no card). Off by default. Deliberate divergence from Java: it fires at most once per `diagnoseAll`
+  (only when no rule matched) instead of per block, to avoid a burst of slow calls on each poll.
+- **Confidence note.** Background capture filters at `minimumConfidence` (default MEDIUM) on the
+  post-enrichment confidence. The current corpus has zero LOW-confidence cards (90 HIGH, 8 MEDIUM),
+  so the default threshold hides nothing today.
 - **Internal build tap.** IntelliJ taps its own JPS compiler. VS Code has no equivalent internal build; the build path is covered through tasks output and the log/test files instead.
 - **Reading the integrated terminal.** Not possible on either platform's new terminal; not attempted. See section 4.
 
@@ -237,13 +236,14 @@ VS Code settings via `contributes.configuration` in `package.json`, namespace `s
 | Watch test results | `springDebugger.watchTestResults` | true |
 | Watch log file | `springDebugger.watchLogFile` | true |
 | Log file path | `springDebugger.logFilePath` | "" (auto discover) |
-| LLM fallback enabled | `springDebugger.ollama.enabled` | _M5, not implemented yet_ |
-| Ollama base URL | `springDebugger.ollama.baseUrl` | _M5, not implemented yet_ |
-| Ollama model | `springDebugger.ollama.model` | _M5, not implemented yet_ |
+| Source enrichment (PSI) | `springDebugger.enrichSource` | true |
+| Actuator enrichment | `springDebugger.actuator.enabled` | false |
+| Actuator base URL | `springDebugger.actuator.baseUrl` | http://localhost:8080 |
+| LLM fallback enabled | `springDebugger.ollama.enabled` | false |
+| Ollama base URL | `springDebugger.ollama.baseUrl` | http://localhost:11434 |
+| Ollama model | `springDebugger.ollama.model` | llama3.2 |
 
-The rows above the LLM block are implemented. The `ollama.*` keys are intentionally absent from the
-current `contributes.configuration` until the LLM fallback is ported in M5, so the settings UI never
-offers a control that does nothing. The experimental new terminal toggle has no VS Code analogue and
+All rows are implemented as of M5. The experimental new terminal toggle has no VS Code analogue and
 is dropped.
 
 ---
@@ -278,9 +278,11 @@ Same posture as the IntelliJ plugin: fully offline by default, no network egress
 
 ## 13. Phased Roadmap
 
-Status as of 2026-06-25: **M0 through M4 are implemented and green** (139 TypeScript tests, the
-Java golden asserted in CI, the `.vsix` packages). M5 (source-aware enrichment and Run/Debug
-capture) is the deferred stretch. The extension lives in `vscode-extension/`.
+Status as of 2026-06-25: **M0 through M5 are implemented and green** (195 TypeScript tests, the Java
+golden asserted in CI, the `.vsix` packages). Enrichment (PSI via the workspace symbol provider,
+Actuator, property precedence) and the Ollama LLM fallback are ported; the only remaining gap is the
+library-type `@Bean` PsiEnricher branch (see section 1). Run/Debug-adapter capture and Marketplace
+publishing remain. The extension lives in `vscode-extension/`.
 
 Each milestone is shippable and has an exit test.
 
@@ -299,7 +301,11 @@ Auto discovery across modules, multi-file tailing by byte offset, run-boundary s
 **M4. Notifications, status, settings polish, packaging.** ✅ Done.
 Settings via contributes.configuration applied live, confidence filtering, status bar, first-of-burst notification, packageable `.vsix`, CI job that runs the parity test and uploads the artifact. Marketplace/Open VSX publish is a credentials step, not yet wired.
 
-**M5. Enrichment and Run/Debug capture (parity stretch).** Deferred.
+**M5. Enrichment and LLM fallback.** ✅ Done (enrichment + LLM). Ported the pure enricher decision
+logic and the Ollama fallback verbatim against the Java unit tests, added a VS Code EnrichmentContext
+(workspace symbol provider + source parser + actuator HTTP), and wired both into every capture path
+behind settings (PSI on, actuator/LLM off by default). Run/Debug-adapter capture (section 5.4)
+remains a future enhancement.
 Actuator and LLM in TS; debug adapter tracker capture (5.4); evaluate jdt.ls based PSI-equivalent enrichment. Exit: confidence upgrades demonstrably improve on at least the highest value checks, or a documented decision to stay text-only.
 
 ---
@@ -334,4 +340,11 @@ MVP through M4 is roughly **3 to 4 weeks**. Source aware enrichment is the long 
 - 2026-06-25: Plan created, originally recommending a shared headless Java core (Option A) pending a JVM-dependency decision.
 - 2026-06-25: **Decision reversed by the team.** Chose a native TypeScript engine over the shared Java core. Rationale: for VS Code a pure TypeScript extension is the simpler, more native integration with a lighter install and no process lifecycle to manage; the team accepts porting the logic. The recurring drift cost of a two-language engine is contained by keeping `spring-boot-rules.yaml` and the test fixtures as single shared sources and gating CI with a cross-engine parity suite (built first, in M0). The JVM dependency is no longer in play, so its open question is closed.
 - 2026-06-25: **Single repo, added artifact.** The VS Code extension is built in this repository and shipped as an additional release artifact (`.vsix` alongside the IntelliJ `.zip`) from the same tags. No separate repository.
+- 2026-06-25: **M5 implemented (enrichment + LLM).** Ported the pure enricher decision logic
+  (ActuatorReader, ActuatorEnricher, PropertyPrecedenceEnricher, PsiEnricher) and the Ollama fallback
+  verbatim against the Java unit tests. Added an async `diagnoseAllEnriched` path so the sync
+  `diagnoseAll` and the parity golden stay byte-unchanged. VS Code class resolution uses the stable
+  `executeWorkspaceSymbolProvider` with bail-on-ambiguity; the library-type `@Bean` branch cannot
+  fire from VS Code resolution (documented). LLM fires once per call (not per block) to avoid Ollama
+  bursts. PSI on by default; actuator and LLM off by default. 195 TS tests; golden untouched.
 - 2026-06-25: **M0–M4 implemented.** Engine ported to TypeScript and verified card-for-card against the Java golden over all 93 corpus logs; capture layer (test-results watcher, log tailer), history tree, webview card, settings, status bar, and `.vsix` packaging all in place. 139 TS tests + the Java golden assertion both green; CI runs both and fails on cross-engine drift. Open question 1 (parity scope) resolved: card fields exact, excerpt presence-only. Marketplace/Open VSX publishing and M5 enrichment remain.
