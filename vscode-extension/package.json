@@ -14,6 +14,18 @@
     "Other"
   ],
   "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "springDebugger.diagnosePasted",
+        "title": "Diagnose Pasted Output",
+        "category": "Spring Boot Debugger"
+      }
+    ]
+  },
   "scripts": {
     "copy-assets": "node scripts/copy-assets.js",
     "compile": "tsc -p ./",
