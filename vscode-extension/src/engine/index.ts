@@ -1,6 +1,16 @@
 // Public surface of the diagnosis engine. The extension and tests import from here.
 export { RuleCatalog } from './rule-catalog';
 export { ConsoleDiagnoser } from './console-diagnoser';
+export type { EnrichOptions } from './console-diagnoser';
+export type { Enricher, EnrichmentContext, DiagnosisEngine } from './enricher';
+export { ClassFacts } from './enricher';
+export { ActuatorEnricher } from './actuator-enricher';
+export { PropertyPrecedenceEnricher } from './property-precedence-enricher';
+export { PsiEnricher } from './psi-enricher';
+export { overallHealth, firstDownComponent, effectivePropertySource } from './actuator-reader';
+export { LlmDiagnosisEngine } from './llm-diagnosis-engine';
+export { OllamaHttpClient } from './ollama-http-client';
+export type { OllamaClient } from './ollama-http-client';
 export { RuleBasedClassifier } from './rule-based-classifier';
 export { BuildOutputAnalyzer, isSpringRelated } from './build-output-analyzer';
 export { extract } from './log-extractor';
