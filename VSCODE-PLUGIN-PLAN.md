@@ -255,24 +255,28 @@ Same posture as the IntelliJ plugin: fully offline by default, no network egress
 
 ## 13. Phased Roadmap
 
+Status as of 2026-06-25: **M0 through M4 are implemented and green** (139 TypeScript tests, the
+Java golden asserted in CI, the `.vsix` packages). M5 (source-aware enrichment and Run/Debug
+capture) is the deferred stretch. The extension lives in `vscode-extension/`.
+
 Each milestone is shippable and has an exit test.
 
-**M0. TypeScript engine port + parity harness (no UI yet).**
+**M0. TypeScript engine port + parity harness (no UI yet).** ✅ Done.
 Scaffold `vscode-extension/`, port the engine (classifier, extractor, segmenter, parser, run-boundary, property finder, models) to TypeScript reading the shared YAML, and stand up the cross-engine parity suite over the shared fixtures. Exit: parity suite green, that is the TS engine produces the same cards as the Java engine for every shared fixture, and the TS unit tests pass.
 
-**M1. VS Code skeleton + paste command.**
-Extension activates, loads the engine, implements Diagnose pasted output end to end with the Webview card. Exit: pasting the multi-module bootRun log shows the three expected cards.
+**M1. VS Code skeleton + paste command.** ✅ Done.
+Extension activates, loads the engine, implements Diagnose pasted output end to end with the Webview card. Exit met: the multi-module bootRun log yields the three expected cards (4.15 DB, 2.1 CloseApproach bean, 14.1 Kafka), verified through the engine.
 
-**M2. Test results watching.**
-File watcher (or polling fallback) over result XML, dedup, history TreeView. Exit: `./gradlew test` with a failing context test in the VS Code terminal produces a card with no configuration.
+**M2. Test results watching.** ✅ Done.
+Polling watcher (the safe default, since build/ is often watcher-excluded) over result XML, per-batch dedup, history TreeView in an activity-bar view. Exit met by the watcher unit tests (baseline, surface-after-baseline, no-replay, re-run, batch dedup).
 
-**M3. Log file tailing.**
-Auto discovery across modules, multi-file tailing, run boundary handling, settings. Exit: terminal `bootRun` with `logging.file.name` committed and infra down produces DB and Kafka cards, re-runs re-surface, stale runs ignored.
+**M3. Log file tailing.** ✅ Done.
+Auto discovery across modules, multi-file tailing by byte offset, run-boundary slicing, truncation reset, per-run dedup, logFilePath override. Exit met by the tailer unit tests including stale-run suppression and re-run re-surfacing.
 
-**M4. Notifications, status, settings polish, packaging.**
-Exit: installable `.vsix` published to Marketplace and Open VSX, attached to a repo release alongside the IntelliJ `.zip`.
+**M4. Notifications, status, settings polish, packaging.** ✅ Done.
+Settings via contributes.configuration applied live, confidence filtering, status bar, first-of-burst notification, packageable `.vsix`, CI job that runs the parity test and uploads the artifact. Marketplace/Open VSX publish is a credentials step, not yet wired.
 
-**M5. Enrichment and Run/Debug capture (parity stretch).**
+**M5. Enrichment and Run/Debug capture (parity stretch).** Deferred.
 Actuator and LLM in TS; debug adapter tracker capture (5.4); evaluate jdt.ls based PSI-equivalent enrichment. Exit: confidence upgrades demonstrably improve on at least the highest value checks, or a documented decision to stay text-only.
 
 ---
@@ -307,3 +311,4 @@ MVP through M4 is roughly **3 to 4 weeks**. Source aware enrichment is the long 
 - 2026-06-25: Plan created, originally recommending a shared headless Java core (Option A) pending a JVM-dependency decision.
 - 2026-06-25: **Decision reversed by the team.** Chose a native TypeScript engine over the shared Java core. Rationale: for VS Code a pure TypeScript extension is the simpler, more native integration with a lighter install and no process lifecycle to manage; the team accepts porting the logic. The recurring drift cost of a two-language engine is contained by keeping `spring-boot-rules.yaml` and the test fixtures as single shared sources and gating CI with a cross-engine parity suite (built first, in M0). The JVM dependency is no longer in play, so its open question is closed.
 - 2026-06-25: **Single repo, added artifact.** The VS Code extension is built in this repository and shipped as an additional release artifact (`.vsix` alongside the IntelliJ `.zip`) from the same tags. No separate repository.
+- 2026-06-25: **M0–M4 implemented.** Engine ported to TypeScript and verified card-for-card against the Java golden over all 93 corpus logs; capture layer (test-results watcher, log tailer), history tree, webview card, settings, status bar, and `.vsix` packaging all in place. 139 TS tests + the Java golden assertion both green; CI runs both and fails on cross-engine drift. Open question 1 (parity scope) resolved: card fields exact, excerpt presence-only. Marketplace/Open VSX publishing and M5 enrichment remain.

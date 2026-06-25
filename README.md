@@ -4,6 +4,8 @@ A zero-config IntelliJ plugin that watches your Spring Boot run, test, and build
 
 No reading cascading stack traces. No Googling the exception class name.
 
+> **Also available for VS Code.** A sibling extension lives in [`vscode-extension/`](vscode-extension) and ships as a `.vsix` from the same releases. It shares this repo's `spring-boot-rules.yaml` as the single source of truth; a cross-engine parity test ([`parity/golden.json`](parity)) keeps the TypeScript and Java engines producing identical diagnoses. See [VSCODE-PLUGIN-PLAN.md](VSCODE-PLUGIN-PLAN.md).
+
 ---
 
 ## Features
