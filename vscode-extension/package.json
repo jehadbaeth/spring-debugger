@@ -2,7 +2,7 @@
   "name": "spring-boot-debugger",
   "displayName": "Spring Boot Debugger",
   "description": "Watches Spring Boot run, test, and build output and explains errors in plain language. One sentence names the problem, one gives the fix.",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "publisher": "okapiorbits",
   "license": "Apache-2.0",
   "repository": {
