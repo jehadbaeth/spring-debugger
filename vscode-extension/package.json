@@ -4,7 +4,11 @@
   "description": "Watches Spring Boot run, test, and build output and explains errors in plain language. One sentence names the problem, one gives the fix.",
   "version": "0.10.0",
   "publisher": "okapiorbits",
-  "license": "SEE LICENSE IN ../LICENSE",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jehadbaeth/spring-debugger"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -52,6 +56,48 @@
           "name": "Diagnosis History"
         }
       ]
+    },
+    "configuration": {
+      "title": "Spring Boot Debugger",
+      "properties": {
+        "springDebugger.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Spring Boot Debugger. When off, no output is watched or diagnosed."
+        },
+        "springDebugger.minimumConfidence": {
+          "type": "string",
+          "enum": ["HIGH", "MEDIUM", "LOW"],
+          "default": "MEDIUM",
+          "description": "Only surface diagnoses at or above this confidence."
+        },
+        "springDebugger.maxHistory": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "description": "Maximum number of diagnoses kept in the history view."
+        },
+        "springDebugger.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a notification for the first error of a burst."
+        },
+        "springDebugger.watchTestResults": {
+          "type": "boolean",
+          "default": true,
+          "description": "Watch JUnit result files (Gradle build/test-results, Maven surefire-reports)."
+        },
+        "springDebugger.watchLogFile": {
+          "type": "boolean",
+          "default": true,
+          "description": "Tail Spring Boot log files discovered from logging.file.name."
+        },
+        "springDebugger.logFilePath": {
+          "type": "string",
+          "default": "",
+          "description": "Explicit log file to tail. Leave empty to auto-discover every logging.file.name in the workspace."
+        }
+      }
     },
     "menus": {
       "view/title": [
