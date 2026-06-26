@@ -431,6 +431,16 @@
       "excerptNonEmpty": true
     }
   ],
+  "fixtures/4.18-db-password-auth-failed.log": [
+    {
+      "ruleId": "4.18",
+      "phase": "STARTUP",
+      "diagnosis": "The database is reachable but rejected the credentials: the driver reports 'password authentication failed', so the username exists but the supplied password is wrong or empty. The usual cause is an unset environment variable (for example POSTGRES_PASSWORD) that the datasource password references, so the placeholder resolved to nothing, or a password that does not match what the database actually expects for that user.",
+      "fix": "Set the POSTGRES_PASSWORD environment variable that spring.datasource.password references, or put a hardcoded value in application-local.properties (spring.datasource.password=...), and make sure it matches the password the database expects for that user (for local development, the POSTGRES_PASSWORD in your docker-compose). Confirm the value lands in the active profile and is not blank.",
+      "confidence": "HIGH",
+      "excerptNonEmpty": true
+    }
+  ],
   "fixtures/4.2-no-datasource.log": [
     {
       "ruleId": "4.2",
