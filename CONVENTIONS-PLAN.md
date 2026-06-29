@@ -269,10 +269,25 @@ implementation plus authored rules extracted from the convention document the us
 
 ---
 
-## 11. Deferred, on purpose (not in v1)
+## 11. Shipped after v1, and what is still deferred
 
-- **Robot Framework rule.** The real target. Lands as a second `checkType` after the rails are proven
-  and after the user shares the convention document to extract rules from.
+**Shipped (Robot Framework, on the proven rails):** four single-file checks over a pure
+`RobotSuiteParser`, driven by `docs/robot-test-conventions.md`: `robotMetadataRequired`,
+`robotTestIdFormat`, `robotTestCaseDoc`, `robotTestCaseTags`. `.robot` is registered as a secondary
+plain-text file type so it is inspectable without a dedicated Robot plugin. The Test ID pattern is a
+param: the source document's normative format (`T-<Scope>-<NNNN>`) and its own examples (`T-API-1909`,
+`T-ID-007`) disagree, so the scope set is left adjustable rather than hard-coded.
+
+**Needs hands-on confirmation:** that `.robot` files actually highlight in a running IDE. The
+highlight machinery is unit-tested on plain-text PSI, but the fixture auto-detects `.robot` as text,
+so it cannot prove the real-IDE file-type association. If a dedicated Robot plugin is installed, our
+secondary association yields to it and the checks do not run on `.robot` (documented limitation).
+
+Still deferred:
+
+- **More Robot rules / directory-structure and test-data-naming checks.** These are path-based or
+  cross-file (JSON `<method>_<service>_<endpoint>.json`, `testdata/TD-ST-<NNN>/` layout) and were left
+  out of the single-file first pass.
 - **VS Code mirror.** The diagnoser ships in both IDEs. Conventions start IntelliJ only. Mirroring
   means a TypeScript check engine (VS Code has no PSI, so it reuses the existing pure Java source
   parser) feeding a `DiagnosticCollection`, plus a parity golden over source fixtures for single file
