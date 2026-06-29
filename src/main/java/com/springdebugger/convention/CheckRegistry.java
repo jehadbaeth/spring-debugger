@@ -1,6 +1,10 @@
 package com.springdebugger.convention;
 
 import com.springdebugger.convention.checks.JavadocRequiredCheck;
+import com.springdebugger.convention.checks.RobotMetadataRequiredCheck;
+import com.springdebugger.convention.checks.RobotTestCaseDocumentationCheck;
+import com.springdebugger.convention.checks.RobotTestCaseTagsCheck;
+import com.springdebugger.convention.checks.RobotTestIdFormatCheck;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +22,10 @@ public final class CheckRegistry {
     static {
         Map<String, ConventionCheck> m = new HashMap<>();
         register(m, new JavadocRequiredCheck());
+        register(m, new RobotMetadataRequiredCheck());
+        register(m, new RobotTestIdFormatCheck());
+        register(m, new RobotTestCaseDocumentationCheck());
+        register(m, new RobotTestCaseTagsCheck());
         CHECKS = Map.copyOf(m);
     }
 

@@ -31,3 +31,56 @@ rules:
     message: "Public method '{{method}}' is missing a Javadoc comment."
     fix: "Add a Javadoc comment above '{{method}}' describing what it does, its parameters, and its return value."
     status: DONE
+
+  # ── Robot Framework integration test conventions (GMS SM / SensSched) ──────
+  # Source: docs/robot-test-conventions.md. All four checks parse a single .robot suite file.
+
+  - id: "ROBOT_METADATA_REQUIRED"
+    name: "Robot suite must declare required Metadata"
+    checkType: "robotMetadataRequired"
+    enabled: true
+    severity: WARNING
+    appliesTo: [robot]
+    params:
+      requiredMetadata: ["Test ID", "Test Description", "Pass-Fail Criteria"]
+    message: "Robot suite is missing the required '{{field}}' metadata in *** Settings ***."
+    fix: "Add 'Metadata    {{field}}    <value>' to the *** Settings *** section so the test is traceable in the report."
+    status: DONE
+
+  - id: "ROBOT_TEST_ID_FORMAT"
+    name: "Robot Test ID must match T-<Scope>-<NNNN>"
+    checkType: "robotTestIdFormat"
+    enabled: true
+    severity: WARNING
+    appliesTo: [robot]
+    params:
+      # Normative format from the convention document. The document's own examples (T-API-1909,
+      # T-ID-007) diverge from this, so the pattern is a param: widen the scope set or digit count
+      # here if the team actually uses other scopes.
+      idPattern: "T-(SYS|ST|CA|FG|RE)-\\d{4}"
+    message: "Test ID '{{value}}' does not match the required format T-<Scope>-<NNNN> (scope SYS, ST, CA, FG, or RE)."
+    fix: "Rename the Test ID to T-<Scope>-<four digit number>, for example T-ST-0001, unique within its scope."
+    status: DONE
+
+  - id: "ROBOT_TESTCASE_DOC"
+    name: "Robot test case must have [Documentation]"
+    checkType: "robotTestCaseDoc"
+    enabled: true
+    severity: WARNING
+    appliesTo: [robot]
+    message: "Test case '{{test}}' has no [Documentation]."
+    fix: "Add a [Documentation] entry to '{{test}}' describing the step number, title, step description, and observation."
+    status: DONE
+
+  - id: "ROBOT_TESTCASE_TAGS"
+    name: "Robot test case must have a requirement [Tags]"
+    checkType: "robotTestCaseTags"
+    enabled: true
+    severity: WARNING
+    appliesTo: [robot]
+    params:
+      requireRequirementTag: true
+      requirementPattern: "REQ-.+"
+    message: "Test case '{{test}}' has no [Tags] linking it to a requirement (REQ-...)."
+    fix: "Add [Tags] to '{{test}}' including the requirement id, for example: [Tags]    REQ-XYZ-123."
+    status: DONE

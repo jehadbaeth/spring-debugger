@@ -1,6 +1,8 @@
 package com.springdebugger.convention;
 
 import com.intellij.codeInspection.LocalInspectionTool;
+import com.intellij.codeInspection.LocalQuickFix;
+import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.psi.PsiElementVisitor;
@@ -28,12 +30,12 @@ public final class ConventionInspection extends LocalInspectionTool {
         return new PsiElementVisitor() {
             @Override
             public void visitFile(@NotNull PsiFile file) {
-                runRules(file, holder);
+                runRules(file, holder, isOnTheFly);
             }
         };
     }
 
-    private void runRules(PsiFile file, ProblemsHolder holder) {
+    private void runRules(PsiFile file, ProblemsHolder holder, boolean isOnTheFly) {
         SpringDebuggerSettings settings = SpringDebuggerSettings.getInstance();
         if (!settings.isConventionsEnabled()) return;
 
@@ -48,7 +50,13 @@ public final class ConventionInspection extends LocalInspectionTool {
 
             for (Violation v : check.check(file, rule)) {
                 String text = v.fix() == null || v.fix().isEmpty() ? v.message() : v.message() + " " + v.fix();
-                holder.registerProblem(v.anchor(), text, highlightType(rule.getSeverity()));
+                ProblemHighlightType type = highlightType(rule.getSeverity());
+                ProblemDescriptor descriptor = v.range() != null
+                        ? holder.getManager().createProblemDescriptor(
+                                v.anchor(), v.range(), text, type, isOnTheFly, (LocalQuickFix[]) null)
+                        : holder.getManager().createProblemDescriptor(
+                                v.anchor(), text, isOnTheFly, (LocalQuickFix[]) null, type);
+                holder.registerProblem(descriptor);
             }
         }
     }
