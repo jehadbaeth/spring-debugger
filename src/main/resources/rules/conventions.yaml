@@ -1,0 +1,33 @@
+# Code convention rules. Separate from spring-boot-rules.yaml (the log diagnoser): these are
+# proactive, source-file checks surfaced as IntelliJ inspection highlights, not log diagnoses.
+#
+# Each rule selects a checkType implemented in com.springdebugger.convention.checks and is turned
+# on or off with the `enabled` flag (the user can also override per rule in Settings).
+#
+# Schema:
+#   id          unique key, used in tests and the settings UI
+#   name        human label shown in the settings list
+#   checkType   selects the implementation; must resolve in CheckRegistry or load fails
+#   enabled     authored default on/off switch
+#   severity    WARNING | WEAK_WARNING | ERROR (maps to IntelliJ highlight severity)
+#   appliesTo   file types the rule runs against (by extension); empty means all
+#   params      free-form map passed to the check; each checkType documents its own params
+#   message     plain-language statement of the violation; {{method}} is interpolated
+#   fix         plain-language fix; {{method}} is interpolated
+#   status      DONE means active and validated (mirrors the diagnoser convention)
+
+rules:
+
+  - id: "JAVADOC_METHOD"
+    name: "Javadoc required on methods"
+    checkType: "javadocRequired"
+    enabled: true
+    severity: WARNING
+    appliesTo: [java]
+    params:
+      visibilities: [public]   # only methods with these visibilities require Javadoc
+      skipOverrides: true      # methods annotated @Override are exempt
+      skipAccessors: true      # trivial getters and setters are exempt
+    message: "Public method '{{method}}' is missing a Javadoc comment."
+    fix: "Add a Javadoc comment above '{{method}}' describing what it does, its parameters, and its return value."
+    status: DONE
