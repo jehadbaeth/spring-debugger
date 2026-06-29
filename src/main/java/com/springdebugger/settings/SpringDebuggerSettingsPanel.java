@@ -5,10 +5,14 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UI;
+import com.springdebugger.convention.ConventionCatalog;
+import com.springdebugger.convention.ConventionRule;
 import com.springdebugger.model.Confidence;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Settings panel shown inside the IDE Preferences dialog under Tools > Spring Boot Debugger.
@@ -28,6 +32,9 @@ public final class SpringDebuggerSettingsPanel {
     private JBCheckBox watchLogFileBox;
     private JBTextField logFilePathField;
     private JBCheckBox experimentalTerminalBox;
+    private JBCheckBox conventionsEnabledBox;
+    private final Map<String, JBCheckBox> conventionRuleBoxes = new LinkedHashMap<>();
+    private final ConventionCatalog conventionCatalog = ConventionCatalog.load();
 
     public SpringDebuggerSettingsPanel() {
         build();
@@ -108,6 +115,30 @@ public final class SpringDebuggerSettingsPanel {
         llmEnabledBox.addActionListener(e -> updateLlmFieldState());
         updateLlmFieldState();
 
+        // ── Code conventions section ─────────────────────────────────────────
+        addSectionHeader(root, "Code conventions", row++);
+
+        conventionsEnabledBox = new JBCheckBox("Enable code convention checks");
+        addRow(root, conventionsEnabledBox, row++);
+
+        for (ConventionRule rule : conventionCatalog.all()) {
+            JBCheckBox box = new JBCheckBox(rule.getName());
+            box.setBorder(JBUI.Borders.emptyLeft(16));
+            conventionRuleBoxes.put(rule.getId(), box);
+            addRow(root, box, row++);
+        }
+
+        JBLabel conventionsNote = new JBLabel(
+            "<html><i>These flag convention violations as inspection warnings in the editor,<br>" +
+            "in Analyze &gt; Inspect Code, and at commit time. Per-rule choices here override<br>" +
+            "the catalog defaults.</i></html>");
+        conventionsNote.setForeground(UIManager.getColor("Label.disabledForeground"));
+        addRow(root, conventionsNote, row++);
+
+        // Individual rules are only meaningful when the feature is enabled.
+        conventionsEnabledBox.addActionListener(e -> updateConventionFieldState());
+        updateConventionFieldState();
+
         // filler
         GridBagConstraints filler = new GridBagConstraints();
         filler.gridx = 0; filler.gridy = row; filler.weighty = 1.0;
@@ -184,7 +215,19 @@ public final class SpringDebuggerSettingsPanel {
             || watchTestResultsBox.isSelected() != s.isWatchTestResults()
             || watchLogFileBox.isSelected() != s.isWatchLogFile()
             || !logFilePathField.getText().equals(s.getLogFilePath())
-            || experimentalTerminalBox.isSelected() != s.isExperimentalNewTerminal();
+            || experimentalTerminalBox.isSelected() != s.isExperimentalNewTerminal()
+            || conventionsEnabledBox.isSelected() != s.isConventionsEnabled()
+            || conventionRulesModified(s);
+    }
+
+    private boolean conventionRulesModified(SpringDebuggerSettings s) {
+        for (ConventionRule rule : conventionCatalog.all()) {
+            JBCheckBox box = conventionRuleBoxes.get(rule.getId());
+            if (box != null && box.isSelected() != s.isConventionRuleEnabled(rule.getId(), rule.isEnabled())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void apply() {
@@ -201,6 +244,11 @@ public final class SpringDebuggerSettingsPanel {
         s.setWatchLogFile(watchLogFileBox.isSelected());
         s.setLogFilePath(logFilePathField.getText().trim());
         s.setExperimentalNewTerminal(experimentalTerminalBox.isSelected());
+        s.setConventionsEnabled(conventionsEnabledBox.isSelected());
+        for (ConventionRule rule : conventionCatalog.all()) {
+            JBCheckBox box = conventionRuleBoxes.get(rule.getId());
+            if (box != null) s.setConventionRuleEnabled(rule.getId(), box.isSelected());
+        }
     }
 
     public void reset() {
@@ -217,8 +265,14 @@ public final class SpringDebuggerSettingsPanel {
         watchLogFileBox.setSelected(s.isWatchLogFile());
         logFilePathField.setText(s.getLogFilePath());
         experimentalTerminalBox.setSelected(s.isExperimentalNewTerminal());
+        conventionsEnabledBox.setSelected(s.isConventionsEnabled());
+        for (ConventionRule rule : conventionCatalog.all()) {
+            JBCheckBox box = conventionRuleBoxes.get(rule.getId());
+            if (box != null) box.setSelected(s.isConventionRuleEnabled(rule.getId(), rule.isEnabled()));
+        }
         updateLlmFieldState();
         updateLogFieldState();
+        updateConventionFieldState();
     }
 
     private void updateLlmFieldState() {
@@ -229,5 +283,10 @@ public final class SpringDebuggerSettingsPanel {
 
     private void updateLogFieldState() {
         logFilePathField.setEnabled(watchLogFileBox.isSelected());
+    }
+
+    private void updateConventionFieldState() {
+        boolean on = conventionsEnabledBox.isSelected();
+        for (JBCheckBox box : conventionRuleBoxes.values()) box.setEnabled(on);
     }
 }

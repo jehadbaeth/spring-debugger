@@ -9,6 +9,9 @@ import com.springdebugger.model.Confidence;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @State(
     name = "SpringDebuggerSettings",
     storages = @Storage("spring-debugger.xml")
@@ -29,6 +32,11 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
         public boolean watchLogFile = true;
         public String logFilePath = "";
         public boolean experimentalNewTerminal = false;
+        // Code convention validation. conventionsEnabled is the whole-feature kill switch.
+        // conventionRuleEnabled holds per-rule overrides keyed by rule id; absence means "use the
+        // catalog's authored default".
+        public boolean conventionsEnabled = true;
+        public Map<String, Boolean> conventionRuleEnabled = new HashMap<>();
     }
 
     private State state = new State();
@@ -85,4 +93,19 @@ public final class SpringDebuggerSettings implements PersistentStateComponent<Sp
 
     public boolean isExperimentalNewTerminal() { return state.experimentalNewTerminal; }
     public void setExperimentalNewTerminal(boolean on) { state.experimentalNewTerminal = on; }
+
+    public boolean isConventionsEnabled() { return state.conventionsEnabled; }
+    public void setConventionsEnabled(boolean on) { state.conventionsEnabled = on; }
+
+    /** Effective on/off for a rule: the user override if set, otherwise the catalog default. */
+    public boolean isConventionRuleEnabled(String ruleId, boolean catalogDefault) {
+        Boolean override = state.conventionRuleEnabled.get(ruleId);
+        return override != null ? override : catalogDefault;
+    }
+
+    public void setConventionRuleEnabled(String ruleId, boolean enabled) {
+        state.conventionRuleEnabled.put(ruleId, enabled);
+    }
+
+    public Map<String, Boolean> getConventionRuleOverrides() { return state.conventionRuleEnabled; }
 }
