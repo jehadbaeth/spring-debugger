@@ -26,6 +26,7 @@ No reading cascading stack traces. No Googling the exception class name.
 - **Copy Fix / Copy Diagnosis** — one-click clipboard for both sentences
 - **Settings panel** — minimum confidence threshold, history size, balloon notifications, tool window focus
 - **Phase-aware matching** — COMPILE rules do not fire on STARTUP logs; RUNTIME rules do not fire on TEST logs
+- **Code convention checks** — a separate, proactive analysis layer (think FindBugs/SonarLint, but with rules we define) that flags convention violations as inspection warnings in the editor, in *Analyze > Inspect Code*, and at commit time. Driven by its own catalog ([`conventions.yaml`](src/main/resources/rules/conventions.yaml)); each rule turns on and off in Settings. The first rule requires Javadoc on public methods
 - **Offline by design** — no network calls leave your machine; the optional LLM fallback uses local Ollama only
 
 ---
@@ -368,6 +369,7 @@ Remaining before v1.0:
 - **LLM live round-trip** — exercise a real Ollama call (CI has no model; protocol and safety contract are unit-tested)
 - **Live IDE confirmation** — a few GUI-only scenarios still need a human at the IDE (see PLAN open items)
 - **Property-precedence enricher** — wire `ActuatorReader.effectivePropertySource` (parsing exists) into a consumer
+- **Convention checks** — Robot Framework template rule (next checkType, from the team convention doc); mirror the convention engine to VS Code; optional `LocalQuickFix` to insert a Javadoc stub (see [CONVENTIONS-PLAN.md](CONVENTIONS-PLAN.md))
 - **Stretch** — grow the corpus further; Kotlin support (currently out of scope)
 
 ---
