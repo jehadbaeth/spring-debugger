@@ -61,5 +61,17 @@
             displayType="BALLOON"
             isLogByDefault="true"/>
 
+        <!-- Code convention validation: a single catalog-driven inspection. Runs on the fly as you
+             type, in batch via Analyze > Inspect Code, and at commit time. Rule on/off lives in
+             conventions.yaml and the plugin settings, not the inspection profile. -->
+        <localInspection
+            language="JAVA"
+            shortName="SpringDebuggerConventions"
+            displayName="Team code conventions"
+            groupName="Spring Boot Debugger"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.springdebugger.convention.ConventionInspection"/>
+
     </extensions>
 </idea-plugin>
