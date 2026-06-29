@@ -61,13 +61,32 @@
             displayType="BALLOON"
             isLogByDefault="true"/>
 
+        <!-- Treat .robot as plain text so convention checks can inspect it even with no dedicated
+             Robot Framework plugin installed. Secondary association: yields to such a plugin. -->
+        <fileType
+            name="Robot Framework (Spring Boot Debugger)"
+            implementationClass="com.springdebugger.convention.robot.RobotFileType"
+            fieldName="INSTANCE"
+            extensions="robot"/>
+
         <!-- Code convention validation: a single catalog-driven inspection. Runs on the fly as you
              type, in batch via Analyze > Inspect Code, and at commit time. Rule on/off lives in
-             conventions.yaml and the plugin settings, not the inspection profile. -->
+             conventions.yaml and the plugin settings, not the inspection profile. The same
+             implementation is registered for Java and for plain text (which covers .robot); each
+             rule self-filters by file type via its appliesTo. -->
         <localInspection
             language="JAVA"
-            shortName="SpringDebuggerConventions"
-            displayName="Team code conventions"
+            shortName="SpringDebuggerConventionsJava"
+            displayName="Team code conventions (Java)"
+            groupName="Spring Boot Debugger"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.springdebugger.convention.ConventionInspection"/>
+
+        <localInspection
+            language="TEXT"
+            shortName="SpringDebuggerConventionsText"
+            displayName="Team code conventions (Robot/text)"
             groupName="Spring Boot Debugger"
             enabledByDefault="true"
             level="WARNING"
