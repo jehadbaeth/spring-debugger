@@ -54,12 +54,12 @@ rules:
     severity: WARNING
     appliesTo: [robot]
     params:
-      # Normative format from the convention document. The document's own examples (T-API-1909,
-      # T-ID-007) diverge from this, so the pattern is a param: widen the scope set or digit count
-      # here if the team actually uses other scopes.
-      idPattern: "T-(SYS|ST|CA|FG|RE)-\\d{4}"
-    message: "Test ID '{{value}}' does not match the required format T-<Scope>-<NNNN> (scope SYS, ST, CA, FG, or RE)."
-    fix: "Rename the Test ID to T-<Scope>-<four digit number>, for example T-ST-0001, unique within its scope."
+      # Scope set confirmed by the team: RE, FG, CA (four digit number). The convention document's
+      # examples (T-API-1909, T-ID-007) use other scopes/digits and are intentionally rejected.
+      # The pattern is a param: adjust here if the scope set or digit count changes.
+      idPattern: "T-(RE|FG|CA)-\\d{4}"
+    message: "Test ID '{{value}}' does not match the required format T-<Scope>-<NNNN> (scope RE, FG, or CA)."
+    fix: "Rename the Test ID to T-<Scope>-<four digit number>, for example T-FG-0004, unique within its scope."
     status: DONE
 
   - id: "ROBOT_TESTCASE_DOC"

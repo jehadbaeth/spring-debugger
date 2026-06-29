@@ -23,7 +23,7 @@ public class RobotConventionInspectionTest extends LightJavaCodeInsightFixtureTe
     public void testMissingDocumentationHighlightsTestCaseName() {
         myFixture.configureByText("Suite.robot", String.join("\n",
                 "*** Settings ***",
-                "Metadata    Test ID    T-ST-0001",
+                "Metadata    Test ID    T-FG-0001",
                 "Metadata    Test Description    desc",
                 "Metadata    Pass-Fail Criteria    crit",
                 "",

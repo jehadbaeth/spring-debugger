@@ -64,8 +64,15 @@ public class RobotChecksPsiTest extends LightJavaCodeInsightFixtureTestCase {
 
     public void testCompliantTestIdPasses() {
         List<String> msgs = messages("ROBOT_TEST_ID_FORMAT",
-                suite("Metadata    Test ID    T-ST-0016\n", "T\n    Log    hi\n"));
+                suite("Metadata    Test ID    T-FG-0004\n", "T\n    Log    hi\n"));
         assertTrue(msgs.isEmpty());
+    }
+
+    public void testWrongScopeTestIdFails() {
+        // T-ST-0001 is well-formed but ST is not in the team's scope set (RE, FG, CA).
+        List<String> msgs = messages("ROBOT_TEST_ID_FORMAT",
+                suite("Metadata    Test ID    T-ST-0001\n", "T\n    Log    hi\n"));
+        assertEquals(1, msgs.size());
     }
 
     // ── ROBOT_TESTCASE_DOC ───────────────────────────────────────────────────
