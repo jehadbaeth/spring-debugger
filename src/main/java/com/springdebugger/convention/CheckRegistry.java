@@ -1,10 +1,18 @@
 package com.springdebugger.convention;
 
+import com.springdebugger.convention.checks.ApiVersionPathCheck;
+import com.springdebugger.convention.checks.EntityStringFieldBoundedCheck;
+import com.springdebugger.convention.checks.FieldInjectionForbiddenCheck;
 import com.springdebugger.convention.checks.JavadocRequiredCheck;
+import com.springdebugger.convention.checks.NoSystemOutErrCheck;
+import com.springdebugger.convention.checks.OptionalUsageCheck;
+import com.springdebugger.convention.checks.RequestBodyRequiresValidCheck;
 import com.springdebugger.convention.checks.RobotMetadataRequiredCheck;
 import com.springdebugger.convention.checks.RobotTestCaseDocumentationCheck;
 import com.springdebugger.convention.checks.RobotTestCaseTagsCheck;
 import com.springdebugger.convention.checks.RobotTestIdFormatCheck;
+import com.springdebugger.convention.checks.ServiceClassNamingCheck;
+import com.springdebugger.convention.checks.TransactionalMisplacedCheck;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +34,14 @@ public final class CheckRegistry {
         register(m, new RobotTestIdFormatCheck());
         register(m, new RobotTestCaseDocumentationCheck());
         register(m, new RobotTestCaseTagsCheck());
+        register(m, new FieldInjectionForbiddenCheck());
+        register(m, new NoSystemOutErrCheck());
+        register(m, new OptionalUsageCheck());
+        register(m, new TransactionalMisplacedCheck());
+        register(m, new EntityStringFieldBoundedCheck());
+        register(m, new RequestBodyRequiresValidCheck());
+        register(m, new ServiceClassNamingCheck());
+        register(m, new ApiVersionPathCheck());
         CHECKS = Map.copyOf(m);
     }
 

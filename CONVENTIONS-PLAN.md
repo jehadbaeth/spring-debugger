@@ -283,6 +283,34 @@ highlight machinery is unit-tested on plain-text PSI, but the fixture auto-detec
 so it cannot prove the real-IDE file-type association. If a dedicated Robot plugin is installed, our
 secondary association yields to it and the checks do not run on `.robot` (documented limitation).
 
+**Shipped (Spring Boot layering conventions, GMS Service Modules):** eight single-file Java PSI
+checks driven by `docs/spring-boot-conventions.md`: `fieldInjectionForbidden`, `noSystemOutErr`,
+`optionalUsage` (two rules, `target: parameter` and `target: field`), `transactionalMisplaced`,
+`entityStringFieldBounded`, `requestBodyRequiresValid`, `serviceClassNaming`, `apiVersionPath`.
+
+Only the mechanically checkable subset of that document was implemented. Most of the document is
+package-layout and layering *architecture* (what belongs in `service/` vs `repository/` vs
+`rest_api/`, "entities never returned from services", "controllers only call services") which needs
+cross-file symbol resolution and is out of scope for the same reason section 11's "cross file
+checks" item is deferred: no parity golden exists for non-deterministic IDE symbol resolution.
+Semantic conventions (`readOnly = true` for reads, `Instant` over `LocalDateTime`, "Optional
+unwrapped with `orElseThrow` in the service layer") were also left out: they require understanding
+intent, not just syntax, and would be false-positive magnets. `.get()` on `Optional` was considered
+and skipped for the same reason as `.get()` in general: it needs receiver-type resolution.
+
+All eight rules default to `WEAK_WARNING`, not `WARNING`, and their `message`/`fix` text is phrased
+as a suggestion ("consider...") rather than a mandate, because these are team preferences the user
+explicitly asked to keep suggestive rather than restrictive — unlike the Javadoc and Robot rules,
+which stayed at their original severity. Annotation names, the entity-bounding annotation set, the
+`@Service` suffix, and the API path pattern are all `params`, adjustable per team the same way the
+Robot Test ID scope is, without a code change.
+
+Two checks are annotation-matching, not resolution-based, by necessity: PSI test fixtures built with
+`LightJavaCodeInsightFixtureTestCase` have no Spring/Jakarta classpath, so a qualified-name match
+would silently pass in tests while catching real violations in a real project (or vice versa).
+Matching by simple annotation name keeps behavior identical in both, following the same pattern
+`JavadocRequiredCheck` already uses for `@Override`.
+
 Still deferred:
 
 - **More Robot rules / directory-structure and test-data-naming checks.** These are path-based or

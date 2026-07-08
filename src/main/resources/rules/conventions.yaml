@@ -84,3 +84,119 @@ rules:
     message: "Test case '{{test}}' has no [Tags] linking it to a requirement (REQ-...)."
     fix: "Add [Tags] to '{{test}}' including the requirement id, for example: [Tags]    REQ-XYZ-123."
     status: DONE
+
+  # ── Spring Boot conventions (GMS Service Modules) ──────────────────────────
+  # Source: docs/spring-boot-conventions.md. These are team preferences, not hard rules, so they
+  # default to WEAK_WARNING (a hint, not a warning) and can be disabled per team in Settings. Each
+  # message is phrased as a suggestion, not a mandate.
+
+  - id: "FIELD_INJECTION_FORBIDDEN"
+    name: "Prefer constructor injection over field injection"
+    checkType: "fieldInjectionForbidden"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    params:
+      annotations: ["Autowired", "Inject"]
+    message: "Field '{{field}}' is injected directly; constructor injection is preferred."
+    fix: "Move '{{field}}' into a constructor parameter so it is injected via the constructor instead."
+    status: DONE
+
+  - id: "NO_SYSTEM_OUT_ERR"
+    name: "Prefer a logger over System.out / System.err"
+    checkType: "noSystemOutErr"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    message: "System.{{member}} is used here; a logger is preferred over console output."
+    fix: "Replace System.{{member}} with the appropriate logger call, e.g. log.debug(...)."
+    status: DONE
+
+  - id: "OPTIONAL_AS_PARAMETER"
+    name: "Avoid Optional as a method parameter"
+    checkType: "optionalUsage"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    params:
+      target: "parameter"
+    message: "Parameter '{{name}}' is typed as Optional; Optional parameters are best avoided."
+    fix: "Consider an overload or a plain nullable/required parameter for '{{name}}' instead of Optional."
+    status: DONE
+
+  - id: "OPTIONAL_AS_FIELD"
+    name: "Avoid Optional as a field type"
+    checkType: "optionalUsage"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    params:
+      target: "field"
+    message: "Field '{{name}}' is typed as Optional; storing Optional in a field is best avoided."
+    fix: "Consider a plain nullable field for '{{name}}' and reserve Optional for method return types."
+    status: DONE
+
+  - id: "TRANSACTIONAL_MISPLACED"
+    name: "Keep @Transactional on service methods only"
+    checkType: "transactionalMisplaced"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    params:
+      transactionalAnnotations: ["Transactional"]
+      excludedAnnotations: ["RestController", "Repository"]
+    message: "'{{member}}' is annotated @Transactional but its class is a @{{marker}}; @Transactional is intended for service methods."
+    fix: "Consider moving the transactional logic in '{{member}}' into a @Service method instead."
+    status: DONE
+
+  - id: "ENTITY_STRING_FIELD_BOUNDED"
+    name: "Bound String fields on JPA entities"
+    checkType: "entityStringFieldBounded"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    params:
+      entityAnnotation: "Entity"
+      boundingAnnotations: ["Size", "Column", "Convert"]
+    message: "Entity field '{{field}}' is an unbounded String."
+    fix: "Consider bounding '{{field}}' with @Size, a @Column(length=...), or an AttributeConverter."
+    status: DONE
+
+  - id: "REQUEST_BODY_REQUIRES_VALID"
+    name: "Pair @RequestBody with @Valid"
+    checkType: "requestBodyRequiresValid"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    params:
+      bodyAnnotation: "RequestBody"
+      validationAnnotations: ["Valid", "Validated"]
+    message: "@RequestBody parameter '{{parameter}}' has no @Valid; its bean validation will not run."
+    fix: "Consider adding @Valid next to @RequestBody on '{{parameter}}' to trigger DTO validation."
+    status: DONE
+
+  - id: "SERVICE_CLASS_NAMING"
+    name: "Name @Service classes with a Service suffix"
+    checkType: "serviceClassNaming"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    params:
+      serviceAnnotation: "Service"
+      suffix: "Service"
+    message: "'{{class}}' is annotated @Service but its name does not end with '{{suffix}}'."
+    fix: "Consider renaming '{{class}}' to end with '{{suffix}}' to match the team naming convention."
+    status: DONE
+
+  - id: "API_VERSION_PATH"
+    name: "Version controller base paths (/api/vN/...)"
+    checkType: "apiVersionPath"
+    enabled: true
+    severity: WEAK_WARNING
+    appliesTo: [java]
+    params:
+      mappingAnnotations: ["RequestMapping"]
+      pathPattern: "^/api/v\\d+(/.*)?$"
+    message: "'{{class}}' maps to '{{path}}', which is not a versioned /api/vN/... path."
+    fix: "Consider versioning the base path of '{{class}}', e.g. /api/v1{{path}}."
+    status: DONE
