@@ -17,6 +17,8 @@ export interface Settings {
   ollamaEnabled: boolean;
   ollamaBaseUrl: string;
   ollamaModel: string;
+  conventionsEnabled: boolean;
+  conventionRuleOverrides: Record<string, boolean>;
 }
 
 export function readSettings(): Settings {
@@ -35,5 +37,7 @@ export function readSettings(): Settings {
     ollamaEnabled: c.get<boolean>('ollama.enabled', false),
     ollamaBaseUrl: c.get<string>('ollama.baseUrl', 'http://localhost:11434').trim(),
     ollamaModel: c.get<string>('ollama.model', 'llama3.2').trim(),
+    conventionsEnabled: c.get<boolean>('conventions.enabled', true),
+    conventionRuleOverrides: c.get<Record<string, boolean>>('conventions.ruleOverrides', {}),
   };
 }

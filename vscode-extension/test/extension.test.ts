@@ -20,6 +20,20 @@ function syntheticCard(confidence: DiagnosisCard['confidence'], ruleId = 'X'): D
   return { ruleId, phase: 'STARTUP', diagnosisSentence: `${ruleId} diag`, fixSentence: 'fix', confidence, excerpt: 'e' };
 }
 
+function fakeDocument(fileName: string, text: string) {
+  return {
+    fileName,
+    uri: { toString: () => fileName },
+    getText: () => text,
+    positionAt(offset: number) {
+      const before = text.slice(0, offset);
+      const line = before.split('\n').length - 1;
+      const character = before.length - before.lastIndexOf('\n') - 1;
+      return { line, character };
+    },
+  };
+}
+
 describe('extension activation and glue', () => {
   beforeEach(() => {
     control.reset();
@@ -82,6 +96,60 @@ describe('extension activation and glue', () => {
     control.configStore.watchLogFile = false;
     control.fireConfigChange();
     expect(control.statusBar?.tooltip).toContain('paste only');
+  });
+
+  describe('convention diagnostics', () => {
+    it('publishes a diagnostic for an unbounded Javadoc violation on open', () => {
+      const doc = fakeDocument('Sample.java', 'public class Sample { public void doWork() {} }');
+      control.fireOpenDoc(doc);
+
+      const diags = control.diagnostics.get('Sample.java') ?? [];
+      expect(diags.length).toBeGreaterThan(0);
+      expect(diags.some((d) => d.code === 'JAVADOC_METHOD')).toBe(true);
+    });
+
+    it('re-runs and clears diagnostics as the document changes', () => {
+      const doc = fakeDocument('Sample.java', 'public class Sample { public void doWork() {} }');
+      control.fireOpenDoc(doc);
+      expect(control.diagnostics.get('Sample.java')?.length).toBeGreaterThan(0);
+
+      const fixed = fakeDocument('Sample.java', 'public class Sample { /** Does it. */ public void doWork() {} }');
+      control.fireChangeDoc(fixed);
+      expect(control.diagnostics.get('Sample.java')).toEqual([]);
+    });
+
+    it('clears diagnostics when the document closes', () => {
+      const doc = fakeDocument('Sample.java', 'public class Sample { public void doWork() {} }');
+      control.fireOpenDoc(doc);
+      expect(control.diagnostics.get('Sample.java')?.length).toBeGreaterThan(0);
+      control.fireCloseDoc(doc);
+      expect(control.diagnostics.has('Sample.java')).toBe(false);
+    });
+
+    it('ignores files that are not Java or Robot', () => {
+      const doc = fakeDocument('notes.txt', 'public class Sample { public void doWork() {} }');
+      control.fireOpenDoc(doc);
+      expect(control.diagnostics.has('notes.txt')).toBe(false);
+    });
+
+    it('honors a per-rule override that disables a violated rule', () => {
+      control.configStore['conventions.ruleOverrides'] = { JAVADOC_METHOD: false };
+      control.fireConfigChange();
+
+      const doc = fakeDocument('Sample.java', 'public class Sample { public void doWork() {} }');
+      control.fireOpenDoc(doc);
+      expect(control.diagnostics.get('Sample.java')).toEqual([]);
+    });
+
+    it('clears all convention diagnostics when the feature is disabled', () => {
+      const doc = fakeDocument('Sample.java', 'public class Sample { public void doWork() {} }');
+      control.fireOpenDoc(doc);
+      expect(control.diagnostics.get('Sample.java')?.length).toBeGreaterThan(0);
+
+      control.configStore['conventions.enabled'] = false;
+      control.fireConfigChange();
+      expect(control.diagnostics.has('Sample.java')).toBe(false);
+    });
   });
 
   describe('background capture', () => {

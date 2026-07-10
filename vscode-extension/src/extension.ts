@@ -17,13 +17,16 @@ import {
 } from './engine';
 import { DiagnosisHistory } from './history';
 import { filterByConfidence } from './confidence';
-import { readSettings } from './settings';
+import { readSettings, Settings } from './settings';
 import { TestResultsWatcher } from './capture/test-results-watch';
 import { LogTailWatcher } from './capture/log-tail-watch';
-import { loadBundledCatalog } from './runtime/catalog';
+import { loadBundledCatalog, loadBundledConventions } from './runtime/catalog';
 import { VscodeEnrichmentContext } from './runtime/vscode-enrichment-context';
 import { renderCardsHtml } from './ui/card-html';
 import { HistoryTreeProvider } from './ui/history-tree';
+import { ConventionCatalog } from './convention/convention-catalog';
+import { ConventionRule } from './convention/convention-rule';
+import { ConventionFinding, runConventions } from './convention/convention-engine';
 
 let diagnoser: ConsoleDiagnoser | undefined;
 let history: DiagnosisHistory | undefined;
@@ -33,6 +36,8 @@ let panel: vscode.WebviewPanel | undefined;
 let status: vscode.StatusBarItem | undefined;
 let ruleCount = 0;
 let activeContext: vscode.ExtensionContext | undefined;
+let conventionsCatalog: ConventionCatalog | undefined;
+let conventionDiagnostics: vscode.DiagnosticCollection | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   try {
@@ -46,6 +51,14 @@ export function activate(context: vscode.ExtensionContext): void {
     return;
   }
 
+  try {
+    conventionsCatalog = loadBundledConventions(context.extensionPath);
+  } catch (err) {
+    vscode.window.showErrorMessage(
+      'Spring Boot Debugger: failed to load the convention catalog. ' + String(err),
+    );
+  }
+
   activeContext = context;
   history = new DiagnosisHistory(readSettings().maxHistory);
   const tree = new HistoryTreeProvider(history);
@@ -56,27 +69,87 @@ export function activate(context: vscode.ExtensionContext): void {
   watcher = new TestResultsWatcher((text) => diagnose(text), () => workspaceBase());
   tailer = new LogTailWatcher((text) => diagnose(text), () => resolveLogFiles());
 
+  conventionDiagnostics = vscode.languages.createDiagnosticCollection('springDebuggerConventions');
+
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('springDebuggerHistory', tree),
     status,
+    conventionDiagnostics,
     vscode.commands.registerCommand('springDebugger.diagnosePasted', () => diagnosePasted(context)),
     vscode.commands.registerCommand('springDebugger.openCard', (card: DiagnosisCard) =>
       showCards(context, [card]),
     ),
     vscode.commands.registerCommand('springDebugger.clearHistory', () => history?.clear()),
+    vscode.workspace.onDidOpenTextDocument((doc) => refreshConventions(doc)),
+    vscode.workspace.onDidChangeTextDocument((e) => refreshConventions(e.document)),
+    vscode.workspace.onDidCloseTextDocument((doc) => conventionDiagnostics?.delete(doc.uri)),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('springDebugger')) applyConfig(context);
+      if (e.affectsConfiguration('springDebugger')) {
+        applyConfig(context);
+        refreshAllConventions();
+      }
     }),
     { dispose: () => stopCapture() },
   );
 
   applyConfig(context);
+  refreshAllConventions();
 }
 
 export function deactivate(): void {
   stopCapture();
   panel?.dispose();
   panel = undefined;
+}
+
+/** True if `rule` should run: a per-rule setting override wins, otherwise the catalog default. */
+function isConventionRuleEnabled(rule: ConventionRule, s: Settings): boolean {
+  const override = s.conventionRuleOverrides[rule.id];
+  return override === undefined ? rule.enabled : override;
+}
+
+/** Runs every applicable convention rule against one document and publishes its diagnostics. */
+function refreshConventions(doc: vscode.TextDocument): void {
+  if (!conventionDiagnostics) return;
+  if (!conventionsCatalog) return;
+
+  const s = readSettings();
+  if (!s.conventionsEnabled) {
+    conventionDiagnostics.delete(doc.uri);
+    return;
+  }
+
+  const ext = doc.fileName.slice(doc.fileName.lastIndexOf('.') + 1).toLowerCase();
+  if (ext !== 'java' && ext !== 'robot') return;
+
+  const text = doc.getText();
+  const findings = runConventions(text, doc.fileName, conventionsCatalog, (rule) =>
+    isConventionRuleEnabled(rule, s),
+  );
+  conventionDiagnostics.set(doc.uri, findings.map((f) => toDiagnostic(doc, f)));
+}
+
+function refreshAllConventions(): void {
+  for (const doc of vscode.workspace.textDocuments) refreshConventions(doc);
+}
+
+function toDiagnostic(doc: vscode.TextDocument, finding: ConventionFinding): vscode.Diagnostic {
+  const range = new vscode.Range(doc.positionAt(finding.range.start), doc.positionAt(finding.range.end));
+  const diagnostic = new vscode.Diagnostic(range, finding.message, severityOf(finding.severity));
+  diagnostic.source = 'Spring Boot Debugger';
+  diagnostic.code = finding.ruleId;
+  return diagnostic;
+}
+
+function severityOf(severity: string): vscode.DiagnosticSeverity {
+  switch (severity) {
+    case 'ERROR':
+      return vscode.DiagnosticSeverity.Error;
+    case 'WEAK_WARNING':
+      return vscode.DiagnosticSeverity.Information;
+    default:
+      return vscode.DiagnosticSeverity.Warning;
+  }
 }
 
 /** (Re)applies all settings: history cap, capture gating, and the status bar. */

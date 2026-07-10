@@ -3,6 +3,8 @@
 // the webview, and the tree, without a real extension host. The `control` object is the test seam.
 
 type Listener = (e: { affectsConfiguration: (section: string) => boolean }) => void;
+type DocListener = (doc: unknown) => void;
+type ChangeDocListener = (e: { document: unknown }) => void;
 
 interface ShownMessage {
   kind: 'info' | 'warning' | 'error';
@@ -54,6 +56,23 @@ export const control = {
   treeProviders: new Map<string, unknown>(),
   statusBar: undefined as undefined | { text: string; tooltip?: string; shown: boolean },
   panels: [] as Array<{ html: string; revealed: boolean; disposed: boolean }>,
+  textDocuments: [] as unknown[],
+  diagnostics: new Map<string, Diagnostic[]>(),
+  openDocListeners: [] as DocListener[],
+  changeDocListeners: [] as ChangeDocListener[],
+  closeDocListeners: [] as DocListener[],
+  fireOpenDoc(doc: unknown): void {
+    if (!this.textDocuments.includes(doc)) this.textDocuments.push(doc);
+    for (const l of this.openDocListeners) l(doc);
+  },
+  fireChangeDoc(doc: unknown): void {
+    if (!this.textDocuments.includes(doc)) this.textDocuments.push(doc);
+    for (const l of this.changeDocListeners) l({ document: doc });
+  },
+  fireCloseDoc(doc: unknown): void {
+    this.textDocuments = this.textDocuments.filter((d) => d !== doc);
+    for (const l of this.closeDocListeners) l(doc);
+  },
   reset(): void {
     this.commands.clear();
     this.configStore = {};
@@ -66,6 +85,11 @@ export const control = {
     this.treeProviders.clear();
     this.statusBar = undefined;
     this.panels = [];
+    this.textDocuments = [];
+    this.diagnostics.clear();
+    this.openDocListeners = [];
+    this.changeDocListeners = [];
+    this.closeDocListeners = [];
   },
   async run(commandId: string, ...args: unknown[]): Promise<unknown> {
     const cb = this.commands.get(commandId);
@@ -165,6 +189,9 @@ export const workspace = {
   get workspaceFolders() {
     return control.workspaceFolders;
   },
+  get textDocuments() {
+    return control.textDocuments;
+  },
   getConfiguration() {
     return {
       get<T>(key: string, def: T): T {
@@ -177,11 +204,55 @@ export const workspace = {
     control.configListeners.push(l);
     return { dispose: () => {} };
   },
+  onDidOpenTextDocument(l: DocListener) {
+    control.openDocListeners.push(l);
+    return { dispose: () => {} };
+  },
+  onDidChangeTextDocument(l: ChangeDocListener) {
+    control.changeDocListeners.push(l);
+    return { dispose: () => {} };
+  },
+  onDidCloseTextDocument(l: DocListener) {
+    control.closeDocListeners.push(l);
+    return { dispose: () => {} };
+  },
   async findFiles() {
     return [];
   },
   async openTextDocument() {
     return { getText: () => '' };
+  },
+};
+
+class Position {
+  constructor(public line: number, public character: number) {}
+}
+
+class Range {
+  constructor(public start: Position, public end: Position) {}
+}
+
+class Diagnostic {
+  source?: string;
+  code?: string;
+  constructor(public range: Range, public message: string, public severity: number) {}
+}
+
+export const DiagnosticSeverity = { Error: 0, Warning: 1, Information: 2, Hint: 3 };
+
+export const languages = {
+  createDiagnosticCollection() {
+    return {
+      set(uri: { toString(): string }, diagnostics: Diagnostic[]) {
+        control.diagnostics.set(uri.toString(), diagnostics);
+      },
+      delete(uri: { toString(): string }) {
+        control.diagnostics.delete(uri.toString());
+      },
+      dispose() {
+        control.diagnostics.clear();
+      },
+    };
   },
 };
 
@@ -196,4 +267,4 @@ export const env = {
   },
 };
 
-export { EventEmitter, TreeItem, ThemeIcon, MarkdownString };
+export { EventEmitter, TreeItem, ThemeIcon, MarkdownString, Position, Range, Diagnostic };

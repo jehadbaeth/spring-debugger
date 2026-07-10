@@ -2,7 +2,7 @@
   "name": "spring-boot-debugger",
   "displayName": "Spring Boot Debugger",
   "description": "Watches Spring Boot run, test, and build output and explains errors in plain language. One sentence names the problem, one gives the fix.",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "publisher": "okapiorbits",
   "license": "Apache-2.0",
   "repository": {
@@ -126,6 +126,19 @@
           "type": "string",
           "default": "llama3.2",
           "description": "Ollama model name to use for the fallback diagnosis."
+        },
+        "springDebugger.conventions.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable code convention validation (Javadoc, Robot Framework, Spring Boot rules). When off, no convention warnings are shown."
+        },
+        "springDebugger.conventions.ruleOverrides": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "Per-rule on/off overrides for convention validation, keyed by rule id (e.g. \"JAVADOC_METHOD\"). Absent keys use the rule's catalog default."
         }
       }
     },

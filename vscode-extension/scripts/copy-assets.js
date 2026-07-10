@@ -6,14 +6,16 @@ const fs = require('fs');
 const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
-const src = path.join(repoRoot, 'src', 'main', 'resources', 'rules', 'spring-boot-rules.yaml');
 const destDir = path.join(__dirname, '..', 'assets', 'rules');
-const dest = path.join(destDir, 'spring-boot-rules.yaml');
-
-if (!fs.existsSync(src)) {
-  console.error('Canonical rule catalog not found at ' + src);
-  process.exit(1);
-}
 fs.mkdirSync(destDir, { recursive: true });
-fs.copyFileSync(src, dest);
-console.log('Copied rule catalog -> ' + path.relative(process.cwd(), dest));
+
+for (const name of ['spring-boot-rules.yaml', 'conventions.yaml']) {
+  const src = path.join(repoRoot, 'src', 'main', 'resources', 'rules', name);
+  const dest = path.join(destDir, name);
+  if (!fs.existsSync(src)) {
+    console.error('Canonical rule catalog not found at ' + src);
+    process.exit(1);
+  }
+  fs.copyFileSync(src, dest);
+  console.log('Copied rule catalog -> ' + path.relative(process.cwd(), dest));
+}
